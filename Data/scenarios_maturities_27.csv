@@ -1,4 +1,4 @@
-﻿Scenario,Mode,Fuel,2020,2025,2030,2040,2050
+Scenario,Mode,Fuel,2020,2025,2030,2040,2050
 HHH,Road,Diesel,100,100,100,100,100
 HHH,Road,Battery electric,0.2,2,15,45,80
 HHH,Road,Hydrogen,0,0,10,25,50
@@ -458,7 +458,3 @@ LLL,Rail,Electric train (CL),100,100,100,100,100
 LLL,Rail,Battery train,0,0,2,5,10
 LLL,Rail,Hydrogen,0,0,0,0,0
 LLL,Rail,Biodiesel,0,0,0,0,0
-
-
-**Processexited-ReturnCode:0**
-PressEntertoexitterminal

@@ -3,6 +3,7 @@
 Created on Mon Nov  8 13:31:04 2021
 
 @author: ingvi
+Adapted by Ruben
 """
 
 "Example data"
@@ -18,6 +19,8 @@ from itertools import islice
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 # from FreightTransportModel.Utils import plot_all_graphs  #FreightTransportModel.
+
+#os.chdir('//home.ansatt.ntnu.no/egbertrv/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
 
 arr_aggr_dict = {}
 
@@ -37,11 +40,11 @@ class TransportSets():
     def read_dataframes(self):
 
         if self.run_file=="main":
-            self.pwc_aggr = pd.read_csv(r'Data/pwc_riktig')
-            self.city_coords = pd.read_csv(r'Data/zonal_aggregation_steffen.csv', sep=';')
+            self.pwc_aggr = pd.read_csv(r'Data/demand.csv')
+            self.city_coords = pd.read_csv(r'Data/zonal_aggregation.csv', sep=';')
         if self.run_file=="sets":
-            self.pwc_aggr = pd.read_csv(r'pwc_riktig')
-            self.city_coords = pd.read_csv(r'zonal_aggregation_steffen.csv', sep=';')
+            self.pwc_aggr = pd.read_csv(r'demand.csv')
+            self.city_coords = pd.read_csv(r'zonal_aggregation.csv', sep=';')
 
     def uniq(self, lst):
         last = object()
@@ -232,13 +235,13 @@ class TransportSets():
                         self.A_PAIRS[l, f].append((l[1], l[0], l[2], f, l[3]))
         
         if self.run_file == "main":
-            rail_cap_data = pd.read_excel(r'Data/Ferdig - cap + invest.xlsx', sheet_name='Cap rail')
-            inv_rail_data = pd.read_excel(r'Data/Ferdig - cap + invest.xlsx', sheet_name='Invest rail')
-            inv_sea_data = pd.read_excel(r'Data/Ferdig - cap + invest.xlsx', sheet_name='Invest sea')
+            rail_cap_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Cap rail')
+            inv_rail_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest rail')
+            inv_sea_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest sea')
         if self.run_file == "sets":
-            rail_cap_data = pd.read_excel(r'Ferdig - cap + invest.xlsx', sheet_name='Cap rail')
-            inv_rail_data = pd.read_excel(r'Ferdig - cap + invest.xlsx', sheet_name='Invest rail')
-            inv_sea_data = pd.read_excel(r'Ferdig - cap + invest.xlsx', sheet_name='Invest sea')
+            rail_cap_data = pd.read_excel(r'capacities_and_investments.xlsx', sheet_name='Cap rail')
+            inv_rail_data = pd.read_excel(r'capacities_and_investments.xlsx', sheet_name='Invest rail')
+            inv_sea_data = pd.read_excel(r'capacities_and_investments.xlsx', sheet_name='Invest sea')
         
         self.L_LINKS_DIR = []
         for (i, j, m, r) in self.L_LINKS:
@@ -284,9 +287,9 @@ class TransportSets():
 
         self.K_LINK_PATHS = []
         if self.run_file == "main":
-            all_generated_paths = pd.read_csv(r'Data/all_generated_paths.csv',converters={'paths': eval})
+            all_generated_paths = pd.read_csv(r'Data/generated_paths.csv',converters={'paths': eval})
         if self.run_file == "sets":
-            all_generated_paths = pd.read_csv(r'all_generated_paths.csv', converters={'paths': eval})
+            all_generated_paths = pd.read_csv(r'generated_paths.csv', converters={'paths': eval})
         for index, row in all_generated_paths.iterrows():
             elem = row['paths']
             self.K_LINK_PATHS.append(elem)
@@ -304,13 +307,13 @@ class TransportSets():
         # ---------------------------------------
 
         if self.run_file == "main":
-            sea_distance = pd.read_excel(r'Data/Avstander (1).xlsx', sheet_name='Sea')
-            road_distance = pd.read_excel(r'Data/Avstander (1).xlsx', sheet_name='Road')
-            rail_distance = pd.read_excel(r'Data/Avstander (1).xlsx', sheet_name='Rail')
+            sea_distance = pd.read_excel(r'Data/distances.xlsx', sheet_name='Sea')
+            road_distance = pd.read_excel(r'Data/distances.xlsx', sheet_name='Road')
+            rail_distance = pd.read_excel(r'Data/distances.xlsx', sheet_name='Rail')
         if self.run_file == "sets":
-            sea_distance = pd.read_excel(r'Avstander (1).xlsx', sheet_name='Sea')
-            road_distance = pd.read_excel(r'Avstander (1).xlsx', sheet_name='Road')
-            rail_distance = pd.read_excel(r'Avstander (1).xlsx', sheet_name='Rail')
+            sea_distance = pd.read_excel(r'distances.xlsx', sheet_name='Sea')
+            road_distance = pd.read_excel(r'distances.xlsx', sheet_name='Road')
+            rail_distance = pd.read_excel(r'distances.xlsx', sheet_name='Rail')
 
         road_distances_dict = {}
         sea_distances_dict = {}
@@ -418,14 +421,14 @@ class TransportSets():
         "Parameters"
 
         if self.run_file == "main":
-            cost_data = pd.read_excel(r'Data/Costs.xlsx', sheet_name='Costs')
+            cost_data = pd.read_excel(r'Data/transport_costs_emissions.xlsx', sheet_name='Costs')
             #maturity_data = pd.read_excel(r'Data/DATA_INPUT.xlsx', sheet_name='MaturityLimits')
         if self.run_file == "sets":
-            cost_data = pd.read_excel(r'Costs.xlsx', sheet_name='Costs')
+            cost_data = pd.read_excel(r'transport_costs_emissions.xlsx', sheet_name='Costs')
         if self.run_file == "main":
-            emission_data = pd.read_excel(r'Data/DATA_INPUT.xlsx', sheet_name='EmissionCap')
+            emission_data = pd.read_excel(r'Data/emission_cap.xlsx', sheet_name='emission_cap')
         if self.run_file == "sets":
-            emission_data = pd.read_excel(r'DATA_INPUT.xlsx', sheet_name='EmissionCap')
+            emission_data = pd.read_excel(r'emission_cap.xlsx', sheet_name='emission_cap')
         if self.emission_reduction == "100%":
             self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap']))
         elif self.emission_reduction == "75%":
@@ -438,9 +441,9 @@ class TransportSets():
             self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap4']))
 
         if self.run_file == "main":
-            transfer_data = pd.read_excel(r'Data/DATA_INPUT.xlsx', sheet_name='TransferCosts')
+            transfer_data = pd.read_excel(r'Data/transport_costs_emissions.xlsx', sheet_name='transfer_costs')
         if self.run_file == "sets":
-            transfer_data = pd.read_excel(r'DATA_INPUT.xlsx', sheet_name='TransferCosts')
+            transfer_data = pd.read_excel(r'transport_costs_emissions.xlsx', sheet_name='transfer_costs')
             
         self.PATH_TYPES = ["sea-rail", "sea-road", "rail-road"]
         self.MULTI_MODE_PATHS_DICT = {q: [] for q in self.PATH_TYPES}
@@ -587,9 +590,9 @@ class TransportSets():
         # --------------------------
         # --------------------------
         if self.run_file == "sets":
-           charging_data = pd.read_excel(r'charging_data.xlsx')#, sheet_name='Sea')
+           charging_data = pd.read_excel(r'capacities_and_investments.xlsx', sheet_name='Invest road')
         if self.run_file == "main":
-           charging_data = pd.read_excel(r'Data/charging_data.xlsx')#, sheet_name='Sea')
+           charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest road')
         self.CHARGING_TECH = []
         for index,row in charging_data.iterrows():
             #print((row["Mode"],row["Fuel"]))
@@ -628,9 +631,9 @@ class TransportSets():
 
         
         if self.run_file == "main":
-            scen_data = pd.read_csv(r'Data/NY Maturities, 27 scenarios.csv')
+            scen_data = pd.read_csv(r'Data/scenarios_maturities_27.csv')
         if self.run_file == "sets":
-            scen_data = pd.read_csv(r'NY Maturities, 27 scenarios.csv')
+            scen_data = pd.read_csv(r'scenarios_maturities_27.csv')
         
         
         
@@ -782,6 +785,6 @@ class TransportSets():
 
 
 
-#x = TransportSets("HHH",1,"avg_costs","100%")
+x = TransportSets("HHH",1,"avg_costs","100%")
 
 

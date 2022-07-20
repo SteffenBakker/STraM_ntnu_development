@@ -187,13 +187,13 @@ print("Number of paths after adding Sverige-route, should be +8: ",len(data.K_LI
 
 
 if data.run_file == "main":
-    sea_distance = pd.read_excel(r'Data/Avstander (1).xlsx', sheet_name='Sea')
-    road_distance = pd.read_excel(r'Data/Avstander (1).xlsx', sheet_name='Road')
-    rail_distance = pd.read_excel(r'Data/Avstander (1).xlsx', sheet_name='Rail')
+    sea_distance = pd.read_excel(r'Data/distances.xlsx', sheet_name='Sea')
+    road_distance = pd.read_excel(r'Data/distances.xlsx', sheet_name='Road')
+    rail_distance = pd.read_excel(r'Data/distances.xlsx', sheet_name='Rail')
 if data.run_file == "sets":
-    sea_distance = pd.read_excel(r'Avstander (1).xlsx', sheet_name='Sea')
-    road_distance = pd.read_excel(r'Avstander (1).xlsx', sheet_name='Road')
-    rail_distance = pd.read_excel(r'Avstander (1).xlsx', sheet_name='Rail')
+    sea_distance = pd.read_excel(r'distances.xlsx', sheet_name='Sea')
+    road_distance = pd.read_excel(r'distances.xlsx', sheet_name='Road')
+    rail_distance = pd.read_excel(r'distances.xlsx', sheet_name='Rail')
 
 #Right order for distance matrix
 city_number_dict = {"Oslo": 0,
@@ -501,4 +501,7 @@ for k in data.K_LINK_PATHS:  # Could be K_paths or K_link_paths, doesnt matter
     dataset_all_paths = dataset_all_paths.append(all_series_path, ignore_index=True)
     dataset_paths_list.append(k)
 
-# dataset_all_paths.to_csv("all_promising_paths.csv")
+# dataset_all_paths.to_csv("all_promising_paths.csv") 
+# RvB: I think the file name "all_promising_paths.csv" corresponds to (now) file Data/generated_paths.csv, but this is not completely clear. 
+# The latter file was originally called all_generated_paths.csv, so not the same as what is written above
+

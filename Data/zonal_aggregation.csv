@@ -1,4 +1,4 @@
-﻿NTP_zone_nr;NTP_zone_name;Google_maps_position;Lat;Long;Stef_zone_nr;Stef_zone_name;google_maps;Lat2;Long2;AIM_zone_nr
+NTP_zone_nr;NTP_zone_name;Google_maps_position;Lat;Long;Stef_zone_nr;Stef_zone_name;google_maps;Lat2;Long2;AIM_zone_nr
 1;Akershus og Oslo;Oslo;59.9133301;10.7389701;1;Viken/Oslo;Oslo;59.9133301;10.7389701;1
 2;Ytre Østfold;Halden;59.0680555;11.537191;1;Viken/Oslo;Oslo;59.9133301;10.7389701;
 3;Indre Østfold;Askim;57.6341437;11.9379446;1;Viken/Oslo;Oslo;59.9133301;10.7389701;
