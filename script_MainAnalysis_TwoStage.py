@@ -39,7 +39,7 @@ extract_data = False #this is quite slow (the postprocessing with all the write 
 set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
 manual_instance = {'Manual':{'sol_met':'ef',
-                                    'scen_struct':5,
+                                    'scen_struct':6,
                                     'co2_price':1,
                                     'costs':'avg',
                                     'probs':'equal',
