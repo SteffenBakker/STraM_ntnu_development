@@ -1,63 +1,63 @@
 ,from,to,Mode,fuel,route,time_period,weight,scenario
-0,Oslo,Skien,Road,Battery electric,1,2025,158.9606410811447,AVG2
-1,Trondheim,Hamar,Road,Biogas,1,2025,15.136461689134464,AVG2
-2,Trondheim,Ålesund,Road,Biogas,1,2025,3.273921832169698,AVG2
-3,Hamar,Ålesund,Road,Biogas,1,2025,25.103033554193615,AVG2
-4,Oslo,Bergen,Road,Biogas,1,2025,52.48658292450222,AVG2
-5,Bergen,Stavanger,Road,Hydrogen,1,2030,33.381624603722884,AVG2
-6,Bergen,Stavanger,Road,Biogas,1,2030,32.38226298190054,AVG2
-7,Oslo,Skien,Road,Battery electric,1,2030,251.15802583277716,AVG2
-8,Trondheim,Hamar,Road,Hydrogen,1,2030,79.90776343044386,AVG2
-9,Trondheim,Hamar,Road,Biogas,1,2030,12.78617494362932,AVG2
-10,Kristiansand,Skien,Road,Hydrogen,1,2030,54.43689011336349,AVG2
-11,Kristiansand,Stavanger,Road,Hydrogen,1,2030,54.43689011336349,AVG2
-12,Trondheim,Bodø,Road,Hydrogen,1,2030,1.9239644170455643,AVG2
-13,Oslo,Hamar,Road,Battery electric,1,2030,384.85701080677086,AVG2
-14,Trondheim,Ålesund,Road,Hydrogen,1,2030,108.08527087432138,AVG2
-15,Hamar,Ålesund,Road,Hydrogen,1,2030,50.745286003631776,AVG2
-16,Oslo,Bergen,Road,Hydrogen,1,2030,97.08231044410738,AVG2
-17,Oslo,Bergen,Road,Biogas,1,2030,210.83156207447018,AVG2
-18,Oslo,Skien,Road,Hydrogen,1,2040,766.4574452998595,AVG2
-19,Oslo,Skien,Road,Biogas,1,2040,85.50948298036386,AVG2
-20,Trondheim,Hamar,Road,Biogas,1,2040,10.403515944154211,AVG2
-21,Kristiansand,Skien,Road,Biogas,1,2040,4.2889659907438045,AVG2
-22,Kristiansand,Stavanger,Road,Biogas,1,2040,45.39547936162484,AVG2
-23,Oslo,Hamar,Road,Hydrogen,1,2040,65.5425547001407,AVG2
-24,Oslo,Hamar,Road,Biogas,1,2040,66.15428750174209,AVG2
-25,Trondheim,Ålesund,Road,Biogas,1,2040,118.44266148982149,AVG2
-26,Hamar,Ålesund,Road,Biogas,1,2040,6.1878697134500555,AVG2
-27,Oslo,Skien,Road,Biogas,1,2050,163.5569780791204,AVG2
-28,Kristiansand,Skien,Road,Biogas,1,2050,125.19771181568794,AVG2
-29,Oslo,Hamar,Road,Hydrogen,1,2050,1069.07323377465,AVG2
-30,Oslo,Hamar,Road,Biogas,1,2050,142.8630471232908,AVG2
-31,Oslo,Skien,Road,Battery electric,1,2025,158.9606410811447,AVG22
-32,Trondheim,Hamar,Road,Biogas,1,2025,15.136461689134464,AVG22
-33,Trondheim,Ålesund,Road,Biogas,1,2025,3.273921832169698,AVG22
-34,Hamar,Ålesund,Road,Biogas,1,2025,25.103033554193615,AVG22
-35,Oslo,Bergen,Road,Biogas,1,2025,52.48658292450222,AVG22
-36,Bergen,Stavanger,Road,Hydrogen,1,2030,33.381624603722415,AVG22
-37,Bergen,Stavanger,Road,Biogas,1,2030,32.38226298190191,AVG22
-38,Oslo,Skien,Road,Battery electric,1,2030,251.15802583277716,AVG22
-39,Trondheim,Hamar,Road,Hydrogen,1,2030,79.90776343044386,AVG22
-40,Trondheim,Hamar,Road,Biogas,1,2030,12.78617494362932,AVG22
-41,Kristiansand,Skien,Road,Hydrogen,1,2030,54.43689011336332,AVG22
-42,Kristiansand,Stavanger,Road,Hydrogen,1,2030,54.43689011336332,AVG22
-43,Trondheim,Bodø,Road,Hydrogen,1,2030,1.9239644170455643,AVG22
-44,Oslo,Hamar,Road,Battery electric,1,2030,384.85701080677086,AVG22
-45,Trondheim,Ålesund,Road,Hydrogen,1,2030,108.08527087432078,AVG22
-46,Hamar,Ålesund,Road,Hydrogen,1,2030,50.745286003631776,AVG22
-47,Oslo,Bergen,Road,Hydrogen,1,2030,97.08231044410883,AVG22
-48,Oslo,Bergen,Road,Biogas,1,2030,210.83156207446876,AVG22
-49,Oslo,Skien,Road,Hydrogen,1,2040,766.4574452998604,AVG22
-50,Oslo,Skien,Road,Biogas,1,2040,85.5094829803626,AVG22
-51,Trondheim,Hamar,Road,Biogas,1,2040,10.403515944154208,AVG22
-52,Kristiansand,Skien,Road,Biogas,1,2040,4.288965990743813,AVG22
-53,Kristiansand,Stavanger,Road,Biogas,1,2040,45.395479361625114,AVG22
-54,Oslo,Hamar,Road,Hydrogen,1,2040,65.54255470013928,AVG22
-55,Oslo,Hamar,Road,Biogas,1,2040,66.15428750174453,AVG22
-56,Trondheim,Ålesund,Road,Biogas,1,2040,118.44266148982149,AVG22
-57,Hamar,Ålesund,Road,Biogas,1,2040,6.187869713450057,AVG22
-58,Oslo,Skien,Road,Biogas,1,2050,163.5569780791209,AVG22
-59,Kristiansand,Skien,Road,Biogas,1,2050,125.19771181568846,AVG22
-60,Oslo,Hamar,Road,Hydrogen,1,2050,1069.0732337746513,AVG22
-61,Oslo,Hamar,Road,Biogas,1,2050,142.86304712328834,AVG22
+0,Trondheim,Hamar,Road,Biogas,1,2025,15.136461689134464,AVG2
+1,Hamar,Ålesund,Road,Biogas,1,2025,25.103033554193615,AVG2
+2,Oslo,Bergen,Road,Biogas,1,2025,52.48658292450208,AVG2
+3,Oslo,Skien,Road,Battery electric,1,2025,158.96064108114473,AVG2
+4,Trondheim,Ålesund,Road,Biogas,1,2025,3.2739218321698402,AVG2
+5,Kristiansand,Skien,Road,Hydrogen,1,2030,54.436890113363376,AVG2
+6,Trondheim,Hamar,Road,Hydrogen,1,2030,79.90776343044386,AVG2
+7,Trondheim,Hamar,Road,Biogas,1,2030,12.78617494362932,AVG2
+8,Hamar,Ålesund,Road,Hydrogen,1,2030,50.745286003631776,AVG2
+9,Oslo,Hamar,Road,Battery electric,1,2030,384.85701080677086,AVG2
+10,Oslo,Bergen,Road,Hydrogen,1,2030,97.08231044410786,AVG2
+11,Oslo,Bergen,Road,Biogas,1,2030,210.83156207447,AVG2
+12,Bergen,Stavanger,Road,Hydrogen,1,2030,33.3816246037228,AVG2
+13,Bergen,Stavanger,Road,Biogas,1,2030,32.3822629819007,AVG2
+14,Trondheim,Bodø,Road,Hydrogen,1,2030,1.9239644170455643,AVG2
+15,Oslo,Skien,Road,Battery electric,1,2030,251.15802583277713,AVG2
+16,Trondheim,Ålesund,Road,Hydrogen,1,2030,108.08527087432124,AVG2
+17,Kristiansand,Stavanger,Road,Hydrogen,1,2030,54.436890113363376,AVG2
+18,Kristiansand,Skien,Road,Biogas,1,2040,4.288965990743758,AVG2
+19,Trondheim,Hamar,Road,Biogas,1,2040,10.403515944154208,AVG2
+20,Hamar,Ålesund,Road,Biogas,1,2040,6.187869713450064,AVG2
+21,Oslo,Hamar,Road,Hydrogen,1,2040,65.5425547001405,AVG2
+22,Oslo,Hamar,Road,Biogas,1,2040,66.15428750174244,AVG2
+23,Oslo,Skien,Road,Hydrogen,1,2040,766.4574452998595,AVG2
+24,Oslo,Skien,Road,Biogas,1,2040,85.5094829803635,AVG2
+25,Trondheim,Ålesund,Road,Biogas,1,2040,118.44266148982135,AVG2
+26,Kristiansand,Stavanger,Road,Biogas,1,2040,45.39547936162512,AVG2
+27,Kristiansand,Skien,Road,Biogas,1,2050,125.19771181568815,AVG2
+28,Oslo,Hamar,Road,Hydrogen,1,2050,1069.0732337746501,AVG2
+29,Oslo,Hamar,Road,Biogas,1,2050,142.86304712329041,AVG2
+30,Oslo,Skien,Road,Biogas,1,2050,163.55697807912082,AVG2
+31,Trondheim,Hamar,Road,Biogas,1,2025,15.136461689134464,AVG22
+32,Hamar,Ålesund,Road,Biogas,1,2025,25.103033554193615,AVG22
+33,Oslo,Bergen,Road,Biogas,1,2025,52.48658292450208,AVG22
+34,Oslo,Skien,Road,Battery electric,1,2025,158.96064108114473,AVG22
+35,Trondheim,Ålesund,Road,Biogas,1,2025,3.2739218321698402,AVG22
+36,Kristiansand,Skien,Road,Hydrogen,1,2030,54.43689011336349,AVG22
+37,Trondheim,Hamar,Road,Hydrogen,1,2030,79.90776343044386,AVG22
+38,Trondheim,Hamar,Road,Biogas,1,2030,12.78617494362932,AVG22
+39,Hamar,Ålesund,Road,Hydrogen,1,2030,50.745286003631776,AVG22
+40,Oslo,Hamar,Road,Battery electric,1,2030,384.85701080677086,AVG22
+41,Oslo,Bergen,Road,Hydrogen,1,2030,97.08231044410923,AVG22
+42,Oslo,Bergen,Road,Biogas,1,2030,210.83156207446928,AVG22
+43,Bergen,Stavanger,Road,Hydrogen,1,2030,33.38162460372105,AVG22
+44,Bergen,Stavanger,Road,Biogas,1,2030,32.38226298190145,AVG22
+45,Trondheim,Bodø,Road,Hydrogen,1,2030,1.9239644170455643,AVG22
+46,Oslo,Skien,Road,Battery electric,1,2030,251.15802583277713,AVG22
+47,Trondheim,Ålesund,Road,Hydrogen,1,2030,108.08527087432138,AVG22
+48,Kristiansand,Stavanger,Road,Hydrogen,1,2030,54.43689011336349,AVG22
+49,Kristiansand,Skien,Road,Biogas,1,2040,4.288965990742701,AVG22
+50,Trondheim,Hamar,Road,Biogas,1,2040,10.403515944154208,AVG22
+51,Hamar,Ålesund,Road,Biogas,1,2040,6.187869713450057,AVG22
+52,Oslo,Hamar,Road,Hydrogen,1,2040,65.5425547001413,AVG22
+53,Oslo,Hamar,Road,Biogas,1,2040,66.15428750174422,AVG22
+54,Oslo,Skien,Road,Hydrogen,1,2040,766.4574452998588,AVG22
+55,Oslo,Skien,Road,Biogas,1,2040,85.50948298036309,AVG22
+56,Trondheim,Ålesund,Road,Biogas,1,2040,118.44266148982135,AVG22
+57,Kristiansand,Stavanger,Road,Biogas,1,2040,45.39547936162566,AVG22
+58,Kristiansand,Skien,Road,Biogas,1,2050,125.1977118156874,AVG22
+59,Oslo,Hamar,Road,Hydrogen,1,2050,1069.0732337746495,AVG22
+60,Oslo,Hamar,Road,Biogas,1,2050,142.86304712328865,AVG22
+61,Oslo,Skien,Road,Biogas,1,2050,163.55697807912208,AVG22

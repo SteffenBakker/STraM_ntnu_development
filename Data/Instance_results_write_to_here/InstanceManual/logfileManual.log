@@ -2,13 +2,13 @@ Solver command line: ['C:\\gurobi950\\win64\\bin\\gurobi.bat']
 
 Set parameter Username
 Academic license - for non-commercial use only - expires 2023-07-07
-Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmpts6v0kcr.pyomo.lp
-Reading time = 0.45 seconds
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmp6koxi1y7.pyomo.lp
+Reading time = 0.44 seconds
 x159871: 61157 rows, 159871 columns, 692701 nonzeros
 Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
 Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
 Optimize a model with 61157 rows, 159871 columns and 692701 nonzeros
-Model fingerprint: 0x31f2fea5
+Model fingerprint: 0xc1eb5b9e
 Variable types: 159381 continuous, 490 integer (490 binary)
 Coefficient statistics:
   Matrix range     [1e+00, 1e+07]
@@ -16,7 +16,7 @@ Coefficient statistics:
   Bounds range     [1e+00, 1e+00]
   RHS range        [5e-05, 4e+08]
 Presolve removed 43682 rows and 86957 columns
-Presolve time: 1.30s
+Presolve time: 1.24s
 Presolved: 17475 rows, 72914 columns, 254387 nonzeros
 Variable types: 72668 continuous, 246 integer (246 binary)
 
@@ -27,20 +27,20 @@ Concurrent spin time: 0.00s
 
 Solved with dual simplex
 
-Root relaxation: objective 1.106454e+11, 23307 iterations, 1.16 seconds (1.21 work units)
+Root relaxation: objective 1.106454e+11, 23583 iterations, 1.00 seconds (1.17 work units)
 
     Nodes    |    Current Node    |     Objective Bounds      |     Work
  Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
 
      0     0 1.1065e+11    0   16          - 1.1065e+11      -     -    2s
-H    0     0                    1.106455e+11 1.1065e+11  0.00%     -    3s
+H    0     0                    1.106455e+11 1.1065e+11  0.00%     -    2s
 
-Explored 1 nodes (23307 simplex iterations) in 3.10 seconds (3.25 work units)
+Explored 1 nodes (23583 simplex iterations) in 2.79 seconds (3.20 work units)
 Thread count was 8 (of 8 available processors)
 
 Solution count 1: 1.10645e+11 
 
 Optimal solution found (tolerance 1.00e-04)
-Warning: max constraint violation (5.3241e-05) exceeds tolerance
+Warning: max constraint violation (5.1574e-05) exceeds tolerance
 Best objective 1.106454683993e+11, best bound 1.106453704382e+11, gap 0.0001%
 

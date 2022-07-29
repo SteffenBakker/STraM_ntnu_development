@@ -150,7 +150,8 @@ class TranspModel:
         def PathArcRule(model, i, j, m, r, p, t):
             l= (i,j,m,r)
             return sum(self.model.x_flow[a, p, t] for a in self.data.A_LINKS[l]) == sum(
-                self.data.DELTA[(l, str(tuple(k)))] * self.model.h_flow[str(k), p, t] for k in self.data.K_PATHS)
+                #self.data.DELTA[(l, str(tuple(k)))] * self.model.h_flow[str(k), p, t] for k in self.data.K_PATHS)
+                self.model.h_flow[str(k), p, t] for k in self.data.K_PATHS_L[l] )
         self.model.PathArcRel = Constraint(self.data.LPT, rule=PathArcRule)
 
         # CAPACITY constraints (compared to 2018) - TEMPORARY

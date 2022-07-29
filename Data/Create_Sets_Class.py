@@ -350,9 +350,12 @@ class TransportSets():
 
         #Indicator function
         self.DELTA = {(l, str(tuple(k))): 0 for l in self.L_LINKS_DIR for k in self.K_PATHS}
+        self.K_PATHS_L = {l:[] for l in self.L_LINKS_DIR}
         for k in self.K_PATHS:
             for (i,j,m,r) in k:
-                self.DELTA[((i,j,m,r), str(tuple(k)))] = 1
+                l = (i,j,m,r)
+                self.DELTA[(l, str(tuple(k)))] = 1
+                self.K_PATHS_L[l].append(k)
                 
         #multi-mode paths
         self.MULTI_MODE_PATHS = []
@@ -786,5 +789,4 @@ class TransportSets():
 
 
 #x = TransportSets("HHH",1,"avg_costs",100)
-
 

@@ -35,7 +35,7 @@ start = time.time()
 
 
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
-plotting = True
+extract_data = False #this is quite slow (the postprocessing with all the write to file)
 set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
 manual_instance = {'Manual':{'sol_met':'ef',
@@ -106,7 +106,8 @@ if __name__ == "__main__":
         stop = time.time()
         print("The time of the run:", stop - start)
 
-        dataset = extract_output_ef(ef,data,instance_run)
+        if extract_data:        
+            dataset = extract_output_ef(ef,data,instance_run)  #this one is quite slow!
         scenarios = sputils.ef_scenarios(ef)
 
     if solution_method == "ph":
@@ -134,7 +135,7 @@ if __name__ == "__main__":
         dataset = extract_output_ph(ph,data,instance_run)
         scenarios = ph.local_subproblems
 
-    if plotting == True:
+    if extract_data:
         plot_figures(data,dataset,scenarios,instance_run,solution_method)
         
     if profiling:
