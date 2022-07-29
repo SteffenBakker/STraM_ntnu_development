@@ -10,6 +10,25 @@ from TranspModelClass import TranspModel
 import mpisppy.scenario_tree as scenario_tree
 
 
+def get_all_scenario_names(scenario_structure,data):
+    all_scenario_names = list()
+    if scenario_structure == 1:
+        all_scenario_names = ['HHH', 'LLL', 'HHL', 'HLH', 'HLL', 'LHH', 'LHL', 'LLH']
+    elif scenario_structure == 2:
+        all_scenario_names = ["HHH", "MMM", "LLL"]
+    elif scenario_structure == 3:
+        all_scenario_names = data.all_scenarios
+    elif scenario_structure == 21:
+        all_scenario_names = ['HHL', 'HLH', 'HLL', 'LHH', 'LHL', 'LLH']
+    elif scenario_structure == 4: #deterministic equivalent to scen_struct 1/8scen
+        all_scenario_names = ['AVG1','AVG11']
+    elif scenario_structure == 5: #deterministic equivalent to scen_struct 2/3scen
+        all_scenario_names = ['AVG2', 'AVG22']
+    elif scenario_structure == 6: #deterministic equivalent to scen_struct 3
+        all_scenario_names = ['AVG3', 'AVG33']
+        
+    return all_scenario_names
+
 def scenario_creator(scenario_name, **kwargs):
     
     CO2_price = kwargs.get('CO2_price')
@@ -97,21 +116,3 @@ def option_settings():
     
     return options
 
-def get_all_scenario_names(scenario_structure):
-    all_scenario_names = list()
-    if scenario_structure == 1:
-        all_scenario_names = ['HHH', 'LLL', 'HHL', 'HLH', 'HLL', 'LHH', 'LHL', 'LLH']
-    elif scenario_structure == 2:
-        all_scenario_names = ["HHH", "MMM", "LLL"]
-    elif scenario_structure == 3:
-        all_scenario_names = data.all_scenarios
-    elif scenario_structure == 21:
-        all_scenario_names = ['HHL', 'HLH', 'HLL', 'LHH', 'LHL', 'LLH']
-    elif scenario_structure == 4: #deterministic equivalent to scen_struct 1/8scen
-        all_scenario_names = ['AVG1','AVG11']
-    elif scenario_structure == 5: #deterministic equivalent to scen_struct 2/3scen
-        all_scenario_names = ['AVG2', 'AVG22']
-    elif scenario_structure == 6: #deterministic equivalent to scen_struct 3
-        all_scenario_names = ['AVG3', 'AVG33']
-        
-    return all_scenario_names

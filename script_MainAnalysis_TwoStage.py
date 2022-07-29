@@ -12,7 +12,7 @@ import os
 from TranspModelClass import TranspModel
 from Data.Create_Sets_Class import TransportSets
 from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings, get_all_scenario_names
-from postprocessing import extract_output_ef, extract_output_ph,plotting
+from postprocessing import extract_output_ef, extract_output_ph,plot_figures
 
 import pyomo.environ as pyo
 import numpy as np
@@ -39,12 +39,12 @@ plotting = True
 set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
 manual_instance = {'Manual':{'sol_met':'ef',
-                                    'scen_struct':1,
+                                    'scen_struct':5,
                                     'co2_price':1,
                                     'costs':'avg',
                                     'probs':'equal',
                                     'emission_reduction':75}}
-profiling = False
+profiling = True
 
 #################################################
 #                   main code                   #
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     
     data = TransportSets('HHH',CO2_price,fuel_cost, emission_reduction) #needs to be initialized with some scenario I guess.
     options = option_settings()
-    all_scenario_names = get_all_scenario_names(scenario_structure)    
+    all_scenario_names = get_all_scenario_names(scenario_structure,data)    
 
     #SOLVE MODEL AND EXTRACT OUTPUT
 
@@ -135,10 +135,14 @@ if __name__ == "__main__":
         scenarios = ph.local_subproblems
 
     if plotting == True:
-        plotting(data,dataset,scenarios,instance_run,solution_method)
+        plot_figures(data,dataset,scenarios,instance_run,solution_method)
         
     if profiling:
         profiler.disable()
-        profiler.dump_stats('fomo_simulator.stats')
-        stats = pstats.Stats('fomo_simulator.stats')
-        stats.sort_stats('tottime').print_stats(50)
+        profiler.dump_stats('aim_model.stats')
+        stats = pstats.Stats('aim_model.stats')
+        stats.sort_stats('tottime').print_stats(20)
+        #it seems like it is the PATH-ARC RULE that makes the code slow (many/?most? constraints are defined here!)
+        #AIM_Norwegian_Freight_Model\TranspModelClass.py:152(<genexpr>)
+        stats.sort_stats('cumtime').print_stats(20)
+        #this is done in the scenario_creator

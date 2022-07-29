@@ -17,7 +17,7 @@ import mpisppy.utils.sputils as sputils
 ###############################################################
 
 
-def plotting(data,dataset,scenarios,instance_run,solution_method):
+def plot_figures(data,dataset,scenarios,instance_run,solution_method):
 
     N_NODES_NO_SEA = ["Oslo", "Bergen", "Trondheim", "Hamar", "Bodø", "Tromsø", "Kristiansand",
                             "Ålesund", "Stavanger", "Skien", "Sør-Sverige", "Nord-Sverige","Europa"]
