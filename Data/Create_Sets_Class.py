@@ -429,16 +429,16 @@ class TransportSets():
             emission_data = pd.read_excel(r'Data/emission_cap.xlsx', sheet_name='emission_cap')
         if self.run_file == "sets":
             emission_data = pd.read_excel(r'emission_cap.xlsx', sheet_name='emission_cap')
-        if self.emission_reduction == "100%":
+        if self.emission_reduction == 100:
             self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap']))
-        elif self.emission_reduction == "75%":
+        elif self.emission_reduction == 75:
             self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap1']))
-        elif self.emission_reduction == "73%":
+        elif self.emission_reduction == 73:
             self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap2']))
-        elif self.emission_reduction == "70%":
+        elif self.emission_reduction == 70:
             self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap3']))
-        elif self.emission_reduction == "35%_70%":
-            self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap4']))
+        else:
+            raise ValueError('CO2_CAP should be a predefined level (100,75,73,70). Now it is {x}'.format(x=self.emission_reduction))
 
         if self.run_file == "main":
             transfer_data = pd.read_excel(r'Data/transport_costs_emissions.xlsx', sheet_name='transfer_costs')
@@ -785,6 +785,6 @@ class TransportSets():
 
 
 
-x = TransportSets("HHH",1,"avg_costs","100%")
+#x = TransportSets("HHH",1,"avg_costs",100)
 
 
