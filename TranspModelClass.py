@@ -16,7 +16,7 @@ os.getcwd()
 
 class TranspModel:
 
-    def __init__(self, instance, one_time_period, scenario, carbon_scenario, fuel_costs, emission_reduction):
+    def __init__(self, instance, base_data, one_time_period, scenario, carbon_scenario, fuel_costs, emission_reduction):
 
         self.instance = instance
         #timelimit in minutes, etc
@@ -33,12 +33,17 @@ class TranspModel:
         self.fuel_costs = fuel_costs
         self.emission_reduction = emission_reduction
         #IMPORT THE DATA
-        self.data = TransportSets(self.scenario, self.carbon_scenario, self.fuel_costs, self.emission_reduction)
+        self.data = base_data
+        self.data.update_parameters(scenario, carbon_scenario, fuel_costs, emission_reduction)
         self.factor = self.data.factor
 
 
 
     def construct_model(self):
+        
+        #Significant speed improvements can be obtained using the LinearExpression object when there are long, dense, linear expressions.
+        # USe linearexpressions: https://pyomo.readthedocs.io/en/stable/advanced_topics/linearexpression.html
+        
 
         "VARIABLES"
         # Binary, NonNegativeReals, PositiveReals, etc
@@ -233,11 +238,7 @@ class TranspModel:
             return(sum(self.model.z_inv_node[i,m,b,t] for t in self.data.T_TIME_PERIODS) <= self.data.INV_NODE[i,m,b])
         self.model.TerminalCapExp = Constraint(self.data.NMB_CAP, rule = TerminalCapExpRule)
 
-        #Technology maturity limit
-        def TechMaturityLimitRule(model, m, f, t):
-            return (sum(self.model.x_flow[(a, p, t)] for p in self.data.P_PRODUCTS
-                        for a in self.data.A_TECH[m, f]) <= self.data.Y_TECH[(m, f, t)])
-        self.model.TechMaturityLimit = Constraint(self.data.MFTS_CAP, rule = TechMaturityLimitRule)
+        
         
         
         def ChargingCapArcRule(model, i, j, m, f, r, t):
@@ -265,17 +266,29 @@ class TranspModel:
         #        for a in self.data.DIESEL_ROAD) >= sum(self.model.x_flow[(a,p,t)]
         #       for p in self.data.P_PRODUCTS for a in self.data.ARCS_ROAD))
         #self.model.Diesel2020Rate = Constraint(self.data.T_TIME_2020, rule=Diesel2020)
+ 
+        """
+        def NonAnticipativityRule(model,a,p):
+            return(self.model.x_flow[(a, p, 2020, "average")] == self.model.x_flow[(a, p, 2020, "low")]
+            == self.model.x_flow[(a, p, 2020, "high")] == self.model.x_flow[(a, p, 2020, "hydrogen")])
+            self.model.NonAnticipativity = Constraint(self.data.AP, rule=NonAnticipativityRule)
+            """
         
-        
-
+        #self.scenario_dependent_constraints(self.data.Y_TECH)
+        #Technology maturity limit
+        self.model.TechMaturityLimit = Constraint(self.data.MFTS_CAP, rule = self.TechMaturityLimitRule)
 
         return self.model
-        """
-    def NonAnticipativityRule(model,a,p):
-        return(self.model.x_flow[(a, p, 2020, "average")] == self.model.x_flow[(a, p, 2020, "low")]
-        == self.model.x_flow[(a, p, 2020, "high")] == self.model.x_flow[(a, p, 2020, "hydrogen")])
-        self.model.NonAnticipativity = Constraint(self.data.AP, rule=NonAnticipativityRule)
-        """
+    
+        
+    def TechMaturityLimitRule(self,model, m, f, t):
+        return (sum(self.model.x_flow[(a, p, t)] for p in self.data.P_PRODUCTS
+                    for a in self.data.A_TECH[m, f]) <= self.data.Y_TECH[(m, f, t)])
+    
+    def update_tech_constraint(self):
+        self.model.del_component(self.model.TechMaturityLimit);
+        self.model.del_component(self.model.TechMaturityLimit_index);
+        self.model.add_component("TechMaturityLimit",Constraint(self.data.MFTS_CAP, rule=self.TechMaturityLimitRule))    
 
     def solve_model(self):
 

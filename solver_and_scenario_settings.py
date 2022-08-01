@@ -8,7 +8,7 @@ Created on Fri Jul 29 10:24:04 2022
 import mpisppy.utils.sputils as sputils
 from TranspModelClass import TranspModel
 import mpisppy.scenario_tree as scenario_tree
-
+import copy
 
 def get_all_scenario_names(scenario_structure,data):
     all_scenario_names = list()
@@ -31,16 +31,24 @@ def get_all_scenario_names(scenario_structure,data):
 
 def scenario_creator(scenario_name, **kwargs):
     
-    CO2_price = kwargs.get('CO2_price')
-    fuel_cost = kwargs.get('fuel_cost')
-    emission_reduction = kwargs.get('emission_reduction')
     probabilities = kwargs.get('probabilities')
+    base_model = kwargs.get('base_model')
+    base_data = kwargs.get('base_data')
     
-    TranspM = TranspModel(instance='TestInstance', one_time_period=False, scenario = scenario_name,
-                          carbon_scenario = CO2_price, fuel_costs=fuel_cost, emission_reduction=emission_reduction)
-
-    model = TranspM.construct_model()
+    base_model.data.update_scenario_dependent_parameters(scenario_name) #updates the Y_TECH parameters
+    base_data.update_scenario_dependent_parameters(scenario_name)
     
+    copy_base_model = False  #deepcopy is slower than repetitively constructing the models.
+    if copy_base_model:
+        base_model.update_tech_constraint()
+        model = base_model.model.clone() # TO DO: clone uses deepcopy and is still very slow
+    else:
+        model_instance =  TranspModel(instance=base_model.instance,base_data=base_data, one_time_period=False, scenario = scenario_name,
+                              carbon_scenario = base_model.carbon_scenario, fuel_costs=base_model.fuel_costs, 
+                              emission_reduction=base_model.emission_reduction)
+        model_instance.construct_model()
+        model = model_instance.model
+           
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in [2020, 2025]),
                                         [model.x_flow[:,:,:,:,:,:,2020], model.z_inv_cap[:,:,:,:,2020],
                                          model.z_inv_upg[:,:,:,:,:,2020], model.z_inv_node[:,:,:,2020],

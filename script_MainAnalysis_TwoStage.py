@@ -85,16 +85,19 @@ if __name__ == "__main__":
     probabilities = instance_dict[instance_run]['probs']
     emission_reduction = instance_dict[instance_run]['emission_reduction']
     
-    data = TransportSets('HHH',CO2_price,fuel_cost, emission_reduction) #needs to be initialized with some scenario I guess.
+    base_data = TransportSets('HHH',CO2_price,fuel_cost, emission_reduction) #needs to be initialized with some scenario I guess.
+    all_scenario_names = get_all_scenario_names(scenario_structure,base_data)    
+    base_model = TranspModel(instance=instance_run,base_data=base_data, one_time_period=False, scenario = all_scenario_names[0],
+                          carbon_scenario = CO2_price, fuel_costs=fuel_cost, emission_reduction=emission_reduction)
+    base_model.construct_model()
     options = option_settings()
-    all_scenario_names = get_all_scenario_names(scenario_structure,data)    
+    
 
     #SOLVE MODEL AND EXTRACT OUTPUT
-
+    scenario_creator_kwargs = {'probabilities':probabilities, 'base_model':base_model, 'base_data':base_data}
     if solution_method == "ef":
         solver = pyo.SolverFactory(options["solvername"])
 
-        scenario_creator_kwargs = {'CO2_price':CO2_price, 'fuel_cost':fuel_cost, 'emission_reduction':emission_reduction, 'probabilities':probabilities}
         ef = sputils.create_EF(
                 all_scenario_names,
                 scenario_creator,
@@ -107,7 +110,7 @@ if __name__ == "__main__":
         print("The time of the run:", stop - start)
 
         if extract_data:        
-            dataset = extract_output_ef(ef,data,instance_run)  #this one is quite slow!
+            dataset = extract_output_ef(ef,base_data,instance_run)  #this one is quite slow!
         scenarios = sputils.ef_scenarios(ef)
 
     if solution_method == "ph":
@@ -122,7 +125,6 @@ if __name__ == "__main__":
                                                "ROOT_2": "Scen7"},
                                               "csvname": "specific.csv"}
         
-        scenario_creator_kwargs = {'CO2_price':CO2_price, 'fuel_cost':fuel_cost, 'emission_reduction':emission_reduction, 'probabilities':probabilities}
         ph = PH(
             options,
             all_scenario_names,
@@ -132,11 +134,11 @@ if __name__ == "__main__":
         ph.ph_main()
         print(ph)
 
-        dataset = extract_output_ph(ph,data,instance_run)
+        dataset = extract_output_ph(ph,base_data,instance_run)
         scenarios = ph.local_subproblems
 
     if extract_data:
-        plot_figures(data,dataset,scenarios,instance_run,solution_method)
+        plot_figures(base_data,dataset,scenarios,instance_run,solution_method)
         
     if profiling:
         profiler.disable()

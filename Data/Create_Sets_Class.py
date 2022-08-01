@@ -424,10 +424,10 @@ class TransportSets():
         "Parameters"
 
         if self.run_file == "main":
-            cost_data = pd.read_excel(r'Data/transport_costs_emissions.xlsx', sheet_name='Costs')
+            self.cost_data = pd.read_excel(r'Data/transport_costs_emissions.xlsx', sheet_name='Costs')
             #maturity_data = pd.read_excel(r'Data/DATA_INPUT.xlsx', sheet_name='MaturityLimits')
         if self.run_file == "sets":
-            cost_data = pd.read_excel(r'transport_costs_emissions.xlsx', sheet_name='Costs')
+            self.cost_data = pd.read_excel(r'transport_costs_emissions.xlsx', sheet_name='Costs')
         if self.run_file == "main":
             emission_data = pd.read_excel(r'Data/emission_cap.xlsx', sheet_name='emission_cap')
         if self.run_file == "sets":
@@ -476,7 +476,7 @@ class TransportSets():
         self.C_CO2 = {(a, t): 1000000 for a in self.A_ARCS for t in
                             self.T_TIME_PERIODS}
 
-        for index, row in cost_data.iterrows():
+        for index, row in self.cost_data.iterrows():
             for (i,j,m,r) in self.L_LINKS_DIR:
                 if m == row["Mode"]:
                     f = row["Fuel"]
@@ -496,11 +496,13 @@ class TransportSets():
                             self.C_TRANSP_COST[((i, j, m, f, r), row['Product group'], row['Year'])] = self.AVG_DISTANCE[(i, j, m, r)] * row['Cost (NOK/Tkm)']
                     self.E_EMISSIONS[((i, j, m, f, r), row['Product group'], row['Year'])] = self.AVG_DISTANCE[(i, j, m, r)] * row[
                         'Emissions (gCO2/Tkm)']
+        #CO2 price                                
                     if self.CO2_scenario == 1:
                         self.C_CO2[((i, j, m, f, r), row['Product group'], row['Year'])] = self.E_EMISSIONS[((i, j, m, f, r), row['Product group'], row['Year'])] * row['CO2 fee base scenario (nok/gCO2)']
                     elif self.CO2_scenario == 2:
                         self.C_CO2[((i, j, m, f, r), row['Product group'], row['Year'])] = self.E_EMISSIONS[((i, j, m, f, r), row['Product group'], row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)']
 
+        
         #Investments
         self.Y_BASE_CAP = {l: 100000 for l in self.L_LINKS_CAP}
         self.Y_MAX = {l: 0 for l in self.L_LINKS_CAP}
@@ -513,9 +515,7 @@ class TransportSets():
         self.INV_LINK = {(l): 1 for l in self.L_LINKS_CAP}
         self.C_CAP_NODE = {(i,m,b) : 0 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for b in self.TERMINAL_TYPE[m]}
 
-        self.Y_TECH = {mfts : 0 for mfts in self.MFTS_CAP}
-        
-        self.cost_data = cost_data
+
 
         for index, row in inv_rail_data.iterrows():
             for (i,j,m,r) in self.L_LINKS_UPG:
@@ -634,20 +634,20 @@ class TransportSets():
 
         
         if self.run_file == "main":
-            scen_data = pd.read_csv(r'Data/scenarios_maturities_27.csv')
+            self.scen_data = pd.read_csv(r'Data/scenarios_maturities_27.csv')
         if self.run_file == "sets":
-            scen_data = pd.read_csv(r'scenarios_maturities_27.csv')
+            self.scen_data = pd.read_csv(r'scenarios_maturities_27.csv')
         
         
         
         self.all_scenarios = []
-        for index, row in scen_data.iterrows():
+        for index, row in self.scen_data.iterrows():
             if row["Scenario"] not in self.all_scenarios:
                 self.all_scenarios.append(row["Scenario"])
         internat_cap = 240000000
-        total_trans_dict = {'Road': internat_cap*0.4, 'Rail': internat_cap*0.05, 'Sea': internat_cap*0.75}
+        self.total_trans_dict = {'Road': internat_cap*0.4, 'Rail': internat_cap*0.05, 'Sea': internat_cap*0.75}
 
-        fuel_groups = {0: ['Battery electric', 'Battery train'], 1: ['Hydrogen', 'Ammonia'], 
+        self.fuel_groups = {0: ['Battery electric', 'Battery train'], 1: ['Hydrogen', 'Ammonia'], 
                        2: ['Biodiesel (HVO)', 'Biogas', 'Biodiesel']}
 
         self.base_scenarios = ['HHH', 'LLL', 'HHL', 'HLH', 'HLL', 'LHH', 'LHL', 'LLH']
@@ -660,32 +660,44 @@ class TransportSets():
                          'AVG3': self.three_scenarios,
                          'AVG33': self.three_scenarios}  # yields same avg as all scenarios
 
-        if self.scenario in self.det_eqvs.keys():
+        
+
+        VSS = False
+        if VSS:
+            self.VSS_code()
+    
+        self.update_scenario_dependent_parameters(self.scenario)
+                        
+    def update_scenario_dependent_parameters(self,scenario):
+        
+        self.Y_TECH = {mfts : 0 for mfts in self.MFTS_CAP}
+
+        if scenario in self.det_eqvs.keys():
             # create deterministIc equivalents
-            for w in self.det_eqvs[self.scenario]:
-                for index, row in scen_data[scen_data['Scenario'] == w].iterrows():
+            for w in self.det_eqvs[scenario]:
+                for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
                     for (m, f) in self.NEW_MF_LIST:
                         if row['Mode'] == m and row['Fuel'] == f:
-                            total_trans = total_trans_dict[row['Mode']]
+                            total_trans = self.total_trans_dict[row['Mode']]
                             self.Y_TECH[(row['Mode'], row['Fuel'], 2020)] += (row['2020'] * total_trans) / (
-                                        100 * self.factor * len(self.det_eqvs[self.scenario]))
+                                        100 * self.factor * len(self.det_eqvs[scenario]))
                             self.Y_TECH[(row['Mode'], row['Fuel'], 2025)] += (row['2025'] * total_trans) / (
-                                        100 * self.factor * len(self.det_eqvs[self.scenario]))
+                                        100 * self.factor * len(self.det_eqvs[scenario]))
                             self.Y_TECH[(row['Mode'], row['Fuel'], 2030)] += (row['2030'] * total_trans) / (
-                                        100 * self.factor * len(self.det_eqvs[self.scenario]))
+                                        100 * self.factor * len(self.det_eqvs[scenario]))
                             self.Y_TECH[(row['Mode'], row['Fuel'], 2040)] += (row['2040'] * total_trans) / (
-                                        100 * self.factor * len(self.det_eqvs[self.scenario]))
+                                        100 * self.factor * len(self.det_eqvs[scenario]))
                             self.Y_TECH[(row['Mode'], row['Fuel'], 2050)] += (row['2050'] * total_trans) / (
-                                        100 * self.factor * len(self.det_eqvs[self.scenario]))
+                                        100 * self.factor * len(self.det_eqvs[scenario]))
 
         else:
-            scen_string = self.scenario
+            scen_string = scenario
             for w in ['HHH', 'MMM', 'LLL']:
-                for key in fuel_groups:
+                for key in self.fuel_groups:
                     if scen_string[key] == w[key]:
-                        for index, row in scen_data[scen_data['Scenario'] == w].iterrows():
-                            if row['Fuel'] in fuel_groups[key]:
-                                total_trans = total_trans_dict[row['Mode']]
+                        for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
+                            if row['Fuel'] in self.fuel_groups[key]:
+                                total_trans = self.total_trans_dict[row['Mode']]
                                 self.Y_TECH[(row['Mode'], row['Fuel'], 2020)] = (row[
                                                           '2020'] * total_trans / 100) / self.factor
                                 self.Y_TECH[(row['Mode'], row['Fuel'], 2025)] = (row[
@@ -696,96 +708,101 @@ class TransportSets():
                                                           '2040'] * total_trans / 100) / self.factor
                                 self.Y_TECH[(row['Mode'], row['Fuel'], 2050)] = (row[
                                                         '2050'] * total_trans / 100) / self.factor
+        
+                        
+    def update_parameters(self,scenario, carbon_scenario, fuel_costs, emission_reduction):
+        self.scenario = scenario # "['average']" #or scenario
+        self.CO2_scenario = carbon_scenario
+        self.fuel_costs = fuel_costs
+        self.emission_reduction = emission_reduction
+        
+    def VSS_code(self):
+        # colnames = ['','from', 'to', 'Mode', 'fuel', 'route','product','weight','time_period','scenario']
+        if self.run_file == "main":
+            first_stage_data_x = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_X_flow.csv', encoding='utf8')
+            first_stage_data_h = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_H_flow.csv',
+                                             converters={'path': eval}, encoding='utf8')
+            first_stage_data_z_inv_cap = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_z_inv_cap.csv',
+                                                     encoding='utf8')
+            first_stage_data_z_inv_node = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_z_inv_node.csv',
+                                                      encoding='utf8')
+            first_stage_data_z_inv_upg = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_z_inv_upg.csv',
+                                                     encoding='utf8')
+            first_stage_data_charge_link = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_charge_link.csv',
+                                                       encoding='utf8')
+            first_stage_data_emission_violation = pd.read_csv(
+                r'Data/Instance_results_with_data/Instance3/Inst_3_emission_violation.csv', encoding='utf8')
+        if self.run_file == "sets":
+            first_stage_data_x = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_X_flow.csv', encoding='utf8')
+            first_stage_data_h = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_H_flow.csv',
+                                             converters={'path': eval}, encoding='utf8')
+            first_stage_data_z_inv_cap = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_z_inv_cap.csv',
+                                                     encoding='utf8')
+            first_stage_data_z_inv_node = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_z_inv_node.csv',
+                                                      encoding='utf8')
+            first_stage_data_z_inv_upg = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_z_inv_upg.csv',
+                                                     encoding='utf8')
+            first_stage_data_charge_link = pd.read_csv(
+                r'Instance_results_with_data/Instance3/Inst_3_charge_link.csv',
+                encoding='utf8')
+            first_stage_data_emission_violation = pd.read_csv(
+                r'Instance_results_with_data/Instance3/Inst_3_emission_violation.csv', encoding='utf8')
 
-        VSS = False
-        if VSS:
-            # colnames = ['','from', 'to', 'Mode', 'fuel', 'route','product','weight','time_period','scenario']
-            if self.run_file == "main":
-                first_stage_data_x = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_X_flow.csv', encoding='utf8')
-                first_stage_data_h = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_H_flow.csv',
-                                                 converters={'path': eval}, encoding='utf8')
-                first_stage_data_z_inv_cap = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_z_inv_cap.csv',
-                                                         encoding='utf8')
-                first_stage_data_z_inv_node = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_z_inv_node.csv',
-                                                          encoding='utf8')
-                first_stage_data_z_inv_upg = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_z_inv_upg.csv',
-                                                         encoding='utf8')
-                first_stage_data_charge_link = pd.read_csv(r'Data/Instance_results_with_data/Instance3/Inst_3_charge_link.csv',
-                                                           encoding='utf8')
-                first_stage_data_emission_violation = pd.read_csv(
-                    r'Data/Instance_results_with_data/Instance3/Inst_3_emission_violation.csv', encoding='utf8')
-            if self.run_file == "sets":
-                first_stage_data_x = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_X_flow.csv', encoding='utf8')
-                first_stage_data_h = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_H_flow.csv',
-                                                 converters={'path': eval}, encoding='utf8')
-                first_stage_data_z_inv_cap = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_z_inv_cap.csv',
-                                                         encoding='utf8')
-                first_stage_data_z_inv_node = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_z_inv_node.csv',
-                                                          encoding='utf8')
-                first_stage_data_z_inv_upg = pd.read_csv(r'Instance_results_with_data/Instance3/Inst_3_z_inv_upg.csv',
-                                                         encoding='utf8')
-                first_stage_data_charge_link = pd.read_csv(
-                    r'Instance_results_with_data/Instance3/Inst_3_charge_link.csv',
-                    encoding='utf8')
-                first_stage_data_emission_violation = pd.read_csv(
-                    r'Instance_results_with_data/Instance3/Inst_3_emission_violation.csv', encoding='utf8')
+        # print(first_stage_data_z_inv_cap)
+        self.APT_fs = [a + (p,) + (t,) for a in self.A_ARCS for p in self.P_PRODUCTS for t in
+                       [2020, 2025]]
+        self.KPT_fs = [(str(k), p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in [2020, 2025]]
+        self.LT_CAP_fs = [l + (t,) for l in self.L_LINKS_CAP for t in [2020, 2025]]
+        self.NMBT_CAP_fs = [(i, m) + (b,) + (t,) for (i, m) in self.NM_LIST_CAP for b in self.TERMINAL_TYPE[m] for t
+                            in [2020, 2025]]
+        self.LUT_UPG_fs = [l + (u,) + (t,) for l in self.L_LINKS_UPG for u in self.UL_UPG[l] for t in [2020, 2025]]
+        self.CHARGING_AT_fs = [a + (t,) for a in self.CHARGING_ARCS for t in [2020, 2025]]
+        self.TS_fs = [2020, 2025]
 
-            # print(first_stage_data_z_inv_cap)
-            self.APT_fs = [a + (p,) + (t,) for a in self.A_ARCS for p in self.P_PRODUCTS for t in
-                           [2020, 2025]]
-            self.KPT_fs = [(str(k), p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in [2020, 2025]]
-            self.LT_CAP_fs = [l + (t,) for l in self.L_LINKS_CAP for t in [2020, 2025]]
-            self.NMBT_CAP_fs = [(i, m) + (b,) + (t,) for (i, m) in self.NM_LIST_CAP for b in self.TERMINAL_TYPE[m] for t
-                                in [2020, 2025]]
-            self.LUT_UPG_fs = [l + (u,) + (t,) for l in self.L_LINKS_UPG for u in self.UL_UPG[l] for t in [2020, 2025]]
-            self.CHARGING_AT_fs = [a + (t,) for a in self.CHARGING_ARCS for t in [2020, 2025]]
-            self.TS_fs = [2020, 2025]
+        self.first_stage_x = {apt: 0 for apt in self.APT_fs}
+        self.first_stage_h = {kpt: 0 for kpt in self.KPT_fs}
+        self.first_stage_z_inv_cap = {lt: 0 for lt in self.LT_CAP_fs}
+        self.first_stage_z_inv_node = {imbt: 0 for imbt in self.NMBT_CAP_fs}
+        self.first_stage_z_inv_upg = {lut: 0 for lut in self.LUT_UPG_fs}
+        self.first_stage_charge_link = {at: 0 for at in self.CHARGING_AT_fs}
+        self.first_stage_emission_violation = {t: 0 for t in [2020, 2025]}
 
-            self.first_stage_x = {apt: 0 for apt in self.APT_fs}
-            self.first_stage_h = {kpt: 0 for kpt in self.KPT_fs}
-            self.first_stage_z_inv_cap = {lt: 0 for lt in self.LT_CAP_fs}
-            self.first_stage_z_inv_node = {imbt: 0 for imbt in self.NMBT_CAP_fs}
-            self.first_stage_z_inv_upg = {lut: 0 for lut in self.LUT_UPG_fs}
-            self.first_stage_charge_link = {at: 0 for at in self.CHARGING_AT_fs}
-            self.first_stage_emission_violation = {t: 0 for t in [2020, 2025]}
+        for t in [2020, 2025]:
+            for index, row in first_stage_data_x[first_stage_data_x['time_period'] == t].iterrows():
+                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
+                    self.first_stage_x[row['from'], row['to'], row['Mode'], row['fuel'], row['route'],
+                                       row['product'], row['time_period']] = row['weight']
 
-            for t in [2020, 2025]:
-                for index, row in first_stage_data_x[first_stage_data_x['time_period'] == t].iterrows():
-                    if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                        self.first_stage_x[row['from'], row['to'], row['Mode'], row['fuel'], row['route'],
-                                           row['product'], row['time_period']] = row['weight']
+            for index, row in first_stage_data_h[first_stage_data_h['time_period'] == t].iterrows():
+                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
+                    self.first_stage_h[str(row['path']), row['product'], row['time_period']] = row['weight']
 
-                for index, row in first_stage_data_h[first_stage_data_h['time_period'] == t].iterrows():
-                    if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                        self.first_stage_h[str(row['path']), row['product'], row['time_period']] = row['weight']
+            for index, row in first_stage_data_z_inv_cap[first_stage_data_z_inv_cap['time_period'] == t].iterrows():
+                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
+                    self.first_stage_z_inv_cap[
+                        row['from'], row['to'], row['Mode'], row['route'], row['time_period']] = row['weight']
 
-                for index, row in first_stage_data_z_inv_cap[first_stage_data_z_inv_cap['time_period'] == t].iterrows():
-                    if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                        self.first_stage_z_inv_cap[
-                            row['from'], row['to'], row['Mode'], row['route'], row['time_period']] = row['weight']
+            for index, row in first_stage_data_z_inv_node[
+                first_stage_data_z_inv_node['time_period'] == t].iterrows():
+                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
+                    self.first_stage_z_inv_node[
+                        row['Node'], row['Mode'], row['terminal_type'], row['time_period']] = row['weight']
 
-                for index, row in first_stage_data_z_inv_node[
-                    first_stage_data_z_inv_node['time_period'] == t].iterrows():
-                    if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                        self.first_stage_z_inv_node[
-                            row['Node'], row['Mode'], row['terminal_type'], row['time_period']] = row['weight']
+            for index, row in first_stage_data_z_inv_upg[first_stage_data_z_inv_upg['time_period'] == t].iterrows():
+                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
+                    self.first_stage_z_inv_upg[row['from'], row['to'], row['Mode'], row['route'],
+                                               row['upgrade'], row['time_period']] = row['weight']
 
-                for index, row in first_stage_data_z_inv_upg[first_stage_data_z_inv_upg['time_period'] == t].iterrows():
-                    if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                        self.first_stage_z_inv_upg[row['from'], row['to'], row['Mode'], row['route'],
-                                                   row['upgrade'], row['time_period']] = row['weight']
+            for index, row in first_stage_data_charge_link[
+                first_stage_data_charge_link['time_period'] == t].iterrows():
+                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
+                    self.first_stage_charge_link[row['from'], row['to'], row['Mode'], row['fuel'], row['route'],
+                                                 row['time_period']] = row['weight']
 
-                for index, row in first_stage_data_charge_link[
-                    first_stage_data_charge_link['time_period'] == t].iterrows():
-                    if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                        self.first_stage_charge_link[row['from'], row['to'], row['Mode'], row['fuel'], row['route'],
-                                                     row['time_period']] = row['weight']
-
-                for index, row in first_stage_data_emission_violation[
-                    first_stage_data_emission_violation['time_period'] == t].iterrows():
-                    if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                        self.first_stage_emission_violation[row['time_period']] = row['weight']
-
+            for index, row in first_stage_data_emission_violation[
+                first_stage_data_emission_violation['time_period'] == t].iterrows():
+                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
+                    self.first_stage_emission_violation[row['time_period']] = row['weight']
 
 
 #x = TransportSets("HHH",1,"avg_costs",100)
