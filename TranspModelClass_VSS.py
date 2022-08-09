@@ -47,16 +47,16 @@ class TranspModel:
         #self.model.h_flow_2020 = Var(self.data.KPTS_2020, within=NonNegativeReals)
         self.model.StageCosts = Var(self.data.T_TIME_PERIODS, within = NonNegativeReals)
         
-        self.model.z_inv_cap = Var(self.data.LT_CAP, within = Binary) #within = Binary
-        self.model.z_inv_upg = Var(self.data.LUT_UPG, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
-        self.model.z_inv_node = Var(self.data.NMBT_CAP, within = Binary) #step-wise investment in terminals
+        self.model.v_edge = Var(self.data.LT_CAP, within = Binary) #within = Binary
+        self.model.u_upg = Var(self.data.LUT_UPG, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
+        self.model.w_node = Var(self.data.NMBT_CAP, within = Binary) #step-wise investment in terminals
         
         #self.model.y_exp_link = Var(self.data.LT_CAP, within = NonNegativeReals) #,bounds=(0,20000)) #expansion in tonnes for capacitated links l, time period t
         #self.model.y_exp_node = Var(self.data.NMT_CAP, within = NonNegativeReals, bounds=(0,100000000)) #expansion in tonnes for capacicated terminals i, time period t
         
-        self.model.charge_link = Var(self.data.CHARGING_AT, within=NonNegativeReals)
+        self.model.y_charge = Var(self.data.CHARGING_AT, within=NonNegativeReals)
         #self.model.charge_node = Var(self.data.CHARGING_IMFT, within=NonNegativeReals)
-        self.model.emission_violation = Var(self.data.TS, within = NonNegativeReals)
+        self.model.z_emission = Var(self.data.TS, within = NonNegativeReals)
         
         
         """def emission_bound(model, t):
@@ -80,41 +80,41 @@ class TranspModel:
                     self.model.h_flow[str(k), p,t].fix(self.data.first_stage_h[str(k), p,t])
         
         for t in self.data.TS_fs:
-            self.model.emission_violation[t].fix(self.data.first_stage_emission_violation[t])
+            self.model.z_emission[t].fix(self.data.first_stage_emission_violation[t])
             self.model.total_emissions[t].fix(self.data.first_stage_total_emissions[t])
         
-        for l in self.data.L_LINKS_CAP:
+        for l in self.data.E_EDGES_RAIL:
             for t in self.data.TS_fs:
-                self.model.z_inv_cap[l[0], l[1], l[2], l[3],t].fix(self.data.first_stage_z_inv_cap[l[0], l[1], l[2], l[3],t])
+                self.model.v_edge[l[0], l[1], l[2], l[3],t].fix(self.data.first_stage_z_inv_cap[l[0], l[1], l[2], l[3],t])
         
-        for l in self.data.L_LINKS_UPG:
+        for l in self.data.E_EDGES_UPG:
             for u in self.data.UL_UPG[l]:
                 for t in self.data.TS_fs:
-                    self.model.z_inv_upg[l[0], l[1], l[2], l[3],u,t].fix(self.data.first_stage_z_inv_upg[l[0], l[1], l[2], l[3],u,t])
+                    self.model.u_upg[l[0], l[1], l[2], l[3],u,t].fix(self.data.first_stage_z_inv_upg[l[0], l[1], l[2], l[3],u,t])
         
         for (i,m) in self.data.NM_LIST_CAP:
             for b in self.data.TERMINAL_TYPE[m]:
                 for t in self.data.TS_fs:
-                    self.model.z_inv_node[i,m,b,t].fix(self.data.first_stage_z_inv_node[i,m,b,t])
+                    self.model.w_node[i,m,b,t].fix(self.data.first_stage_z_inv_node[i,m,b,t])
         
         for a in self.data.CHARGING_ARCS:
             for t in self.data.TS_fs:
-                self.model.charge_link[a[0], a[1], a[2], a[3], a[4],t].fix(self.data.first_stage_charge_link[a[0], a[1], a[2], a[3], a[4],t])
+                self.model.y_charge[a[0], a[1], a[2], a[3], a[4],t].fix(self.data.first_stage_charge_link[a[0], a[1], a[2], a[3], a[4],t])
         
         
         def StageCostsVar(model, t):
             return(self.model.StageCosts[t] == (sum(self.data.D_DISCOUNT_RATE[t] * (self.data.C_TRANSP_COST[a, p, t]+self.data.C_CO2[a,p,t])*self.model.x_flow[a,p,t] for p in self.data.P_PRODUCTS for a in self.data.A_ARCS)+
-                   sum(self.data.D_DISCOUNT_RATE[t]*self.data.C_CAP_LINK[l]*self.model.z_inv_cap[l,t]
-                       for l in self.data.L_LINKS_CAP)+
-                   sum(self.data.D_DISCOUNT_RATE[t]*self.data.C_INV_UPG[l,u]*self.model.z_inv_upg[l,u,t] for l
-                                     in self.data.L_LINKS_UPG for u in self.data.UL_UPG[l])
-                   +sum(self.data.D_DISCOUNT_RATE[t]*self.data.C_CAP_NODE[i,m,b]*self.model.z_inv_node[i,m,b,t] for m
+                   sum(self.data.D_DISCOUNT_RATE[t]*self.data.C_CAP_LINK[l]*self.model.v_edge[l,t]
+                       for l in self.data.E_EDGES_RAIL)+
+                   sum(self.data.D_DISCOUNT_RATE[t]*self.data.C_INV_UPG[l,u]*self.model.u_upg[l,u,t] for l
+                                     in self.data.E_EDGES_UPG for u in self.data.UL_UPG[l])
+                   +sum(self.data.D_DISCOUNT_RATE[t]*self.data.C_CAP_NODE[i,m,b]*self.model.w_node[i,m,b,t] for m
                                     in self.data.M_MODES_CAP for i in self.data.N_NODES_CAP_NORWAY[m] for b in self.data.TERMINAL_TYPE[m])
                    +sum(self.data.D_DISCOUNT_RATE[t]*self.model.h_flow[str(k),p,t]*self.data.C_MULTI_MODE_PATH[q,p]
                                 for q in self.data.PATH_TYPES for k in self.data.MULTI_MODE_PATHS_DICT[q] for p in self.data.P_PRODUCTS)
-                   + sum(self.data.D_DISCOUNT_RATE[t] * self.data.ROAD_DIST_COST[(i,j,m,f,r)] * self.model.charge_link[(i,j,m,f,r,t)]
+                   + sum(self.data.D_DISCOUNT_RATE[t] * self.data.ROAD_DIST_COST[(i,j,m,f,r)] * self.model.y_charge[(i,j,m,f,r,t)]
                          for (i,j,m,f,r) in self.data.CHARGING_ARCS)
-                   +self.data.D_DISCOUNT_RATE[t]*self.model.emission_violation[t]*500))
+                   +self.data.D_DISCOUNT_RATE[t]*self.model.z_emission[t]*500))
                    #+ sum(self.data.D_DISCOUNT_RATE[t] * self.data.NODE_CHARGE_COST[(i, m, f)] *self.model.charge_node[(i, m, f, t)] for (i, m, f) in self.data.IMF)))
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)
         
@@ -172,7 +172,7 @@ class TranspModel:
         # Emission limit
         
         def EmissionCapRule(model, t):
-            return self.model.total_emissions[t] <= self.data.CO2_CAP[t]/self.factor + self.model.emission_violation[t]
+            return self.model.total_emissions[t] <= self.data.CO2_CAP[t]/self.factor + self.model.z_emission[t]
 
         self.model.EmissionCap = Constraint(self.data.TS, rule=EmissionCapRule)
         
@@ -184,12 +184,12 @@ class TranspModel:
             """return sum(self.model.x_flow[a,p,t] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[l[2]]
                         for a in self.data.A_PAIRS[l,f]) <= self.data.Y_BASE_CAP[l]
             + sum(self.model.y_exp_link[l,tau] for tau in self.data.T_TIME_PERIODS if tau <= t)
-            #+ self.data.Y_ADD_CAP[l]*sum(self.model.z_inv_cap[(l,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t)"""
+            #+ self.data.Y_ADD_CAP[l]*sum(self.model.v_edge[(l,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t)"""
 
             return (sum(self.model.x_flow[a, p, t] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[m]
                         # so m = l[2], why not replace that
                         for a in self.data.A_PAIRS[l, f]) <= self.data.Y_BASE_CAP[l] +
-                   + self.data.Y_ADD_CAP[l] * sum(self.model.z_inv_cap[l, tau] for tau in self.data.T_TIME_PERIODS if tau < t))
+                   + self.data.Y_ADD_CAP[l] * sum(self.model.v_edge[l, tau] for tau in self.data.T_TIME_PERIODS if tau < t))
 
         self.model.CapacitatedFlow = Constraint(self.data.LT_CAP, rule = CapacitatedFlowRule)
         
@@ -197,15 +197,15 @@ class TranspModel:
         #Expansion in capacity limit
         def ExpansionLimitRule(model,i,j,m,r):
             l = (i,j,m,r)
-            return (sum(self.model.z_inv_cap[(l,t)] for t in self.data.T_TIME_PERIODS) <= self.data.INV_LINK[l])
-        self.model.ExpansionCap = Constraint(self.data.L_LINKS_CAP, rule = ExpansionLimitRule)
+            return (sum(self.model.v_edge[(l,t)] for t in self.data.T_TIME_PERIODS) <= self.data.INV_LINK[l])
+        self.model.ExpansionCap = Constraint(self.data.E_EDGES_RAIL, rule = ExpansionLimitRule)
         
         
         #Investment in new infrastructure/upgrade
         def InvestmentInfraRule(model,i,j,m,r,f,t):
             l = (i,j,m,r)
             return (sum(self.model.x_flow[a,p,t] for p in self.data.P_PRODUCTS for a in self.data.A_PAIRS[l, f])
-                    <= self.data.Big_M[l]*sum(self.model.z_inv_upg[l,u,tau]
+                    <= self.data.Big_M[l]*sum(self.model.u_upg[l,u,tau]
                     for u in self.data.UF_UPG[f] for tau in self.data.T_TIME_PERIODS if tau < t))
         self.model.InvestmentInfra = Constraint(self.data.LFT_UPG, rule = InvestmentInfraRule)
         
@@ -222,12 +222,12 @@ class TranspModel:
             return(sum(self.model.h_flow[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[b]) + 
                    sum(self.model.h_flow[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[b]) +
                    sum(self.model.h_flow[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[b]) <= 
-                   self.data.Y_NODE_CAP[i,m,b]+self.data.Y_ADD_CAP_NODE[i,m,b]*sum(self.model.z_inv_node[i,m,b,tau] for tau in self.data.T_TIME_PERIODS if tau < t))
+                   self.data.Y_NODE_CAP[i,m,b]+self.data.Y_ADD_CAP_NODE[i,m,b]*sum(self.model.w_node[i,m,b,tau] for tau in self.data.T_TIME_PERIODS if tau < t))
         self.model.TerminalCap = Constraint(self.data.NMBT_CAP, rule = TerminalCapRule)
         
         #Max terminal capacity expansion NEW -- how many times you can perform a step-wise increase of the capacity
         def TerminalCapExpRule(model, i, m, b):
-            return(sum(self.model.z_inv_node[i,m,b,t] for t in self.data.T_TIME_PERIODS) <= self.data.INV_NODE[i,m,b])
+            return(sum(self.model.w_node[i,m,b,t] for t in self.data.T_TIME_PERIODS) <= self.data.INV_NODE[i,m,b])
         self.model.TerminalCapExp = Constraint(self.data.NMB_CAP, rule = TerminalCapExpRule)
 
         #Technology maturity limit
@@ -243,7 +243,7 @@ class TranspModel:
             # Linear expansion of charging capacity
             return (sum(self.model.x_flow[a, p, t] for p in self.data.P_PRODUCTS
                        for a in self.data.A_PAIRS[l, f]) <= self.data.BASE_CHARGE_CAP[(i,j,m,f,r)] +
-                   sum(self.model.charge_link[(i,j,m,f,r,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t))
+                   sum(self.model.y_charge[(i,j,m,f,r,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t))
         self.model.ChargingCapArc = Constraint(self.data.CHARGING_AT, rule=ChargingCapArcRule)
 
         # NEW CHARGING NODE RESTRICTION

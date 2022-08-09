@@ -41,12 +41,12 @@ def k_shortest_paths(G, source, target, k, weight=None):
     return list(islice(nx.shortest_simple_paths(G, source, target, weight=weight), int(k)))
 
 
-print(len(data.L_LINKS_DIR))  # 366 directed links/single link paths = 156 + 182 + 28
-print(len(data.L_LINKS))  # 183 modal links (1/2)
+print(len(data.A_ARCS))  # 366 directed links/single link paths = 156 + 182 + 28
+print(len(data.E_EDGES))  # 183 modal links (1/2)
 
 data.K_LINK_PATHS = []
 
-for link in data.L_LINKS_DIR:
+for link in data.A_ARCS:
     data.K_LINK_PATHS.append([link])
 
 print("First add all direct link paths: ", len(data.K_LINK_PATHS))
@@ -100,7 +100,7 @@ for e in road_paths.keys():
     #print(e," --> ", road_paths[e])
     path = []
     for i in range(len(road_paths[e]) - 1):
-        for link in data.L_LINKS_DIR:
+        for link in data.A_ARCS:
             if (road_paths[e][i] == link[0] and road_paths[e][i + 1] == link[1] and link[2] == "Road"):
                 path.append(link)
     data.K_LINK_PATHS.append(path)
@@ -126,7 +126,7 @@ for key in data.allowed_rail.keys():
 for e in rail_paths.keys():
     path = []
     for i in range(len(rail_paths[e])-1):
-        for link in data.L_LINKS_DIR:
+        for link in data.A_ARCS:
             if (rail_paths[e][i] == link[0] and rail_paths[e][i+1] == link[1] and link[2]=="Rail"):
                 path.append(link)
     if ('Trondheim', 'Hamar', 'Rail', 2) in path and ('Trondheim', 'Hamar', 'Rail', 1) in path:
@@ -440,8 +440,8 @@ for od in data.OD_PATHS.keys():
 print("Paths after removing overly complicated paths between nodes with all direct modes available: ",
       len(data.K_LINK_PATHS))
 
-data.AVG_DISTANCE = {l: 0 for l in data.L_LINKS}
-for l in data.L_LINKS:  # Enten bør constraints ta inn halvt sett (ij eller ji) eller så bør denne gjelde for LINKS_DIRECTED
+data.AVG_DISTANCE = {l: 0 for l in data.E_EDGES}
+for l in data.E_EDGES:  # Enten bør constraints ta inn halvt sett (ij eller ji) eller så bør denne gjelde for LINKS_DIRECTED
     if l[2] == "Road":
         if (l[0], l[1]) in road_distances_dict.keys():
             data.AVG_DISTANCE[l] = road_distances_dict[(l[0], l[1])]

@@ -161,13 +161,13 @@ def extract_output_ef(ef,data,instance_run):
                         a_series = pd.Series([k, p, t, weight, e[0]], index=dataset_paths.columns)
                         dataset_paths = dataset_paths.append(a_series, ignore_index=True)
         for t in data.T_TIME_PERIODS:
-            for l in data.L_LINKS_CAP:
+            for l in data.E_EDGES_RAIL:
                 weight = modell.z_inv_cap[(l[0], l[1], l[2], l[3], t)].value
                 if weight > 0:
                     a_series = pd.Series([l[0], l[1], l[2], l[3], t, weight, e[0]], index=dataset_z_inv_cap.columns)
                     dataset_z_inv_cap = dataset_z_inv_cap.append(a_series, ignore_index=True)
         for t in data.T_TIME_PERIODS:
-            for l in data.L_LINKS_UPG:
+            for l in data.E_EDGES_UPG:
                 for u in data.UL_UPG[l]:
                     weight1 = modell.z_inv_upg[(l[0], l[1], l[2], l[3], u, t)].value
                     if weight1 > 0:

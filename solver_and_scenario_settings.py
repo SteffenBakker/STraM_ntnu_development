@@ -50,14 +50,14 @@ def scenario_creator(scenario_name, **kwargs):
         model = model_instance.model
            
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in [2020, 2025]),
-                                        [model.x_flow[:,:,:,:,:,:,2020], model.z_inv_cap[:,:,:,:,2020],
-                                         model.z_inv_upg[:,:,:,:,:,2020], model.z_inv_node[:,:,:,2020],
-                                        model.charge_link[:, :, :, :, :, 2020],model.h_flow[:,:,2020],
-                                         model.emission_violation[2020],
-                                         model.x_flow[:,:,:,:,:,:,2025], model.z_inv_cap[:,:,:,:,2025],
-                                         model.z_inv_upg[:,:,:,:,:,2025], model.z_inv_node[:,:,:,2025],
-                                         model.charge_link[:,:,:,:,:,2025],model.h_flow[:,:,2025],
-                                         model.emission_violation[2025]])
+                                        [model.x_flow[:,:,:,:,:,:,2020], model.v_edge[:,:,:,:,2020],
+                                         model.u_upg[:,:,:,:,:,2020], model.w_node[:,:,:,2020],
+                                        model.y_charge[:, :, :, :, :, 2020],model.h_flow[:,:,2020],
+                                         model.z_emission[2020],
+                                         model.x_flow[:,:,:,:,:,:,2025], model.v_edge[:,:,:,:,2025],
+                                         model.u_upg[:,:,:,:,:,2025], model.w_node[:,:,:,2025],
+                                         model.y_charge[:,:,:,:,:,2025],model.h_flow[:,:,2025],
+                                         model.z_emission[2025]])
 
     ###### set scenario probabilties if they are not assumed equal######
 
