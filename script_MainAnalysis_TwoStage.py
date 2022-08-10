@@ -7,7 +7,7 @@ Created on Fri Jul 29 10:47:48 2022
 
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
 import os
-#os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
+os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 from TranspModelClass import TranspModel
 from Data.Create_Sets_Class import TransportSets
@@ -23,6 +23,8 @@ from mpisppy.opt.ph import PH
 import mpisppy.scenario_tree as scenario_tree
 import time
 import sys
+import pickle
+
 
 import cProfile
 import pstats
@@ -38,10 +40,11 @@ distribution_on_cluster = False  #is the code to be run on the cluster using the
 extract_data = False #this is quite slow (the postprocessing with all the write to file)
 set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
+read_data_from_scratch = False #True if the data reading is done from scratch, otherwise pickled object
 manual_instance = {'Manual':{'sol_met':'ef',
                                     'scen_struct':6,
                                     'co2_price':1,
-                                    'costs':'avg',
+                                    'costs':'avg_costs',
                                     'probs':'equal',
                                     'emission_reduction':75}}
 profiling = True
@@ -85,7 +88,16 @@ if __name__ == "__main__":
     probabilities = instance_dict[instance_run]['probs']
     emission_reduction = instance_dict[instance_run]['emission_reduction']
     
-    base_data = TransportSets('HHH',CO2_price,fuel_cost, emission_reduction) #needs to be initialized with some scenario I guess.
+    if read_data_from_scratch:
+        base_data = TransportSets('HHH',CO2_price,fuel_cost, emission_reduction) #needs to be initialized with some scenario.
+        with open(r'Data\base_data', 'wb') as data_file: 
+            pickle.dump(base_data, data_file)
+    else:
+        with open(r'Data\base_data', 'rb') as data_file:
+            base_data = pickle.load(data_file)
+ 
+
+    
     all_scenario_names = get_all_scenario_names(scenario_structure,base_data)    
     base_model = TranspModel(instance=instance_run,base_data=base_data, one_time_period=False, scenario = all_scenario_names[0],
                           carbon_scenario = CO2_price, fuel_costs=fuel_cost, emission_reduction=emission_reduction)
@@ -149,3 +161,5 @@ if __name__ == "__main__":
         #AIM_Norwegian_Freight_Model\TranspModelClass.py:152(<genexpr>)
         stats.sort_stats('cumtime').print_stats(20)
         #this is done in the scenario_creator
+        
+    

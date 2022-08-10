@@ -38,26 +38,34 @@ def scenario_creator(scenario_name, **kwargs):
     base_model.data.update_scenario_dependent_parameters(scenario_name) #updates the Y_TECH parameters
     base_data.update_scenario_dependent_parameters(scenario_name)
     
-    copy_base_model = False  #deepcopy is slower than repetitively constructing the models.
-    if copy_base_model:
-        base_model.update_tech_constraint()
-        model = base_model.model.clone() # TO DO: clone uses deepcopy and is still very slow
-    else:
-        model_instance =  TranspModel(instance=base_model.instance,base_data=base_data, one_time_period=False, scenario = scenario_name,
-                              carbon_scenario = base_model.carbon_scenario, fuel_costs=base_model.fuel_costs, 
-                              emission_reduction=base_model.emission_reduction)
-        model_instance.construct_model()
-        model = model_instance.model
+    #deepcopy is slower than repetitively constructing the models.
+    # if False:
+    #     base_model.update_tech_constraint()
+    #     model = base_model.model.clone() 
+
+    model_instance =  TranspModel(instance=base_model.instance,base_data=base_data, one_time_period=False, scenario = scenario_name,
+                          carbon_scenario = base_model.carbon_scenario, fuel_costs=base_model.fuel_costs, 
+                          emission_reduction=base_model.emission_reduction)
+    model_instance.construct_model()
+    model = model_instance.model
            
-    sputils.attach_root_node(model, sum(model.StageCosts[t] for t in [2020, 2025]),
-                                        [model.x_flow[:,:,:,:,:,:,2020], model.v_edge[:,:,:,:,2020],
-                                         model.u_upg[:,:,:,:,:,2020], model.w_node[:,:,:,2020],
-                                        model.y_charge[:, :, :, :, :, 2020],model.h_flow[:,:,2020],
-                                         model.z_emission[2020],
-                                         model.x_flow[:,:,:,:,:,:,2025], model.v_edge[:,:,:,:,2025],
-                                         model.u_upg[:,:,:,:,:,2025], model.w_node[:,:,:,2025],
-                                         model.y_charge[:,:,:,:,:,2025],model.h_flow[:,:,2025],
-                                         model.z_emission[2025]])
+   
+    
+    first_stage = [2020, 2025]
+    first_stage_no_first = first_stage.pop(0)
+    sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage),
+                                         [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
+                                         [model.h_flow[:,:,t] for t in first_stage]+
+                                         [model.q_transp_amount[:,:,t] for t in first_stage]+
+                                         [model.ppqq[:,:,t] for t in first_stage_no_first]+
+                                         [model.ppqq_sum[:,t] for t in first_stage_no_first]+
+                                         [model.y_charge[:, :, :, :, :, t] for t in first_stage]+
+                                         [model.v_edge[:,:,:,:,t] for t in first_stage]+
+                                         [model.u_upg[:,:,:,:,:,t] for t in first_stage]+ 
+                                         [model.w_node[:,:,:,t] for t in first_stage]+
+                                         [model.z_emission[t] for t in first_stage] + 
+                                         [model.total_emissions[t] for t in first_stage] #TO DO: check what happens if this is not included (AIM had this)
+                                         )
 
     ###### set scenario probabilties if they are not assumed equal######
 

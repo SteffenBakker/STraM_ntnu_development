@@ -47,14 +47,16 @@ class TranspModel:
         "VARIABLES"
         # Binary, NonNegativeReals, PositiveReals, etc
 
-        #self.model.x_flow_rest = Var(self.data.APTS_rest, within=NonNegativeReals)
+        len(self.data.EF_CHARGING) #369
+        len(list(set(self.data.EF_CHARGING))) #15...?       
+        
         self.model.x_flow = Var(self.data.AFPT, within=NonNegativeReals)
         self.model.h_flow = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
         #self.model.h_flow_2020 = Var(self.data.KPTS_2020, within=NonNegativeReals)
         self.model.StageCosts = Var(self.data.T_TIME_PERIODS, within = NonNegativeReals)
         
         self.model.v_edge = Var(self.data.ET_RAIL, within = Binary) #within = Binary
-        self.model.u_upg = Var(self.data.EFT_UPG, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
+        self.model.u_upg = Var(self.data.UT_UPG, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
         self.model.w_node = Var(self.data.NCMT, within = Binary) #step-wise investment in terminals
         
         #self.model.y_exp_link = Var(self.data.ET_RAIL, within = NonNegativeReals) #,bounds=(0,20000)) #expansion in tonnes for capacitated links l, time period t
@@ -64,30 +66,34 @@ class TranspModel:
         #self.model.charge_node = Var(self.data.CHARGING_IMFT, within=NonNegativeReals)
         self.model.z_emission = Var(self.data.TS, within = NonNegativeReals)
         
-        
-        """def emission_bound(model, t):
-            return (0, self.data.CO2_CAP[t]/self.factor)"""
+        #def emission_bound(model, t):
+        #    return (0, self.data.CO2_CAP[t]/self.factor)
 
         self.model.total_emissions = Var(self.data.TS, within=NonNegativeReals) #instead of T_PERIODS!
                                         # bounds=emission_bound)  # just a variable to help with output
         
-        #TO DO: check how the CO2 kicks in? Why is it there? Should be baked into C_TRANSP_COST
+        self.model.q_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
+        self.model.ppqq = Var(self.data.MFT_MIN0, within=NonNegativeReals) #positive part
+        self.model.ppqq_sum = Var(self.data.MT_MIN0, within=NonNegativeReals) #positive part
+        
+        #TO DO: check how the CO2 kicks in? Could be baked into C_TRANSP_COST
         def StageCostsVar(model, t):
+            delta = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0]
             return(self.model.StageCosts[t] == (
-                sum(self.data.D_DISCOUNT_RATE**n*(self.data.C_TRANSP_COST[(a,f,p,t)]+self.data.C_CO2[(a,f,p,t)])*
-                    self.model.x_flow[(a,f,p,t)]
-                for a in self.data.A_ARCS for f in self.data.F_FUELS_ARC for n in self.data.Y_YEARS[t]) +
-                sum(self.data.D_DISCOUNT_RATE^n*self.data.C_TRANSFER[(k,p)] 
-                for k in self.MULTI_MODE_PATHS for p in self.P_PRODUCTS for n in self.data.Y_YEARS[t]) + 
-                self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0](
-                    sum(self.data.C_EDGE_RAIL[e]*self.model.v_edge[(e,t)] for e in self.E_EDGES_RAIL) +
-                    sum(self.data.C_NODE[(i,c,m)]*self.model.w_node[(i,c,m,t)] for (i, m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m] ) +
-                    # maybe N_NODES_CAP_NORWAY is needed?
-                    sum(self.data.C_UPG[(e,f)]*self.model.u_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE) +
-                    sum(self.data.C_CHARGE[(e,f)])*self.model.y_charge[(e,f,t)] (e,f) in self.CHARGING_EDGES_FUELS)
-                    ) +
-                EMISSION_VIOLATION_PENALTY*self.model.z_emission[t]
-                )
+                sum(self.data.D_DISCOUNT_RATE**n*(self.data.C_TRANSP_COST[((i,j,m,r),f,p,t)]+self.data.C_CO2[((i,j,m,r),f,p,t)])*
+                    self.model.x_flow[((i,j,m,r),f,p,t)]
+                for p in self.data.P_PRODUCTS  for n in self.data.Y_YEARS[t] for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] ) +
+                sum(self.data.D_DISCOUNT_RATE**n*self.data.C_TRANSFER[(k,p)] 
+                for p in self.data.P_PRODUCTS for n in self.data.Y_YEARS[t] for k in self.data.MULTI_MODE_PATHS) + 
+                sum(delta*self.data.C_EDGE_RAIL[e]*self.model.v_edge[(e,t)] for e in self.data.E_EDGES_RAIL) +
+                sum(delta*self.data.C_NODE[(i,c,m)]*self.model.w_node[(i,c,m,t)] for (i, m) in self.data.NM_LIST_CAP for c in self.data.TERMINAL_TYPE[m] ) +
+                # maybe N_NODES_CAP_NORWAY is needed?
+                sum(delta*self.data.C_UPG[(e,f)]*self.model.u_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE) +
+                sum(delta*self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t)] for (e,f) in self.data.EF_CHARGING) +
+                EMISSION_VIOLATION_PENALTY*self.model.z_emission[t] +
+                POSITIVE_PART_PENALTY*(sum(self.model.ppqq[m,f,t] for (m,f,t) in self.data.MFT_MIN0) + 
+                                       sum(self.model.ppqq_sum[m,t] for (m,t) in self.data.MT_MIN0))
+                ))
                 
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)
         
@@ -101,39 +107,31 @@ class TranspModel:
 
         self.model.Obj = Objective(rule=objfun, sense=minimize)
 
-        # Flow
+        # Demand
+        
         def FlowRule(model, o, d, p, t):
-            return sum(self.model.h_flow[str(k), p, t] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
+            return sum(self.model.h_flow[k, p, t] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
                 (o, d, p, t)]/self.factor
-
         # NOTE THAT THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.Flow = Constraint(self.data.ODPTS, rule=FlowRule)
-        #print("OVER FEILEN!")
+        
 
         # PathFlow-ArcFlow relationship
-       
+
         def PathArcRule(model, i, j, m, r, p, t):
-            l= (i,j,m,r)
-            return sum(self.model.x_flow[a, p, t] for a in self.data.A_LINKS[l]) == sum(
-                #self.data.DELTA[(l, str(tuple(k)))] * self.model.h_flow[str(k), p, t] for k in self.data.K_PATHS)
-                self.model.h_flow[str(k), p, t] for k in self.data.K_PATHS_L[l] )
-        self.model.PathArcRel = Constraint(self.data.EPT, rule=PathArcRule)
-
-        # CAPACITY constraints (compared to 2018) - TEMPORARY
-        # the model quickly becomes infeasible when putting such constraints on the model. Should be tailor-made!
-
-        # def CapacityConstraints(model, i,j,m,p,t):
-        #    a = (i,j,m)
-        #    return self.model.x_flow[a,p,t] <= self.data.buildchain2018[(i,j,m,p)]*2
-        # self.model.CapacityConstr = Constraint(self.data.APT,rule=CapacityConstraints)
+            a= (i,j,m,r)
+            return sum(self.model.x_flow[a, f, p, t] for f in self.data.FM_FUEL[m]) == sum(
+                #self.data.DELTA[(l, str(tuple(k)))] * self.model.h_flow[k, p, t] for k in self.data.K_PATHS)
+                self.model.h_flow[k, p, t] for k in self.data.KA_PATHS[a] )
+        self.model.PathArcRel = Constraint(self.data.APT, rule=PathArcRule)
 
         # Emissions
         def emissions_rule(model, t):
             return (self.model.total_emissions[t] == sum(
-                self.data.E_EMISSIONS[a, p, t] * self.model.x_flow[a, p, t] for p in self.data.P_PRODUCTS
-                for a in self.data.A_ARCS))
+                self.data.E_EMISSIONS[(i,j,m,r),f, p, t] * self.model.x_flow[a,f, p, t] for p in self.data.P_PRODUCTS
+                for (i,j,m,r) in self.data.A_ARCS for f in self.FM_FUEL[m]))
         self.model.Emissions = Constraint(self.data.TS, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
-
+        
 
         "CONSTRAINT NEW/ADDED"
 
@@ -145,111 +143,106 @@ class TranspModel:
         self.model.EmissionCap = Constraint(self.data.TS, rule=EmissionCapRule)
         
 
+        # CAPACITY constraints (compared to 2018) - TEMPORARY
+        # the model quickly becomes infeasible when putting such constraints on the model. Should be tailor-made!
+
+        # def CapacityConstraints(model, i,j,m,p,t):
+        #    a = (i,j,m)
+        #    return self.model.x_flow[a,p,t] <= self.data.buildchain2018[(i,j,m,p)]*2
+        # self.model.CapacityConstr = Constraint(self.data.APT,rule=CapacityConstraints)
+
         
         #Capacity constraint
         def CapacitatedFlowRule(model,i,j,m,r,t):
             l = (i,j,m,r)
-            """return sum(self.model.x_flow[a,p,t] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[l[2]]
-                        for a in self.data.A_PAIRS[l,f]) <= self.data.Y_BASE_CAP[l]
-            + sum(self.model.y_exp_link[l,tau] for tau in self.data.T_TIME_PERIODS if tau <= t)
-            #+ self.data.Y_ADD_CAP[l]*sum(self.model.v_edge[(l,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t)"""
+            return (sum(self.model.x_flow[a, f, p, t] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[m]) <= 0.5*(self.data.Q_EDGE_BASE_RAIL[e] +
+                   + self.data.Q_EDGE_RAIL[e] * sum(self.model.v_edge[e, tau] for tau in self.data.T_TIME_PERIODS if tau <= t)))
 
-            return (sum(self.model.x_flow[a, p, t] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[m]
-                        # so m = l[2], why not replace that
-                        for a in self.data.A_PAIRS[l, f]) <= self.data.Y_BASE_CAP[l] +
-                   + self.data.Y_ADD_CAP[l] * sum(self.model.v_edge[l, tau] for tau in self.data.T_TIME_PERIODS if tau < t))
-        #A_PAIRS IS REMOVED
-
-        self.model.CapacitatedFlow = Constraint(self.data.ET_RAIL, rule = CapacitatedFlowRule)
+        self.model.CapacitatedFlow = Constraint(self.data.EAT_RAIL, rule = CapacitatedFlowRule)
         
         
-        #Expansion in capacity limit
+        #Num expansions
         def ExpansionLimitRule(model,i,j,m,r):
-            l = (i,j,m,r)
-            return (sum(self.model.v_edge[(l,t)] for t in self.data.T_TIME_PERIODS) <= self.data.INV_LINK[l])
+            e = (i,j,m,r)
+            return (sum(self.model.v_edge[(e,t)] for t in self.data.T_TIME_PERIODS) <= 1)
         self.model.ExpansionCap = Constraint(self.data.E_EDGES_RAIL, rule = ExpansionLimitRule)
         
         
-        #Investment in new infrastructure/upgrade
+        #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
+        def TerminalCapRule(model, i, c, m,t):
+            return(sum(self.model.h_flow[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[c]) + 
+                   sum(self.model.h_flow[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[c]) +
+                   sum(self.model.h_flow[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[c]) <= 
+                   self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.w_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS if tau <= t))
+        self.model.TerminalCap = Constraint(self.data.NCMT, rule = TerminalCapRule)
+        
+        #Num expansions of terminal NEW -- how many times you can perform a step-wise increase of the capacity
+        def TerminalCapExpRule(model, i, c,m):
+            return(sum(self.model.w_node[i,c,m,t] for t in self.data.T_TIME_PERIODS) <= 1) # THIS WAS AT 4 .... self.data.INV_NODE[i,m,c])
+        self.model.TerminalCapExp = Constraint(self.data.NCM, rule = TerminalCapExpRule)
+
+        
+        #Charging / Filling
+        def ChargingCapArcRule(model, i, j, m, r,f, t):
+            e = (i, j, m, r)
+            return (sum(self.model.x_flow[a,f,p, t] for p in self.data.P_PRODUCTS
+                       for a in self.data.AE_ARCS[e]) <= self.data.Q_CHARGE_BASE[(e,f)] +
+                   sum(self.model.y_charge[(e,f,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t))
+        self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE, rule=ChargingCapArcRule)
+        #AIM also looked into charging infrastructure in NODES
+
+        #Upgrading
         def InvestmentInfraRule(model,i,j,m,r,f,t):
-            l = (i,j,m,r)
-            return (sum(self.model.x_flow[a,p,t] for p in self.data.P_PRODUCTS for a in self.data.A_PAIRS[l, f])
-                    <= self.data.BIG_M_UPG[l]*sum(self.model.z_inv_upg[l,u,tau]
-                    for u in self.data.UF_UPG[f] for tau in self.data.T_TIME_PERIODS if tau < t))
-        self.model.InvestmentInfra = Constraint(self.data.LFT_UPG, rule = InvestmentInfraRule)
-        
-        
-        """#Terminal capacity constraint OLD
-        def TerminalCapRule(model,i,m,t):
-            return (sum(self.model.x_flow[a,p,t] for p in self.data.P_PRODUCTS for a in self.data.A_IN[i,m])
-            + sum(self.model.x_flow[a,p,t] for p in self.data.P_PRODUCTS for a in self.data.A_OUT[i,m]) <= self.data.Y_NODE_CAP[i,m]
-            + sum(self.model.y_exp_node[i,m,tau] for tau in self.data.T_TIME_PERIODS if tau <= t))
-        self.model.TerminalCap = Constraint(self.data.NMT_CAP, rule = TerminalCapRule)"""
-        
-        #Terminal capacity constraint NEW
-        def TerminalCapRule(model, i, m, b, t):
-            return(sum(self.model.h_flow[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[b]) + 
-                   sum(self.model.h_flow[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[b]) +
-                   sum(self.model.h_flow[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[b]) <= 
-                   self.data.Y_NODE_CAP[i,m,b]+self.data.Y_ADD_CAP_NODE[i,m,b]*sum(self.model.w_node[i,m,b,tau] for tau in self.data.T_TIME_PERIODS if tau < t))
-        self.model.TerminalCap = Constraint(self.data.NMBT_CAP, rule = TerminalCapRule)
-        
-        #Max terminal capacity expansion NEW -- how many times you can perform a step-wise increase of the capacity
-        def TerminalCapExpRule(model, i, m, b):
-            return(sum(self.model.w_node[i,m,b,t] for t in self.data.T_TIME_PERIODS) <= self.data.INV_NODE[i,m,b])
-        self.model.TerminalCapExp = Constraint(self.data.NMB_CAP, rule = TerminalCapExpRule)
+            e = (i,j,m,r)
+            return (sum(self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS for a in self.data.AE_ARCS[e])
+                    <= self.data.BIG_M_UPG[e]*sum(self.model.u_upg[e,f,tau] for tau in self.data.T_TIME_PERIODS if tau <= t))
+        self.model.InvestmentInfra = Constraint(self.data.UT_UPG, rule = InvestmentInfraRule)
 
         
-        
-        
-        def ChargingCapArcRule(model, i, j, m, f, r, t):
-            l = (i, j, m, r)
-            # Must hold for each arc pair a (ijmfr + jimfr) in each time_period t
-            # Linear expansion of charging capacity
-            return (sum(self.model.x_flow[a, p, t] for p in self.data.P_PRODUCTS
-                       for a in self.data.A_PAIRS[l, f]) <= self.data.BASE_CHARGE_CAP[(i,j,m,f,r)] +
-                   sum(self.model.y_charge[(i,j,m,f,r,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t))
-        self.model.ChargingCapArc = Constraint(self.data.CHARGING_AT, rule=ChargingCapArcRule)
-
-        # NEW CHARGING NODE RESTRICTION
-        #
-        
-        """def ChargingCapNodeRule(model, i, m, f, t):
-           # Linear expansion of charging capacity
-           return (sum(self.model.x_flow[a, p, t] for p in self.data.P_PRODUCTS
-                       for a in self.data.IMF_ARCS[(i, m, f)]) <= self.data.BASE_CHARGE_CAP_NODE[(i,m,f)] +
-                   sum(self.model.charge_node[(i,m,f,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t))
-        self.model.ChargingCapNode = Constraint(self.data.CHARGING_IMFT, rule=ChargingCapNodeRule)"""
-
-
         #def Diesel2020(model, t):
         #    return (sum(self.model.x_flow[(a,p,t)] for p in self.data.P_PRODUCTS
         #        for a in self.data.DIESEL_ROAD) >= sum(self.model.x_flow[(a,p,t)]
         #       for p in self.data.P_PRODUCTS for a in self.data.ARCS_ROAD))
         #self.model.Diesel2020Rate = Constraint(self.data.T_TIME_2020, rule=Diesel2020)
  
-        """
-        def NonAnticipativityRule(model,a,p):
-            return(self.model.x_flow[(a, p, 2020, "average")] == self.model.x_flow[(a, p, 2020, "low")]
-            == self.model.x_flow[(a, p, 2020, "high")] == self.model.x_flow[(a, p, 2020, "hydrogen")])
-            self.model.NonAnticipativity = Constraint(self.data.AP, rule=NonAnticipativityRule)
-            """
+        # """
+        # def NonAnticipativityRule(model,a,p):
+        #     return(self.model.x_flow[(a, p, 2020, "average")] == self.model.x_flow[(a, p, 2020, "low")]
+        #     == self.model.x_flow[(a, p, 2020, "high")] == self.model.x_flow[(a, p, 2020, "hydrogen")])
+        #     self.model.NonAnticipativity = Constraint(self.data.AP, rule=NonAnticipativityRule)
+        #     """
         
-        #self.scenario_dependent_constraints(self.data.Y_TECH)
+        #Fleet Renewal
+        def TotalTransportAmountRule(model,m,f,t):
+            return (self.model.q_transp_amount[m,f,t] == sum( self.data.AVG_DISTANCE[a]*self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS 
+                                                            for a in self.AM_ARCS))
+        self.model.TotalTranspAmount = Constraint(self.data.MFT, rule = TotalTransportAmountRule)
+        
+        def PositivePart1Rule(model,m,f,t):
+            return (self.model.ppqq[m,f,t] >= self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,t-1])
+        self.model.PositivePart1 = Constraint(self.data.MFT, rule = PositivePart1Rule)
+        
+        def PositivePart2Rule(model,m,t):
+            return (self.model.ppqq_sum[m,t] >= sum(self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,t-1] for f in self.FM_FUEL[m]))
+        self.model.PositivePart2 = Constraint(self.data.MT, rule = PositivePart2Rule)
+        
+        def FleetRenewalRule(model,m,t):
+            return (sum(self.model.ppqq[m,f,t] for f in self.data.FM_FUEL[m]) <= self.data.RHO_FLEET_RENEWAL_RATE[m,t]*sum(
+                    self.model.q_transp_amount[m,f,t-1]for f in self.data.FM_FUEL[m]) + self.model.ppqq_sum[m,t])
+        self.model.FleetRenewal = Constraint(self.data.MT, rule = FleetRenewalRule)
+        
         #Technology maturity limit
-        self.model.TechMaturityLimit = Constraint(self.data.MFTS_CAP, rule = self.TechMaturityLimitRule)
+        def TechMaturityLimitRule(self,model, m, f, t):
+            return (self.model.q_transp_amount[(m,f,t)] <= self.data.Y_TECH[(m,f,t)] )   #CHANGE THIS Y_TECH to mu*M
+        self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = self.TechMaturityLimitRule)
 
         return self.model
     
-        
-    def TechMaturityLimitRule(self,model, m, f, t):
-        return (sum(self.model.x_flow[(a, p, t)] for p in self.data.P_PRODUCTS
-                    for a in self.data.A_TECH[m, f]) <= self.data.Y_TECH[(m, f, t)])
-    
-    def update_tech_constraint(self):
-        self.model.del_component(self.model.TechMaturityLimit);
-        self.model.del_component(self.model.TechMaturityLimit_index);
-        self.model.add_component("TechMaturityLimit",Constraint(self.data.MFTS_CAP, rule=self.TechMaturityLimitRule))    
+
+    # def update_tech_constraint(self):
+    #     self.model.del_component(self.model.TechMaturityLimit);
+    #     self.model.del_component(self.model.TechMaturityLimit_index);
+    #     self.model.add_component("TechMaturityLimit",Constraint(self.data.MFTS_CAP, rule=self.TechMaturityLimitRule))    
 
     def solve_model(self):
 

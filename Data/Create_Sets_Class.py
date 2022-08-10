@@ -71,7 +71,7 @@ class TransportSets():
 
         print("Constructing scenario")
 
-        self.factor = 10000
+        self.factor = SCALING_FACTOR
 
         self.N_NODES = ["Oslo", "Bergen", "Trondheim", "Hamar", "Bodø", "Tromsø", "Kristiansand",
                         "Ålesund", "Stavanger", "Skien", "Sør-Sverige", "Nord-Sverige",
@@ -150,7 +150,6 @@ class TransportSets():
         self.OD_PAIRS = []
         self.K_PATHS = []
       
-        #self.U_UPG = ["Partially electrified rail", "Fully electrified rail"]
 
         #self.UF_UPG = {"Battery train": ["Partially electrified rail", "Fully electrified rail"],
         #               "Electric train (CL)": ["Fully electrified rail"]}
@@ -222,35 +221,34 @@ class TransportSets():
             if i in self.N_NODES_NORWAY or j in self.N_NODES_NORWAY:
                 self.E_EDGES_NORWAY.append((i,j,m,r))
 
-        # Create all arcs from allowed modal links
+        self.AE_ARCS = {e:[] for e in self.E_EDGES}
+        self.AM_ARCS = {m:[] for m in self.M_MODES}
+        # Create all arcs from allowed modal links THE F CAN BE REMOVED HERE!
         for (i, j, m, r) in self.E_EDGES:
-            for f in self.FM_FUEL[m]:
-                arc = (i, j, m, r)
-                if not(f == "HFO" and i in self.N_NODES_NORWAY and j in self.N_NODES_NORWAY):
-                    self.A_ARCS.append(arc)
-                    if i != j:
-                        arc2 = (j, i, m, r)
-                        self.A_ARCS.append(arc2)
-                    
-        # #Create arc for specific modes and fuels
-        # for m in self.M_MODES:
-        #     for f in self.FM_FUEL[m]:
-        #         for a in self.A_ARCS:
-        #             if a[2] == m and a[3] == f:
-        #                 if a not in self.A_TECH[(m,f)]:
-        #                     self.A_TECH[(m,f)].append(a)
-        
+            e = (i, j, m, r)
+            a1 = (i, j, m, r)
+            a2 = (j, i, m, r)
+            self.A_ARCS.append(a1)
+            self.A_ARCS.append(a2)
+            self.AE_ARCS[e].append(a1)
+            self.AE_ARCS[e].append(a2)
+            self.AM_ARCS[m].append(a1)
+            self.AM_ARCS[m].append(a2)
+            
+            #the next part can be simplified
+            # for f in self.FM_FUEL[m]:
+            #     arc = (i, j, m, r)
+            #     if not(f == "HFO" and i in self.N_NODES_NORWAY and j in self.N_NODES_NORWAY):
+            #         self.A_ARCS.append(arc)
+            #         if i != j:
+            #             arc2 = (j, i, m, r)
+            #             self.A_ARCS.append(arc2)
+                
         
         for l in self.E_EDGES_NORWAY:
             if l[2] == "Rail":
                 self.E_EDGES_RAIL.append(l)
         
-        # for l in self.E_EDGES:
-        #     for f in self.FM_FUEL[l[2]]:
-        #         if not (f == "HFO" and l[0] in self.N_NODES_NORWAY and l[1] in self.N_NODES_NORWAY):
-        #             self.A_PAIRS[l, f] = [(l[0], l[1], l[2], f, l[3])]
-        #             if l[0] != l[1]:
-        #                 self.A_PAIRS[l, f].append((l[1], l[0], l[2], f, l[3]))
         
         rail_cap_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Cap rail')
         inv_rail_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Invest rail')
@@ -296,7 +294,7 @@ class TransportSets():
         self.K_LINK_PATHS = []
         all_generated_paths = pd.read_csv(self.prefix+r'generated_paths.csv', converters={'paths': eval})
         for index, row in all_generated_paths.iterrows():
-            elem = row['paths']
+            elem = tuple(row['paths']) #changed into a tuple (from a list)
             self.K_LINK_PATHS.append(elem)
 
         self.OD_PATHS = {od: [] for od in self.OD_PAIRS_ALL}
@@ -380,27 +378,41 @@ class TransportSets():
                         self.DESTINATION_PATHS[(i,m)].append(str(k))
         
         
+        self.KA_PATHS = {a:[] for a in self.A_ARCS}
+        for k in self.K_PATHS:
+            for (i,j,m,r) in k:
+                a = (i,j,m,r)
+                self.KA_PATHS[a].append(k)
+        
         
         "Combined sets"
         
         self.TS = [(t) for t in self.T_TIME_PERIODS]
+        self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]        
         self.KPT = [(str(k), p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
 
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
-        
-        self.EFT_UPG = [(e,f) + (t,) for (e,f) in self.U_UPGRADE  for t in self.T_TIME_PERIODS]
+        self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
         
         self.NCM = [(i,c,m) for (i,m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m]]
-        self.NCMT = [(i,c,m,t) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m] for t in self.T_TIME_PERIODS]
+        self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
         
         self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
-        # Create MFT for maturity constraint (only the new technologies!)
-        self.MFT = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
+
+        self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
+        self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
+        self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+        self.MT_MIN0 = [(m,t) for m in self.M_MODES for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+        
+        self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
         "Parameters"
+
+        #fleet renewal  TO DO: FIND SENSIBLE VALUES
+        self.RHO_FLEET_RENEWAL_RATE = {(m,t):FLEET_RR for (m,t) in self.MT_MIN0}
 
         
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='Costs')
@@ -441,9 +453,27 @@ class TransportSets():
         
         mode_to_transfer = {('Sea','Rail'):'sea-rail',
                             ('Sea','Road'):'sea-road',
-                            ('Rail','Road'):'rail-road'}            
+                            ('Rail','Road'):'rail-road',
+                            ('Rail','Sea'):'sea-rail',
+                            ('Road','Sea'):'sea-road',
+                            ('Road','Rail'):'rail-road'}            
         
         self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}
+        
+        # num_transfers_in_paths = []
+        # type_path = []
+        # for k in self.MULTI_MODE_PATHS:
+        #     num_transfers = len(k)-1
+        #     num_transfers_in_paths.append(num_transfers)
+        #     path_type = [k[0][2]]
+        #     for n in range(num_transfers):
+        #         mode_from = k[n][2]
+        #         mode_to = k[n+1][2]
+        #         path_type.append(mode_to)
+        #     type_path.append(path_type)
+        # np.unique(type_path)
+        #many paths with multiple transfers. Also, we have e.g. rail-rail-rail-road
+            
         for k in self.MULTI_MODE_PATHS:
             for p in self.P_PRODUCTS:
                 cost = 0
@@ -451,17 +481,19 @@ class TransportSets():
                 for n in range(num_transfers):
                     mode_from = k[n][2]
                     mode_to = k[n+1][2]
-                    cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
+                    if mode_from != mode_to: 
+                        cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
                 self.C_TRANSFER[(k,p)] = cost
-
+        
+        
         
 
 
-        self.C_TRANSP_COST = {((i,j,m,r), f, p, t): 1000000 for ((i,j,m,r)) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.C_TRANSP_COST = {((i,j,m,r), f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
-        self.E_EMISSIONS = {((i,j,m,r),f,p,t): 1000000 for ((i,j,m,r)) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.E_EMISSIONS = {((i,j,m,r),f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
-        self.C_CO2 = {((i,j,m,r),f,p,t): 1000000 for ((i,j,m,r)) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.C_CO2 = {((i,j,m,r),f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
 
         for index, row in self.cost_data.iterrows():
@@ -521,7 +553,7 @@ class TransportSets():
         self.Q_NODE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #lagt til 03.05
 
         self.C_UPG = {(e,f) : 100000 for (e,f) in self.U_UPGRADE}
-        self.BIG_M_UPG = {l: [] for l in self.E_EDGES_UPG}
+        self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}
         #how many times can you invest?
         #self.INV_NODE = {(i,m,b): 4 for (i,m,b) in self.NMB_CAP}
         #self.INV_LINK = {(l): 1 for l in self.E_EDGES_RAIL}
@@ -538,13 +570,13 @@ class TransportSets():
         for m in self.M_MODES_CAP:
             for i in self.N_NODES_CAP_NORWAY[m]:
                 for c in self.TERMINAL_TYPE[m]:
-                    if m == "Rail" and b=="Combination":
+                    if m == "Rail" and c=="Combination":
                         cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
                         self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet combi 2014 (tonn)']/self.factor
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
                         self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.factor
                         self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (combi)']/self.factor
-                    if m == "Rail" and b=="Timber":
+                    if m == "Rail" and c=="Timber":
                         cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
                         self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.factor
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
@@ -593,27 +625,26 @@ class TransportSets():
             #print((row["Mode"],row["Fuel"]))
             self.CHARGING_TECH.append((row["Mode"],row["Fuel"]))
         # all arcs (one per arc pair ij/ji) with mode Road and fuels Battery or Hydrogen
-        self.CHARGING_EDGES_FUELS = []
-        for e in self.E_EDGES:
-            e = (i,j,m,r)
-            for (m, f) in self.CHARGING_TECH:
-               if e[2] == m:
-                   utlandet = ["Europa", "Sør-Sverige", "Nord-Sverige"]
-                   if i not in utlandet or j not in utlandet:
-                       #if (a[1], a[0], a[2], a[3], a[4]) not in self.CHARGING_ARCS: #redundant I think
-                       self.CHARGING_EDGES_FUELS.append((e,f))
-        self.EFT_CHARGE = [(e,f) + (t,) for (e,f) in self.CHARGING_EDGES_FUELS for t in self.T_TIME_PERIODS]
+        self.EF_CHARGING = []
+        for (i,j,m,r) in self.E_EDGES:
+            e =(i,j,m,r)
+            utlandet = ["Europa", "Sør-Sverige", "Nord-Sverige"]
+            if i not in utlandet or j not in utlandet: #and or 'or'
+                for (m, f) in self.CHARGING_TECH:
+                    if e[2] == m:
+                        self.EF_CHARGING.append((e,f))
+        self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS]
         
 
         # base capacity on a pair of arcs (ij/ji - mfr), often 0 since no charging infrastructure exists now
-        self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.CHARGING_EDGES_FUELS}
+        self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
         # ALLE DISTANSER PÅ ROAD SOM TRENGER CHARGING INFRASTUCTURE
-        self.CHARGE_ROAD_DISTANCE = {(e,f): road_distances_dict[(e[0], e[1])] for (e,f) in self.CHARGING_EDGES_FUELS}
+        self.CHARGE_ROAD_DISTANCE = {(e,f): road_distances_dict[(e[0], e[1])] for (e,f) in self.EF_CHARGING}
         # self.CHARGE_ROAD_DISTANCE = {mf:  for mf in self.CHARGING_TECH}
-        self.C_CHARGE = {(e,f): 9999 for (e,f) in self.CHARGING_EDGES_FUELS}  # for p in self.P_PRODUCTS}
+        self.C_CHARGE = {(e,f): 9999 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}
         max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
-        for (e,f) in self.CHARGING_EDGES_FUELS:
-            (i, j, m, r) = e
+        for ((i, j, m, r),f) in self.EF_CHARGING:
+            e = (i, j, m, r) 
             data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
             self.C_CHARGE[(e,f)] = (self.CHARGE_ROAD_DISTANCE[(e,f)]
                                                    / data_index.iloc[0]["Max_station_dist"]
@@ -625,7 +656,7 @@ class TransportSets():
         # -----------------
 
         
-        self.scen_data = pd.read_csv(self.prefix+r'scenarios_maturities_27.csv')
+        self.scen_data = pd.read_csv(self.prefix+r'scenarios_maturities_27.csv')  #how is this one constructed? It gives percentages 
         
         self.all_scenarios = []
         for index, row in self.scen_data.iterrows():
@@ -659,8 +690,9 @@ class TransportSets():
     def update_scenario_dependent_parameters(self,scenario):
         
         #TO DO: change this way of defining the maturity constraints!!
+        #Go from Q_TECH (in tonnes) to mu*M (in tonne-km)
         
-        self.Y_TECH = {mft : 0 for mft in self.MFT}
+        self.Y_TECH = {mft : 0 for mft in self.MFT_MATURITY}
 
         if scenario in self.det_eqvs.keys():
             # create deterministIc equivalents
@@ -668,7 +700,7 @@ class TransportSets():
                 for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
                     for (m, f) in self.NEW_MF_LIST:
                         if row['Mode'] == m and row['Fuel'] == f:
-                            total_trans = self.total_trans_dict[row['Mode']]
+                            total_trans = self.total_trans_dict[row['Mode']] #to do: replace with tonne-km!
                             for year in self.T_TIME_PERIODS: 
                                 self.Y_TECH[(row['Mode'], row['Fuel'], year)] += (row[str(year)] * total_trans) / (
                                         100 * self.factor * len(self.det_eqvs[scenario]))
@@ -679,7 +711,7 @@ class TransportSets():
                     if scen_string[key] == w[key]:
                         for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
                             if row['Fuel'] in self.fuel_groups[key]:
-                                total_trans = self.total_trans_dict[row['Mode']]
+                                total_trans = self.total_trans_dict[row['Mode']]   #to do: replace with tonne-km!
                                 for year in self.T_TIME_PERIODS:
                                     self.Y_TECH[(row['Mode'], row['Fuel'], year)] = (
                                         row[str(year)] * total_trans / 100) / self.factor
@@ -764,5 +796,5 @@ class TransportSets():
                     self.first_stage_emission_violation[row['time_period']] = row['weight']
 
 
-base_data = TransportSets()
+#base_data = TransportSets()
 
