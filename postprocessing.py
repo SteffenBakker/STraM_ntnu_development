@@ -157,12 +157,13 @@ def extract_output_ef(ef,data,instance_run):
 
         print("NEXT SCENARIO: ", e[0])
 
-        for k in data.K_PATHS:
+        for kk in data.K_PATHS:
+            #k = self.K_PATH_DICT[kk]
             for t in data.T_TIME_PERIODS:
                 for p in data.P_PRODUCTS:
-                    weight = modell.h_flow[(k, p, t)].value
+                    weight = modell.h_flow[(kk, p, t)].value
                     if weight > 0:
-                        a_series = pd.Series([k, p, t, weight, e[0]], index=dataset_paths.columns)
+                        a_series = pd.Series([kk, p, t, weight, e[0]], index=dataset_paths.columns)
                         dataset_paths = dataset_paths.append(a_series, ignore_index=True)
         for t in data.T_TIME_PERIODS:
             for i,j,m,r in data.E_EDGES_RAIL:

@@ -459,10 +459,10 @@ for l in data.E_EDGES:  # Enten bør constraints ta inn halvt sett (ij eller ji)
         data.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = data.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] / 2
 
 # Remove all paths with length more than 3x shortest path
-data.path_length = {str(k):0 for k in data.K_LINK_PATHS}
+data.path_length = {k:0 for k in data.K_LINK_PATHS}
 for k in data.K_LINK_PATHS:
     for l in k:
-        data.path_length[str(k)] += data.AVG_DISTANCE[l] # arr_aggr_dict[l[0],l[1]][0]
+        data.path_length[k] += data.AVG_DISTANCE[l] # arr_aggr_dict[l[0],l[1]][0]
 
 for od in data.OD_PATHS.keys():
     paths = []
@@ -470,7 +470,7 @@ for od in data.OD_PATHS.keys():
     iter_list = data.OD_PATHS[od].copy()
     for k in iter_list:
         paths.append(k)
-        lengths.append((data.path_length[str(k)]))
+        lengths.append((data.path_length[k]))
     for i in range(len(lengths)):
         if lengths[i] > 3*min(lengths):
             data.K_LINK_PATHS.remove(paths[i])

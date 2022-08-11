@@ -109,7 +109,7 @@ class TransportSets():
                        'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"]
 
         self.FM_FUEL = {"Road": ["Diesel","Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
-                        "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],
+                        "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],  #Hybrid: non-existing
                         "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} ###HUSK Å SETTE INN HFO
 
         self.NEW_MF_LIST = [("Road", "Hydrogen"), ("Road", "Battery electric"), ("Rail", "Hydrogen"),
@@ -120,7 +120,9 @@ class TransportSets():
 
         self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
         
-        self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]        
+        self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]
+        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}        
+                
         self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
         t0 = self.T_TIME_PERIODS[0]
         num_periods = len(self.T_TIME_PERIODS)
@@ -291,19 +293,22 @@ class TransportSets():
         # ----LOAD ALL PATHS------
         # ------------------------
 
-        self.K_LINK_PATHS = []
+        self.K_PATHS = []
         all_generated_paths = pd.read_csv(self.prefix+r'generated_paths.csv', converters={'paths': eval})
+        self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
         for index, row in all_generated_paths.iterrows():
-            elem = tuple(row['paths']) #changed into a tuple (from a list)
-            self.K_LINK_PATHS.append(elem)
-
+            elem = tuple(row['paths']) 
+            self.K_PATHS.append(index)
+            self.K_PATH_DICT[index]=elem
+        
         self.OD_PATHS = {od: [] for od in self.OD_PAIRS_ALL}
         for od in self.OD_PAIRS_ALL:
-            for k in self.K_LINK_PATHS:
-                if od[0] == k[0][0] and od[-1] == k[-1][1]:
+            for k in self.K_PATHS:
+                path = self.K_PATH_DICT[k]
+                if od[0] == path[0][0] and od[-1] == path[-1][1]:
                     self.OD_PATHS[od].append(k)
 
-        self.K_PATHS = self.K_LINK_PATHS
+        
 
         # ---------------------------------------
         # -------CALCULATE LINK DISTANCES--------
@@ -349,21 +354,23 @@ class TransportSets():
 
         #multi-mode paths
         self.MULTI_MODE_PATHS = []
-        for k in self.K_PATHS:
+        for kk in self.K_PATHS:
+            k = self.K_PATH_DICT[kk]
             if len(k) > 1:
                 for i in range(len(k)-1):
                     if k[i][2] != k[i+1][2]:
-                        self.MULTI_MODE_PATHS.append(k)
+                        self.MULTI_MODE_PATHS.append(kk)
                 
         #Paths with transfer in node i to/from mode m
         self.TRANSFER_PATHS = {(i,m) : [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
         
         for m in self.M_MODES_CAP:
             for i in self.N_NODES_CAP_NORWAY[m]:
-                for k in self.MULTI_MODE_PATHS:
+                for kk in self.MULTI_MODE_PATHS:
+                    k = self.K_PATH_DICT[kk]
                     for j in range(len(k)-1):
                         if (k[j][1] == i) and (k[j][2] == m or k[j+1][2] == m) and (k[j][2] != k[j+1][2]):
-                            self.TRANSFER_PATHS[(i,m)].append(str(k))
+                            self.TRANSFER_PATHS[(i,m)].append(kk)
 
         #Origin and destination paths
         self.ORIGIN_PATHS = {(i,m): [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
@@ -371,18 +378,20 @@ class TransportSets():
         
         for m in self.M_MODES_CAP:
             for i in self.N_NODES_CAP_NORWAY[m]:
-                for k in self.K_PATHS:
+                for kk in self.K_PATHS:
+                    k = self.K_PATH_DICT[kk]
                     if (k[0][0] == i) and (k[0][2] == m):
-                        self.ORIGIN_PATHS[(i,m)].append(str(k))
+                        self.ORIGIN_PATHS[(i,m)].append(kk)
                     if (k[-1][1] == i) and (k[-1][2] == m):
-                        self.DESTINATION_PATHS[(i,m)].append(str(k))
+                        self.DESTINATION_PATHS[(i,m)].append(kk)
         
         
         self.KA_PATHS = {a:[] for a in self.A_ARCS}
-        for k in self.K_PATHS:
+        for kk in self.K_PATHS:
+            k = self.K_PATH_DICT[kk]
             for (i,j,m,r) in k:
                 a = (i,j,m,r)
-                self.KA_PATHS[a].append(k)
+                self.KA_PATHS[a].append(kk)
         
         
         "Combined sets"
@@ -391,7 +400,7 @@ class TransportSets():
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]        
-        self.KPT = [(str(k), p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
+        self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
 
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
         self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
@@ -433,7 +442,7 @@ class TransportSets():
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']
         
-        # THIS NEEDS TO BE UPDATED!! THE COSTS ARE CALCULATED ONLY FOR TWO-LEG PATHS
+        
         self.PATH_TYPES = ["sea-rail", "sea-road", "rail-road"]
         # self.MULTI_MODE_PATHS_DICT = {q: [] for q in self.PATH_TYPES}
         self.C_MULTI_MODE_PATH = {(q,p): 0  for q in self.PATH_TYPES for p in self.P_PRODUCTS}
@@ -474,7 +483,8 @@ class TransportSets():
         # np.unique(type_path)
         #many paths with multiple transfers. Also, we have e.g. rail-rail-rail-road
             
-        for k in self.MULTI_MODE_PATHS:
+        for kk in self.MULTI_MODE_PATHS:
+            k = self.K_PATH_DICT[kk]
             for p in self.P_PRODUCTS:
                 cost = 0
                 num_transfers = len(k)-1
@@ -483,47 +493,47 @@ class TransportSets():
                     mode_to = k[n+1][2]
                     if mode_from != mode_to: 
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
-                self.C_TRANSFER[(k,p)] = cost
+                self.C_TRANSFER[(kk,p)] = cost
         
-        
-        
-
-
-        self.C_TRANSP_COST = {((i,j,m,r), f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+    
+        self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
         self.E_EMISSIONS = {((i,j,m,r),f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
-        self.C_CO2 = {((i,j,m,r),f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
 
         for index, row in self.cost_data.iterrows():
             for (i,j,m,r) in self.A_ARCS:
                 a = (i, j, m, r)
                 if m == row["Mode"]:
-                    f = row["Fuel"]    
-                    factor = None
-                    if self.fuel_costs == "avg_costs":
-                        factor = row['Cost (NOK/Tkm)']
-                    elif self.fuel_costs == "low_costs":
-                        factor =  row['Cost - lav (-25%)']
-                    elif self.fuel_costs == "high_costs":
-                        factor = row['Cost - høy (+25%)']
-                    elif self.fuel_costs == "very_low_costs":
-                        if f in self.NEW_F_LIST:
-                            factor = row['Cost (NOK/Tkm)'] * NEW_FUEL_FACTOR
-                        else:
+                    f = row["Fuel"]
+                    if f in self.FM_FUEL[m]: #get rid of the hybrid!!
+                        factor = None
+                        if self.fuel_costs == "avg_costs":
                             factor = row['Cost (NOK/Tkm)']
-                    self.C_TRANSP_COST[(a,f,row['Product group'],row['Year'] )] = (
-                        self.AVG_DISTANCE[a] * factor )
-                    self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] = self.AVG_DISTANCE[a] * row[
-                        'Emissions (gCO2/Tkm)']
-        #CO2 price                                
-                    if self.CO2_scenario == 1:
-                        self.C_CO2[(a,f,row['Product group'],row['Year'])] = (
-                            self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] * row['CO2 fee base scenario (nok/gCO2)'])
-                    elif self.CO2_scenario == 2:
-                        self.C_CO2[(a,f, row['Product group'],row['Year'])] = (
-                            self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)'])
+                        elif self.fuel_costs == "low_costs":
+                            factor =  row['Cost - lav (-25%)']
+                        elif self.fuel_costs == "high_costs":
+                            factor = row['Cost - høy (+25%)']
+                        elif self.fuel_costs == "very_low_costs":
+                            if f in self.NEW_F_LIST:
+                                factor = row['Cost (NOK/Tkm)'] * NEW_FUEL_FACTOR
+                            else:
+                                factor = row['Cost (NOK/Tkm)']
+                        self.C_TRANSP_COST[(i, j, m, r,f,row['Product group'],row['Year'] )] = (
+                            self.AVG_DISTANCE[a] * factor )
+                        self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = self.AVG_DISTANCE[a] * row[
+                            'Emissions (gCO2/Tkm)']
+            #CO2 price                                
+                        if self.CO2_scenario == 1:
+                            self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] = (
+                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] * row['CO2 fee base scenario (nok/gCO2)'])
+                        elif self.CO2_scenario == 2:
+                            self.C_CO2[(i,j,m,r,f, row['Product group'],row['Year'])] = (
+                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)'])
+        
+        
 
         #demand
     
@@ -742,7 +752,7 @@ class TransportSets():
 
         # print(first_stage_data_z_inv_cap)
         self.APT_fs = [a + (p,) + (t,) for a in self.A_ARCS for p in self.P_PRODUCTS for t in[2020, 2025]]
-        self.KPT_fs = [(str(k), p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in [2020, 2025]]
+        self.KPT_fs = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in [2020, 2025]]
         self.ET_RAIL_fs = [l + (t,) for l in self.E_EDGES_RAIL for t in [2020, 2025]]
         self.NMBT_CAP_fs = [(i, m) + (b,) + (t,) for (i, m) in self.NM_LIST_CAP for b in self.TERMINAL_TYPE[m] 
                             for t in [2020, 2025]]

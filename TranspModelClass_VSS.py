@@ -77,7 +77,7 @@ class TranspModel:
         for k in self.data.K_PATHS:
             for p in self.data.P_PRODUCTS:
                 for t in self.data.TS_fs:
-                    self.model.h_flow[str(k), p,t].fix(self.data.first_stage_h[str(k), p,t])
+                    self.model.h_flow[k, p,t].fix(self.data.first_stage_h[k, p,t])
         
         for t in self.data.TS_fs:
             self.model.z_emission[t].fix(self.data.first_stage_emission_violation[t])
@@ -110,7 +110,7 @@ class TranspModel:
                                      in self.data.E_EDGES_UPG for u in self.data.UL_UPG[l])
                    +sum(self.data.D_DISCOUNT_RATE[t]*self.data.C_CAP_NODE[i,m,b]*self.model.w_node[i,m,b,t] for m
                                     in self.data.M_MODES_CAP for i in self.data.N_NODES_CAP_NORWAY[m] for b in self.data.TERMINAL_TYPE[m])
-                   +sum(self.data.D_DISCOUNT_RATE[t]*self.model.h_flow[str(k),p,t]*self.data.C_MULTI_MODE_PATH[q,p]
+                   +sum(self.data.D_DISCOUNT_RATE[t]*self.model.h_flow[k,p,t]*self.data.C_MULTI_MODE_PATH[q,p]
                                 for q in self.data.PATH_TYPES for k in self.data.MULTI_MODE_PATHS_DICT[q] for p in self.data.P_PRODUCTS)
                    + sum(self.data.D_DISCOUNT_RATE[t] * self.data.ROAD_DIST_COST[(i,j,m,f,r)] * self.model.y_charge[(i,j,m,f,r,t)]
                          for (i,j,m,f,r) in self.data.CHARGING_ARCS)
@@ -135,7 +135,7 @@ class TranspModel:
 
         # Flow
         def FlowRule(model, o, d, p, t):
-            return sum(self.model.h_flow[str(k), p, t] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
+            return sum(self.model.h_flow[k, p, t] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
                 (o, d, p, t)]/self.factor
 
         # NOTE THAT THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
@@ -147,7 +147,7 @@ class TranspModel:
         def PathArcRule(model, i, j, m, r, p, t):
             l= (i,j,m,r)
             return sum(self.model.x_flow[a, p, t] for a in self.data.A_LINKS[l]) == sum(
-                self.data.DELTA[(l, str(tuple(k)))] * self.model.h_flow[str(k), p, t] for k in self.data.K_PATHS)
+                self.data.DELTA[(l, str(tuple(k)))] * self.model.h_flow[k, p, t] for k in self.data.K_PATHS)
         self.model.PathArcRel = Constraint(self.data.LPT, rule=PathArcRule)
 
         # CAPACITY constraints (compared to 2018) - TEMPORARY

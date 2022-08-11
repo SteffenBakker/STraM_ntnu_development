@@ -2,23 +2,26 @@ Solver command line: ['C:\\gurobi950\\win64\\bin\\gurobi.bat']
 
 Set parameter Username
 Academic license - for non-commercial use only - expires 2023-07-07
-Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmp1svruldb.pyomo.lp
-Reading time = 0.50 seconds
-x159871: 61157 rows, 159871 columns, 692701 nonzeros
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmp_zihnpyi.pyomo.lp
+Reading time = 0.48 seconds
+x166471: 62931 rows, 166471 columns, 797731 nonzeros
 Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
 Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
-Optimize a model with 61157 rows, 159871 columns and 692701 nonzeros
-Model fingerprint: 0x2b3e6577
-Variable types: 159381 continuous, 490 integer (490 binary)
+Optimize a model with 62931 rows, 166471 columns and 797731 nonzeros
+Model fingerprint: 0x16c779e4
+Variable types: 166011 continuous, 460 integer (460 binary)
 Coefficient statistics:
-  Matrix range     [1e+00, 1e+07]
+  Matrix range     [2e-01, 5e+08]
   Objective range  [5e-01, 5e-01]
   Bounds range     [1e+00, 1e+00]
   RHS range        [5e-05, 4e+08]
-Presolve removed 43682 rows and 86957 columns
-Presolve time: 1.22s
-Presolved: 17475 rows, 72914 columns, 254387 nonzeros
-Variable types: 72668 continuous, 246 integer (246 binary)
+Warning: Model contains large matrix coefficients
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 42622 rows and 63909 columns
+Presolve time: 1.14s
+Presolved: 20309 rows, 102562 columns, 304253 nonzeros
+Variable types: 102371 continuous, 191 integer (191 binary)
 
 Deterministic concurrent LP optimizer: primal and dual simplex
 Showing first log only...
@@ -27,20 +30,21 @@ Concurrent spin time: 0.00s
 
 Solved with dual simplex
 
-Root relaxation: objective 1.106454e+11, 23714 iterations, 1.10 seconds (1.35 work units)
+Root relaxation: objective 7.287351e+13, 28540 iterations, 2.13 seconds (2.23 work units)
 
     Nodes    |    Current Node    |     Objective Bounds      |     Work
  Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
 
-     0     0 1.1065e+11    0   16          - 1.1065e+11      -     -    2s
-H    0     0                    1.106455e+11 1.1065e+11  0.00%     -    2s
+     0     0 7.2874e+13    0   11          - 7.2874e+13      -     -    3s
+H    0     0                    7.287351e+13 7.2874e+13  0.00%     -    3s
 
-Explored 1 nodes (23714 simplex iterations) in 3.02 seconds (3.46 work units)
+Explored 1 nodes (28540 simplex iterations) in 3.96 seconds (4.07 work units)
 Thread count was 8 (of 8 available processors)
 
-Solution count 1: 1.10645e+11 
+Solution count 1: 7.28735e+13 
 
 Optimal solution found (tolerance 1.00e-04)
-Warning: max constraint violation (5.0857e-05) exceeds tolerance
-Best objective 1.106454683993e+11, best bound 1.106453704382e+11, gap 0.0001%
+Warning: max constraint violation (2.1470e-02) exceeds tolerance
+         (possibly due to large matrix coefficients)
+Best objective 7.287350508935e+13, best bound 7.287350506296e+13, gap 0.0000%
 

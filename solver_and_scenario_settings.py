@@ -52,7 +52,7 @@ def scenario_creator(scenario_name, **kwargs):
    
     
     first_stage = [2020, 2025]
-    first_stage_no_first = first_stage.pop(0)
+    first_stage_no_first = [2025]
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage),
                                          [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
                                          [model.h_flow[:,:,t] for t in first_stage]+

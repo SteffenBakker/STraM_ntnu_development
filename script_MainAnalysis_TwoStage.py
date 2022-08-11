@@ -40,7 +40,7 @@ distribution_on_cluster = False  #is the code to be run on the cluster using the
 extract_data = False #this is quite slow (the postprocessing with all the write to file)
 set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
-read_data_from_scratch = False #True if the data reading is done from scratch, otherwise pickled object
+read_data_from_scratch = True #True if the data reading is done from scratch, otherwise pickled object
 manual_instance = {'Manual':{'sol_met':'ef',
                                     'scen_struct':6,
                                     'co2_price':1,
@@ -55,10 +55,7 @@ profiling = True
 
 
 if __name__ == "__main__":
-
-    if profiling:
-        profiler = cProfile.Profile()
-        profiler.enable()    
+    
     
     if distribution_on_cluster:
         instance_run = sys.argv[1]
@@ -96,6 +93,9 @@ if __name__ == "__main__":
         with open(r'Data\base_data', 'rb') as data_file:
             base_data = pickle.load(data_file)
  
+    if profiling:
+        profiler = cProfile.Profile()
+        profiler.enable()
 
     
     all_scenario_names = get_all_scenario_names(scenario_structure,base_data)    
@@ -155,11 +155,17 @@ if __name__ == "__main__":
     if profiling:
         profiler.disable()
         profiler.dump_stats('aim_model.stats')
-        stats = pstats.Stats('aim_model.stats')
-        stats.sort_stats('tottime').print_stats(20)
-        #it seems like it is the PATH-ARC RULE that makes the code slow (many/?most? constraints are defined here!)
-        #AIM_Norwegian_Freight_Model\TranspModelClass.py:152(<genexpr>)
-        stats.sort_stats('cumtime').print_stats(20)
-        #this is done in the scenario_creator
+        
+        #NOTE! When python is run in some kind of mode (iPython?), then cprofile does not collect stats. Leads to an error:
+        # https://wingide-users.wingware.narkive.com/B7vOU9ui/bug-cprofile-profile-doesn-t-make-stats
+        
+        if len(profiler.stats)==0:
+            print('Profiling error: no stats are written') #then just run in console, there it works
+        else:
+            stats = pstats.Stats('aim_model.stats')# OR pstats.Stats(profiler) 
+            stats.sort_stats('tottime').print_stats(20) #it seems like it is the PATH-ARC RULE that makes the code slow (many/?most? constraints are defined here!)
+            #AIM_Norwegian_Freight_Model\TranspModelClass.py:152(<genexpr>)
+            #stats.sort_stats('cumtime').print_stats(20)   #this is done in the scenario_creator
+        
         
     

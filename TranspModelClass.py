@@ -50,7 +50,15 @@ class TranspModel:
         len(self.data.EF_CHARGING) #369
         len(list(set(self.data.EF_CHARGING))) #15...?       
         
-        self.model.x_flow = Var(self.data.AFPT, within=NonNegativeReals)
+        
+        self.model.AFPT = Set(initialize=self.data.AFPT)
+        #list(self.model.AFPT)
+        self.model.x_flow = Var(self.model.AFPT, within=NonNegativeReals)
+        #self.model.x_flow = Var(self.data.AFPT, within=NonNegativeReals)
+        self.model.C_TRANSP_COST = Param(self.model.AFPT, initialize=self.data.C_TRANSP_COST) #, default=0
+        self.model.C_CO2 = Param(self.model.AFPT, initialize=self.data.C_CO2) #, default=0
+
+        
         self.model.h_flow = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
         #self.model.h_flow_2020 = Var(self.data.KPTS_2020, within=NonNegativeReals)
         self.model.StageCosts = Var(self.data.T_TIME_PERIODS, within = NonNegativeReals)
@@ -76,15 +84,21 @@ class TranspModel:
         self.model.ppqq = Var(self.data.MFT_MIN0, within=NonNegativeReals) #positive part
         self.model.ppqq_sum = Var(self.data.MT_MIN0, within=NonNegativeReals) #positive part
         
+        
+  
+        
         #TO DO: check how the CO2 kicks in? Could be baked into C_TRANSP_COST
         def StageCostsVar(model, t):
+            yearly_transp_cost = sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t)]+self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t)] 
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m])
+            # SOME QUICK TESTING SHOWED THAT SUM_PRODUCT IS QUITE A BIT SLOWER THAN SIMPLY TAKING THE SUM...
+            # yearly_transp_cost = (sum_product(self.model.C_TRANSP_COST ,self.model.x_flow,
+            #                                  index=[(i,j,m,r,f,p,tt) for (i,j,m,r,f,p,tt) in self.data.AFPT if tt==t]) +
+            #                       sum_product(self.model.C_CO2 ,self.model.x_flow,index=[(i,j,m,r,f,p,tt) for (i,j,m,r,f,p,tt) in self.data.AFPT if tt==t]))
+            yearly_transfer_cost = sum(self.data.C_TRANSFER[(k,p)]*self.model.h_flow[k,p,t] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)
             delta = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0]
             return(self.model.StageCosts[t] == (
-                sum(self.data.D_DISCOUNT_RATE**n*(self.data.C_TRANSP_COST[((i,j,m,r),f,p,t)]+self.data.C_CO2[((i,j,m,r),f,p,t)])*
-                    self.model.x_flow[((i,j,m,r),f,p,t)]
-                for p in self.data.P_PRODUCTS  for n in self.data.Y_YEARS[t] for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] ) +
-                sum(self.data.D_DISCOUNT_RATE**n*self.data.C_TRANSFER[(k,p)] 
-                for p in self.data.P_PRODUCTS for n in self.data.Y_YEARS[t] for k in self.data.MULTI_MODE_PATHS) + 
+                sum(self.data.D_DISCOUNT_RATE**n*(yearly_transp_cost+yearly_transfer_cost) for n in self.data.Y_YEARS[t]) + 
                 sum(delta*self.data.C_EDGE_RAIL[e]*self.model.v_edge[(e,t)] for e in self.data.E_EDGES_RAIL) +
                 sum(delta*self.data.C_NODE[(i,c,m)]*self.model.w_node[(i,c,m,t)] for (i, m) in self.data.NM_LIST_CAP for c in self.data.TERMINAL_TYPE[m] ) +
                 # maybe N_NODES_CAP_NORWAY is needed?
@@ -109,8 +123,10 @@ class TranspModel:
 
         # Demand
         
+        #[(k, p, t)  for (o,d,p,t) in self.data.ODPTS for k in self.data.OD_PATHS[(o, d)]][1]
+        
         def FlowRule(model, o, d, p, t):
-            return sum(self.model.h_flow[k, p, t] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
+            return sum(self.model.h_flow[(k, p, t)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
                 (o, d, p, t)]/self.factor
         # NOTE THAT THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.Flow = Constraint(self.data.ODPTS, rule=FlowRule)
@@ -128,8 +144,8 @@ class TranspModel:
         # Emissions
         def emissions_rule(model, t):
             return (self.model.total_emissions[t] == sum(
-                self.data.E_EMISSIONS[(i,j,m,r),f, p, t] * self.model.x_flow[a,f, p, t] for p in self.data.P_PRODUCTS
-                for (i,j,m,r) in self.data.A_ARCS for f in self.FM_FUEL[m]))
+                self.data.E_EMISSIONS[(i,j,m,r),f, p, t] * self.model.x_flow[i,j,m,r,f, p, t] for p in self.data.P_PRODUCTS
+                for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]))
         self.model.Emissions = Constraint(self.data.TS, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
         
 
@@ -153,13 +169,13 @@ class TranspModel:
 
         
         #Capacity constraint
-        def CapacitatedFlowRule(model,i,j,m,r,t):
-            l = (i,j,m,r)
+        def CapacitatedFlowRule(model,i,j,m,r,ii,jj,mm,rr,t):
+            e = (i,j,m,r)
+            a = (ii,jj,mm,rr)
             return (sum(self.model.x_flow[a, f, p, t] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[m]) <= 0.5*(self.data.Q_EDGE_BASE_RAIL[e] +
                    + self.data.Q_EDGE_RAIL[e] * sum(self.model.v_edge[e, tau] for tau in self.data.T_TIME_PERIODS if tau <= t)))
-
         self.model.CapacitatedFlow = Constraint(self.data.EAT_RAIL, rule = CapacitatedFlowRule)
-        
+
         
         #Num expansions
         def ExpansionLimitRule(model,i,j,m,r):
@@ -215,26 +231,26 @@ class TranspModel:
         #Fleet Renewal
         def TotalTransportAmountRule(model,m,f,t):
             return (self.model.q_transp_amount[m,f,t] == sum( self.data.AVG_DISTANCE[a]*self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS 
-                                                            for a in self.AM_ARCS))
+                                                            for a in self.data.AM_ARCS[m]))
         self.model.TotalTranspAmount = Constraint(self.data.MFT, rule = TotalTransportAmountRule)
         
         def PositivePart1Rule(model,m,f,t):
-            return (self.model.ppqq[m,f,t] >= self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,t-1])
-        self.model.PositivePart1 = Constraint(self.data.MFT, rule = PositivePart1Rule)
+            return (self.model.ppqq[m,f,t] >= self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,self.data.T_MIN1[t]])
+        self.model.PositivePart1 = Constraint(self.data.MFT_MIN0, rule = PositivePart1Rule)
         
         def PositivePart2Rule(model,m,t):
-            return (self.model.ppqq_sum[m,t] >= sum(self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,t-1] for f in self.FM_FUEL[m]))
-        self.model.PositivePart2 = Constraint(self.data.MT, rule = PositivePart2Rule)
+            return (self.model.ppqq_sum[m,t] >= sum(self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,self.data.T_MIN1[t]] for f in self.data.FM_FUEL[m]))
+        self.model.PositivePart2 = Constraint(self.data.MT_MIN0, rule = PositivePart2Rule)
         
         def FleetRenewalRule(model,m,t):
             return (sum(self.model.ppqq[m,f,t] for f in self.data.FM_FUEL[m]) <= self.data.RHO_FLEET_RENEWAL_RATE[m,t]*sum(
-                    self.model.q_transp_amount[m,f,t-1]for f in self.data.FM_FUEL[m]) + self.model.ppqq_sum[m,t])
-        self.model.FleetRenewal = Constraint(self.data.MT, rule = FleetRenewalRule)
+                    self.model.q_transp_amount[m,f,self.data.T_MIN1[t]]for f in self.data.FM_FUEL[m]) + self.model.ppqq_sum[m,t])
+        self.model.FleetRenewal = Constraint(self.data.MT_MIN0, rule = FleetRenewalRule)
         
         #Technology maturity limit
-        def TechMaturityLimitRule(self,model, m, f, t):
+        def TechMaturityLimitRule(model, m, f, t):
             return (self.model.q_transp_amount[(m,f,t)] <= self.data.Y_TECH[(m,f,t)] )   #CHANGE THIS Y_TECH to mu*M
-        self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = self.TechMaturityLimitRule)
+        self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
 
         return self.model
     
