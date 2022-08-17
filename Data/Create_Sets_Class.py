@@ -71,7 +71,8 @@ class TransportSets():
 
         print("Constructing scenario")
 
-        self.factor = SCALING_FACTOR
+        self.scaling_factor = SCALING_FACTOR #10E-5
+        self.precision_digits = 6
 
         self.N_NODES = ["Oslo", "Bergen", "Trondheim", "Hamar", "Bodø", "Tromsø", "Kristiansand",
                         "Ålesund", "Stavanger", "Skien", "Sør-Sverige", "Nord-Sverige",
@@ -268,11 +269,52 @@ class TransportSets():
             self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
             
 
-        # Create OD-pairs
+
+
+        ####################################
+        ### ORIGIN, DESTINATION AND DEMAND #
+        ####################################
+
+
+        #Start with filtering of demand data. What to include and what not.
+        D_DEMAND_ALL = {}  #5330 entries, after cutting off the small elements, only 4105 entries
+
+        #then read the pwc_aggr data
+        
+        #WE ONLY TAKE DEMAND BETWEEN COUNTIES! SO, THIS IS OUR DEFINITION OF LONG-DISTANCE TRANSPORT
+        for index, row in self.pwc_aggr.iterrows():
+            from_node = row['from_fylke_zone']
+            to_node = row['to_fylke_zone']
+            product = row['commodity_aggr']
+            if from_node !=  to_node and from_node in self.N_NODES and to_node in self.N_NODES:
+                D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
+                
+        demands = pd.Series(D_DEMAND_ALL.values())         
+        
+        # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES?
+
+        # demands.describe()   #huge spread -> remove the very small stuff. Even demand of 5E-1
+        # demands.plot.hist(by=None, bins=1000)
+        # demands.hist(cumulative=True, density=1, bins=100)
+        
+        total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
+        cutoff = demands.quantile(0.25) #HARDCODED, requires some analyses
+        demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
+        reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
+        print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  #NOT EVEN 0.1% removed!!
+        
+        # demands2.plot.hist(by=None, bins=1000)
+        # demands2.hist(cumulative=True, density=1, bins=100)
+        
+        # print("{:e}".format(round(cutoff,0)))    # '3.306000e+03'
+        # print("{:e}".format(round(demands.max(),0)))           # '2.739037e+07'
+    
+        D_DEMAND_CUT = {key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
+        
         self.OD_PAIRS = {p: [] for p in self.P_PRODUCTS}
-        for index, row in self.pwc_aggr[self.pwc_aggr['year'] == 2020].iterrows():
-            if row['from_fylke_zone'] in self.N_NODES and row['to_fylke_zone'] in self.N_NODES:
-                self.OD_PAIRS[row['commodity_aggr']].append((row['from_fylke_zone'], row['to_fylke_zone']))
+        for (o,d,p,t), value in D_DEMAND_CUT.items():
+            if ((o,d) not in self.OD_PAIRS[p]):
+                self.OD_PAIRS[p].append((o,d))
         self.ODP = []
         self.OD_PAIRS_ALL = set()
         for p in self.P_PRODUCTS:
@@ -281,6 +323,13 @@ class TransportSets():
                 self.ODP.append((o, d, p))
         self.OD_PAIRS_ALL = list(self.OD_PAIRS_ALL)
         self.ODPTS = [odp + (t,) for odp in self.ODP for t in self.T_TIME_PERIODS]
+
+        #demand
+        self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS for (o,d,p) in self.ODP}        
+        for (o,d,p,t), value in D_DEMAND_CUT.items():
+            self.D_DEMAND[(o,d,p,t)] = round(value/self.scaling_factor,self.precision_digits)
+        
+        
 
 
         # self.A_LINKS = {l: [] for l in self.A_ARCS}
@@ -350,6 +399,8 @@ class TransportSets():
             if l[0] not in self.N_NODES_NORWAY or l[1] not in self.N_NODES_NORWAY:
                 self.AVG_DISTANCE[l] = self.AVG_DISTANCE[l] / 2        #We have to account for half the costs of international transport
                 self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] / 2
+        for key, value in self.AVG_DISTANCE.items():  
+            self.AVG_DISTANCE[key] = round(value,1)
 
 
         #multi-mode paths
@@ -437,7 +488,7 @@ class TransportSets():
             self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap3']))
         else:
             raise ValueError('CO2_CAP should be a predefined level (100,75,73,70). Now it is {x}'.format(x=self.emission_reduction))
-
+        self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
         
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']
@@ -449,7 +500,7 @@ class TransportSets():
         for p in self.P_PRODUCTS:
             for q in self.PATH_TYPES:
                 data_index = transfer_data.loc[(transfer_data['Product'] == p) & (transfer_data['Transfer type'] == q)]
-                self.C_MULTI_MODE_PATH[q,p] = data_index.iloc[0]['Transfer cost']
+                self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost'],1)  #10E6NOK/10E6TONNES
 
         # for k in self.MULTI_MODE_PATHS:
         #     for j in range(len(k)-1):
@@ -467,8 +518,7 @@ class TransportSets():
                             ('Road','Sea'):'sea-road',
                             ('Road','Rail'):'rail-road'}            
         
-        self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}
-        
+
         # num_transfers_in_paths = []
         # type_path = []
         # for k in self.MULTI_MODE_PATHS:
@@ -482,7 +532,9 @@ class TransportSets():
         #     type_path.append(path_type)
         # np.unique(type_path)
         #many paths with multiple transfers. Also, we have e.g. rail-rail-rail-road
-            
+          
+        self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
+        
         for kk in self.MULTI_MODE_PATHS:
             k = self.K_PATH_DICT[kk]
             for p in self.P_PRODUCTS:
@@ -493,15 +545,15 @@ class TransportSets():
                     mode_to = k[n+1][2]
                     if mode_from != mode_to: 
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
-                self.C_TRANSFER[(kk,p)] = cost
+                self.C_TRANSFER[(kk,p)] = round(cost,1)
         
     
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
+                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
         self.E_EMISSIONS = {((i,j,m,r),f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
+                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T 
         self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                      for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}
+                      for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
 
         for index, row in self.cost_data.iterrows():
             for (i,j,m,r) in self.A_ARCS:
@@ -521,82 +573,70 @@ class TransportSets():
                                 factor = row['Cost (NOK/Tkm)'] * NEW_FUEL_FACTOR
                             else:
                                 factor = row['Cost (NOK/Tkm)']
-                        self.C_TRANSP_COST[(i, j, m, r,f,row['Product group'],row['Year'] )] = (
-                            self.AVG_DISTANCE[a] * factor )
-                        self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = self.AVG_DISTANCE[a] * row[
-                            'Emissions (gCO2/Tkm)']
+                        self.C_TRANSP_COST[(i, j, m, r,f,row['Product group'],row['Year'] )] = round((
+                            self.AVG_DISTANCE[a] * factor),2)
+                        #MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
+                        self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = round(self.AVG_DISTANCE[a] * row[
+                            'Emissions (gCO2/Tkm)'],1)
             #CO2 price                                
                         if self.CO2_scenario == 1:
-                            self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] = (
-                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] * row['CO2 fee base scenario (nok/gCO2)'])
+                            self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] =  round(
+                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] * row['CO2 fee base scenario (nok/gCO2)'],1)
                         elif self.CO2_scenario == 2:
-                            self.C_CO2[(i,j,m,r,f, row['Product group'],row['Year'])] = (
-                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)'])
+                            self.C_CO2[(i,j,m,r,f, row['Product group'],row['Year'])] = round(
+                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)'],1)
         
         
 
-        #demand
-    
-        self.D_DEMAND = {(o, d, p, t): 0 for (o, d, p) in self.ODP for t in
-                         self.T_TIME_PERIODS}  # (o,d,p) Maybe no need to initialize this one
-    
-        for index, row in self.pwc_aggr.iterrows():
-            if row['from_fylke_zone'] != row['to_fylke_zone'] and row['from_fylke_zone'] in self.N_NODES and row['to_fylke_zone'] in self.N_NODES:
-                self.D_DEMAND[(row['from_fylke_zone'], row['to_fylke_zone'], row['commodity_aggr'],
-                           int(row['year']))] = float(row['amount_tons'])
-            elif row['from_fylke_zone'] == row['to_fylke_zone'] and row['from_fylke_zone'] in self.N_NODES and row['to_fylke_zone'] in self.N_NODES:
-                self.D_DEMAND[(row['from_fylke_zone'], row['to_fylke_zone'], row['commodity_aggr'],
-                               int(row['year']))] = 0
-
-
+        
 
         #################
         #  INVESTMENTS  #
         #################
         
-        self.C_EDGE_RAIL = {l: 0 for l in self.E_EDGES_RAIL}
-        self.Q_EDGE_RAIL = {l: 0 for l in self.E_EDGES_RAIL}
-        self.Q_EDGE_BASE_RAIL = {l: 100000 for l in self.E_EDGES_RAIL}
+        self.C_EDGE_RAIL = {e: 100000000 for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
+        self.Q_EDGE_RAIL = {e: 0 for e in self.E_EDGES_RAIL}   # TONNES ->MTONNES
+        self.Q_EDGE_BASE_RAIL = {e: 100000 for e in self.E_EDGES_RAIL}   # TONNES
         
-        self.C_NODE = {(i,c,m) : 0 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]}
-        self.Q_NODE_BASE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #endret
-        self.Q_NODE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #lagt til 03.05
+        self.C_NODE = {(i,c,m) : 100000000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]}  # NOK
+        self.Q_NODE_BASE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #endret    # TONNES
+        self.Q_NODE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #lagt til 03.05    # TONNES
 
-        self.C_UPG = {(e,f) : 100000 for (e,f) in self.U_UPGRADE}
-        self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}
+        self.C_UPG = {(e,f) : 100000000 for (e,f) in self.U_UPGRADE}  #NOK
+        self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES
         #how many times can you invest?
         #self.INV_NODE = {(i,m,b): 4 for (i,m,b) in self.NMB_CAP}
         #self.INV_LINK = {(l): 1 for l in self.E_EDGES_RAIL}
         
 
         for index, row in inv_rail_data.iterrows():
-            for (l,f) in self.U_UPGRADE:
+            for ((i,j,m,r),f) in self.U_UPGRADE:
                 #for u in self.U_UPG:
                 if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and f == "Electric train (CL)": # u == 'Fully electrified rail':
-                    self.C_INV_UPG[(l,f)] = row['Elektrifisering (NOK)']/self.factor
+                    self.C_UPG[((i,j,m,r),f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor,2)
                 #if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and u == 'Partially electrified rail':
-                #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.factor
+                #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.scaling_factor
 
         for m in self.M_MODES_CAP:
             for i in self.N_NODES_CAP_NORWAY[m]:
                 for c in self.TERMINAL_TYPE[m]:
                     if m == "Rail" and c=="Combination":
                         cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet combi 2014 (tonn)']/self.factor
+                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet combi 2014 (tonn)']/self.scaling_factor   #MTONNES
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
-                        self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.factor
-                        self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (combi)']/self.factor
+                        self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.scaling_factor   #MTONNES
+                        self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (combi)']/self.scaling_factor   #MNOK
                     if m == "Rail" and c=="Timber":
                         cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.factor
+                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.scaling_factor   #MTONNES
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
-                        self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning av kapasitet (tømmer)']/self.factor
-                        self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (tømmer)']/self.factor
+                        self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning av kapasitet (tømmer)']/self.scaling_factor   #MTONNES
+                        self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (tømmer)']/self.scaling_factor  #MNOK
                     if m == "Sea":
                         cap_data = inv_sea_data.loc[(inv_sea_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet']/self.factor
-                        self.Q_NODE[i,c,m] = cap_data.iloc[0]['Kapasitetsøkning']/self.factor
-                        self.C_NODE[i,c,m] = cap_data.iloc[0]['Kostnad']/self.factor
+                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet']/self.scaling_factor  #MTONNES
+                        self.Q_NODE[i,c,m] = cap_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor  #MTONNES
+                        self.C_NODE[i,c,m] = cap_data.iloc[0]['Kostnad']/self.scaling_factor  #MNOK
 
         for (i, j, m, r) in self.E_EDGES_RAIL:
             capacity_data1 = rail_cap_data.loc[(rail_cap_data['Fra'] == i) & (rail_cap_data['Til'] == j) & (rail_cap_data['Rute'] == r)]
@@ -604,15 +644,15 @@ class TransportSets():
             capacity_exp_data1 = inv_rail_data.loc[(inv_rail_data['Fra'] == i) & (inv_rail_data['Til'] == j) & (inv_rail_data['Rute'] == r)]
             capacity_exp_data2 = inv_rail_data.loc[(inv_rail_data['Fra'] == j) & (inv_rail_data['Til'] == i) & (inv_rail_data['Rute'] == r)]
             if len(capacity_data1) > 0:
-                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_data1.iloc[0]['Maks kapasitet']/self.factor
+                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_data1.iloc[0]['Maks kapasitet']/self.scaling_factor
             if len(capacity_data2) > 0:
-                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_data2.iloc[0]['Maks kapasitet']/self.factor
+                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_data2.iloc[0]['Maks kapasitet']/self.scaling_factor
             if len(capacity_exp_data1) > 0:
-                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_exp_data1.iloc[0]['Kapasitetsøkning']/self.factor
-                self.C_EDGE_RAIL[i, j, m, r] = capacity_exp_data1.iloc[0]['Kostnad']/self.factor
+                self.Q_EDGE_RAIL[i, j, m, r] = capacity_exp_data1.iloc[0]['Kapasitetsøkning']/self.scaling_factor
+                self.C_EDGE_RAIL[i, j, m, r] = round(capacity_exp_data1.iloc[0]['Kostnad']/self.scaling_factor,1)
             if len(capacity_exp_data2) > 0:
-                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_exp_data2.iloc[0]['Kapasitetsøkning']/self.factor
-                self.C_EDGE_RAIL[i, j, m, r] = capacity_exp_data2.iloc[0]['Kostnad']/self.factor
+                self.Q_EDGE_RAIL[i, j, m, r] = capacity_exp_data2.iloc[0]['Kapasitetsøkning']/self.scaling_factor
+                self.C_EDGE_RAIL[i, j, m, r] = round(capacity_exp_data2.iloc[0]['Kostnad']/self.scaling_factor,1)
         
         for l in self.E_EDGES_UPG:
             self.BIG_M_UPG[l] =  self.Q_EDGE_BASE_RAIL[l] + self.Q_EDGE_RAIL[l]#*self.INV_LINK[l] 
@@ -646,21 +686,23 @@ class TransportSets():
         self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS]
         
 
-        # base capacity on a pair of arcs (ij/ji - mfr), often 0 since no charging infrastructure exists now
+        # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
         self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
         # ALLE DISTANSER PÅ ROAD SOM TRENGER CHARGING INFRASTUCTURE
         self.CHARGE_ROAD_DISTANCE = {(e,f): road_distances_dict[(e[0], e[1])] for (e,f) in self.EF_CHARGING}
         # self.CHARGE_ROAD_DISTANCE = {mf:  for mf in self.CHARGING_TECH}
-        self.C_CHARGE = {(e,f): 9999 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}
+        self.C_CHARGE = {(e,f): 9999 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
         max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
         for ((i, j, m, r),f) in self.EF_CHARGING:
             e = (i, j, m, r) 
             data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
-            self.C_CHARGE[(e,f)] = (self.CHARGE_ROAD_DISTANCE[(e,f)]
+            self.C_CHARGE[(e,f)] = round((self.CHARGE_ROAD_DISTANCE[(e,f)]
                                                    / data_index.iloc[0]["Max_station_dist"]
                                                    * data_index.iloc[0]["Station_cost"]
                                                    / (data_index.iloc[0][
-                                                          "Trucks_filled_daily"] * max_truck_cap * 365))  # 0.7 or not???
+                                                          "Trucks_filled_daily"] * max_truck_cap * 365)),1)  # 0.7 or not???
+            #MKR/MTONNES, so no dividing here
+            
         # -----------------
         ######Innlesning av scenarier 
         # -----------------
@@ -672,7 +714,7 @@ class TransportSets():
         for index, row in self.scen_data.iterrows():
             if row["Scenario"] not in self.all_scenarios:
                 self.all_scenarios.append(row["Scenario"])
-        internat_cap = INTERNATIONAL_CAP  #HARDCODE
+        internat_cap = INTERNATIONAL_CAP  #HARDCODED
         self.total_trans_dict = {'Road': internat_cap*FACTOR_INT_CAP_ROAD, 'Rail': internat_cap*FACTOR_INT_CAP_RAIL, 
                                  'Sea': internat_cap*FACTOR_INT_CAP_SEA}
 
@@ -702,7 +744,7 @@ class TransportSets():
         #TO DO: change this way of defining the maturity constraints!!
         #Go from Q_TECH (in tonnes) to mu*M (in tonne-km)
         
-        self.Y_TECH = {mft : 0 for mft in self.MFT_MATURITY}
+        self.Q_TECH = {mft : 0 for mft in self.MFT_MATURITY}
 
         if scenario in self.det_eqvs.keys():
             # create deterministIc equivalents
@@ -712,8 +754,8 @@ class TransportSets():
                         if row['Mode'] == m and row['Fuel'] == f:
                             total_trans = self.total_trans_dict[row['Mode']] #to do: replace with tonne-km!
                             for year in self.T_TIME_PERIODS: 
-                                self.Y_TECH[(row['Mode'], row['Fuel'], year)] += (row[str(year)] * total_trans) / (
-                                        100 * self.factor * len(self.det_eqvs[scenario]))
+                                self.Q_TECH[(row['Mode'], row['Fuel'], year)] += (row[str(year)] * total_trans) / (
+                                        100 * self.scaling_factor * len(self.det_eqvs[scenario]))    #MTONNES    at the moment
         else:
             scen_string = scenario
             for w in ['HHH', 'MMM', 'LLL']:
@@ -723,8 +765,8 @@ class TransportSets():
                             if row['Fuel'] in self.fuel_groups[key]:
                                 total_trans = self.total_trans_dict[row['Mode']]   #to do: replace with tonne-km!
                                 for year in self.T_TIME_PERIODS:
-                                    self.Y_TECH[(row['Mode'], row['Fuel'], year)] = (
-                                        row[str(year)] * total_trans / 100) / self.factor
+                                    self.Q_TECH[(row['Mode'], row['Fuel'], year)] = (
+                                        row[str(year)] * total_trans / 100) / self.scaling_factor   #MTONNES    at the moment
                                 
         
                         

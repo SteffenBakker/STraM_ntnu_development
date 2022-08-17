@@ -4,7 +4,7 @@ save_data_on_exit = True
 save_history = True
 save_non_project_files = False
 project_type = 'empty-project-type'
-recent_files = ['script_MainAnalysis_TwoStage.py', 'TranspModelClass.py', 'Data\\Create_Sets_Class.py', 'Data\\settings.py', 'solver_and_scenario_settings.py', 'path_generation.py', 'TranspModelClass_VSS.py', '..\\..\\..\\..\\..\\Anaconda3\\envs\\spyder-cf\\lib\\site-packages\\pyomo\\core\\base\\indexed_component.py']
+recent_files = ['script_MainAnalysis_TwoStage.py', 'TranspModelClass.py', 'Data\\Create_Sets_Class.py', 'Data\\settings.py', 'solver_and_scenario_settings.py', 'path_generation.py']
 
 [main]
 version = 0.2.0

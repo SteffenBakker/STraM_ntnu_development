@@ -34,8 +34,6 @@ class TranspModel:
         #IMPORT THE DATA
         self.data = base_data
         self.data.update_parameters(scenario, carbon_scenario, fuel_costs, emission_reduction)
-        self.factor = self.data.factor
-
 
 
     def construct_model(self):
@@ -47,10 +45,6 @@ class TranspModel:
         "VARIABLES"
         # Binary, NonNegativeReals, PositiveReals, etc
 
-        len(self.data.EF_CHARGING) #369
-        len(list(set(self.data.EF_CHARGING))) #15...?       
-        
-        
         self.model.AFPT = Set(initialize=self.data.AFPT)
         #list(self.model.AFPT)
         self.model.x_flow = Var(self.model.AFPT, within=NonNegativeReals)
@@ -75,7 +69,7 @@ class TranspModel:
         self.model.z_emission = Var(self.data.TS, within = NonNegativeReals)
         
         #def emission_bound(model, t):
-        #    return (0, self.data.CO2_CAP[t]/self.factor)
+        #    return (0, self.data.CO2_CAP[t]/self.data.scaling_factor)
 
         self.model.total_emissions = Var(self.data.TS, within=NonNegativeReals) #instead of T_PERIODS!
                                         # bounds=emission_bound)  # just a variable to help with output
@@ -127,7 +121,7 @@ class TranspModel:
         
         def FlowRule(model, o, d, p, t):
             return sum(self.model.h_flow[(k, p, t)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
-                (o, d, p, t)]/self.factor
+                (o, d, p, t)]
         # NOTE THAT THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.Flow = Constraint(self.data.ODPTS, rule=FlowRule)
         
@@ -154,7 +148,7 @@ class TranspModel:
         # Emission limit
         
         def EmissionCapRule(model, t):
-            return self.model.total_emissions[t] <= self.data.CO2_CAP[t]/self.factor + self.model.z_emission[t]
+            return self.model.total_emissions[t] <= self.data.CO2_CAP[t] + self.model.z_emission[t]
 
         self.model.EmissionCap = Constraint(self.data.TS, rule=EmissionCapRule)
         
@@ -249,7 +243,7 @@ class TranspModel:
         
         #Technology maturity limit
         def TechMaturityLimitRule(model, m, f, t):
-            return (self.model.q_transp_amount[(m,f,t)] <= self.data.Y_TECH[(m,f,t)] )   #CHANGE THIS Y_TECH to mu*M
+            return (self.model.q_transp_amount[(m,f,t)] <= self.data.Q_TECH[(m,f,t)] )   #CHANGE THIS Q_TECH to mu*M
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
 
         return self.model

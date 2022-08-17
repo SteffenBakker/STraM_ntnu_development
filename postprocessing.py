@@ -132,6 +132,11 @@ def extract_output_ph(ph,data,instance_run):
                         
     return dataset
             
+
+def extract_aggregated_output_ef(ef,data,instance_run):
+    print('TO DO')
+
+
 def extract_output_ef(ef,data,instance_run):
     dataset = pd.DataFrame(columns = ['from','to','Mode',"route","fuel",'product','weight','time_period', 'scenario'])
     

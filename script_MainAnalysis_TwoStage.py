@@ -37,17 +37,18 @@ start = time.time()
 
 
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
-extract_data = False #this is quite slow (the postprocessing with all the write to file)
+read_data_from_scratch = False #Use cached data? Exctracting data is a bit slow in debug mode
+extract_data_postprocessing = False #postprocessing is quite slow. No need to do when testing the model. 
 set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
-read_data_from_scratch = True #True if the data reading is done from scratch, otherwise pickled object
+
 manual_instance = {'Manual':{'sol_met':'ef',
                                     'scen_struct':6,
                                     'co2_price':1,
                                     'costs':'avg_costs',
                                     'probs':'equal',
                                     'emission_reduction':75}}
-profiling = True
+profiling = False
 
 #################################################
 #                   main code                   #
@@ -121,7 +122,7 @@ if __name__ == "__main__":
         stop = time.time()
         print("The time of the run:", stop - start)
 
-        if extract_data:        
+        if extract_data_postprocessing:        
             dataset = extract_output_ef(ef,base_data,instance_run)  #this one is quite slow!
         scenarios = sputils.ef_scenarios(ef)
 
@@ -149,7 +150,7 @@ if __name__ == "__main__":
         dataset = extract_output_ph(ph,base_data,instance_run)
         scenarios = ph.local_subproblems
 
-    if extract_data:
+    if extract_data_postprocessing:
         plot_figures(base_data,dataset,scenarios,instance_run,solution_method)
         
     if profiling:

@@ -130,5 +130,7 @@ def option_settings():
     options["iter0_solver_options"] = None
     options["iterk_solver_options"] = None
     
+    #options["NumericFocus"] = 3  #  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+    
     return options
 
