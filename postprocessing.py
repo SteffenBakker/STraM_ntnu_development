@@ -131,11 +131,87 @@ def extract_output_ph(ph,data,instance_run):
                             dataset = dataset.append(a_series, ignore_index=True)
                         
     return dataset
-            
 
+print('test')
+#data = base_data
 def extract_aggregated_output_ef(ef,data,instance_run):
-    print('TO DO')
+    dataset_x_flow = pd.DataFrame(columns = ['from','to','Mode',"route","fuel",'product','weight','time_period', 'scenario'])
+    dataset_h_paths = pd.DataFrame(columns = ['path','product','weight','time_period', 'scenario'])
+    dataset_charging = pd.DataFrame(columns = ['from','to','Mode',"route","fuel",'time_period','weight','scenario'])
+    dataset_w_node = pd.DataFrame(columns=['Node', "terminal_type",'Mode', 'time_period', 'weight', 'scenario'])
+    dataset_v_edge = pd.DataFrame(columns=['from','to','Mode',"route",'time_period','weight','scenario'])
+    dataset_u_upgrade = pd.DataFrame(columns=['from', 'to', 'Mode', "route","fuel", 'time_period', 'weight', 'scenario'])
+    
+    dataset_violation = pd.DataFrame(columns = ['time_period','weight','scenario'])
+    dataset_emissions = pd.DataFrame(columns = ['time_period','emissions','scenario'])
+    
+    
+    for scen in sputils.ef_scenarios(ef):
+        modell = scen[1]
+        for (i,j,m,r) in data.A_ARCS:
+            a = (i,j,m,r)
+            for f in data.FM_FUEL[m]:
+                for t in data.T_TIME_PERIODS:
+                    for p in data.P_PRODUCTS:
+                        weight = modell.x_flow[(a,f,p,t)].value*data.AVG_DISTANCE[a]
+                        if weight > 0:
+                            a_series = pd.Series([i,j,m,r,f,p,weight, t, scen[0]], index=dataset_x_flow.columns)
+                            dataset_x_flow = dataset_x_flow.append(a_series, ignore_index=True)
+        for kk in data.K_PATHS:
+            #k = self.K_PATH_DICT[kk]
+            for t in data.T_TIME_PERIODS:
+                for p in data.P_PRODUCTS:
+                    weight = modell.h_flow[(kk, p, t)].value
+                    if weight > 0:
+                        a_series = pd.Series([kk, p, t, weight, scen[0]], index=dataset_h_paths.columns)
+                        dataset_h_paths = dataset_h_paths.append(a_series, ignore_index=True)
 
+        for t in data.T_TIME_PERIODS:
+            for i,j,m,r in data.E_EDGES_RAIL:
+                e = (i,j,m,r)
+                weight = modell.v_edge[(e, t)].value
+                if weight > 0:
+                    a_series = pd.Series([i,j,m,r, t, weight, scen[0]], index=dataset_v_edge.columns)
+                    dataset_v_edge = dataset_v_edge.append(a_series, ignore_index=True)
+        for t in data.T_TIME_PERIODS:
+            for (e,f) in data.U_UPGRADE:
+                (i,j,m,r) = e
+                weight1 = modell.u_upg[(i,j,m,r,f,t)].value
+                if weight1 > 0:
+                    a_series = pd.Series([i,j,m,r, f,t, weight1, scen[0]],
+                                         index=dataset_u_upgrade.columns)
+                    dataset_u_upgrade = dataset_u_upgrade.append(a_series, ignore_index=True)
+        for t in data.T_TIME_PERIODS:
+            for (i, m) in data.NM_LIST_CAP:
+                for c in data.TERMINAL_TYPE[m]:
+                    weight2 = modell.w_node[(i, c, m, t)].value
+                    if weight2 > 0:
+                        a_series = pd.Series([i, c, m, t, weight2, scen[0]],
+                                             index=dataset_w_node.columns)
+                        dataset_w_node = dataset_w_node.append(a_series, ignore_index=True)
+        for t in data.T_TIME_PERIODS:
+            for (e,f) in data.EF_CHARGING:
+                (i,j,m,r) = e
+                weight3 = modell.y_charge[(i,j,m,r,f,t)].value
+                if weight3 > 0:
+                    a_series = pd.Series([i,j,m,r,f,t, weight3, scen[0]],
+                                         index=dataset_charging.columns)
+                    dataset_charging = dataset_charging.append(a_series, ignore_index=True)
+        for t in data.T_TIME_PERIODS:
+            weight4 = modell.z_emission[t].value
+            weight5 = modell.total_emissions[t].value
+            a_series = pd.Series([t, weight4, e[0]],index=dataset_violation.columns)
+            dataset_violation = dataset_violation.append(a_series, ignore_index=True)
+            a_series2 = pd.Series([t, weight5, e[0]],index=dataset_emissions.columns)
+            dataset_emissions = dataset_emissions.append(a_series2, ignore_index=True)
+            #print('--------- Total emissions -----------')
+            #print(e[0],t, "Total emissions: ",modell.total_emissions[t].value,", emission violation: ",
+            #    modell.z_emission[t].value,", violation/emission_cap: ", 1-(modell.total_emissions[t].value/(data.CO2_CAP[2020])))
+    #print("Number of variables: ",modell.nvariables())
+    #print("Number of constraints: ",modell.nconstraints())
+   
+    return dataset_x_flow, dataset_charging, dataset_w_node, \
+            dataset_v_edge, dataset_u_upgrade, dataset_violation, dataset_emissions
 
 def extract_output_ef(ef,data,instance_run):
     dataset = pd.DataFrame(columns = ['from','to','Mode',"route","fuel",'product','weight','time_period', 'scenario'])

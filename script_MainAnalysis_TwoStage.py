@@ -10,9 +10,10 @@ import os
 os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 from TranspModelClass import TranspModel
+from PostProcessClass import OutputData
 from Data.Create_Sets_Class import TransportSets
 from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings, get_all_scenario_names
-from postprocessing import extract_output_ef, extract_output_ph,plot_figures
+from postprocessing import extract_output_ef,extract_aggregated_output_ef, extract_output_ph,plot_figures
 
 import pyomo.environ as pyo
 import numpy as np
@@ -24,7 +25,6 @@ import mpisppy.scenario_tree as scenario_tree
 import time
 import sys
 import pickle
-
 
 import cProfile
 import pstats
@@ -122,9 +122,13 @@ if __name__ == "__main__":
         stop = time.time()
         print("The time of the run:", stop - start)
 
-        if extract_data_postprocessing:        
-            dataset = extract_output_ef(ef,base_data,instance_run)  #this one is quite slow!
         scenarios = sputils.ef_scenarios(ef)
+        if extract_data_postprocessing:        
+            output = OutputData(ef,base_data,instance_run)
+            # dataset_x_flow, dataset_charging, dataset_w_node, \
+            #         dataset_v_edge, dataset_u_upgrade, dataset_violation, \
+            #         dataset_emissions = extract_aggregated_output_ef(ef,base_data,instance_run)  #this one is quite slow!
+            # plot_figures(base_data,dataset_x_flow,scenarios,instance_run,solution_method)
 
     if solution_method == "ph":
 
@@ -150,8 +154,8 @@ if __name__ == "__main__":
         dataset = extract_output_ph(ph,base_data,instance_run)
         scenarios = ph.local_subproblems
 
-    if extract_data_postprocessing:
-        plot_figures(base_data,dataset,scenarios,instance_run,solution_method)
+        if extract_data_postprocessing:
+            plot_figures(base_data,dataset,scenarios,instance_run,solution_method)
         
     if profiling:
         profiler.disable()
