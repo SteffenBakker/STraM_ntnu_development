@@ -29,4 +29,5 @@ FACTOR_INT_CAP_SEA = 0.75
 #Model settings
 
 EMISSION_VIOLATION_PENALTY = 1*10**5  # THIS WAS 500    #CO2 Cap is at most 4E7, while obj function is now around 7E12, so I believe this penalty should be higher! Maybe 1-1.5E5
-POSITIVE_PART_PENALTY = 100  #TO DO: test the value of this parameter
+POSITIVE_PART_PENALTY_FUEL = 10000  #TO DO: test the value of this parameter
+POSITIVE_PART_PENALTY_SUM = 100  #TO DO: test the value of this parameter

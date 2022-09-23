@@ -99,8 +99,8 @@ class TranspModel:
                 sum(delta*self.data.C_UPG[(e,f)]*self.model.u_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE) +
                 sum(delta*self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t)] for (e,f) in self.data.EF_CHARGING) +
                 EMISSION_VIOLATION_PENALTY*self.model.z_emission[t] +
-                POSITIVE_PART_PENALTY*(sum(self.model.ppqq[m,f,t] for (m,f,t) in self.data.MFT_MIN0) + 
-                                       sum(self.model.ppqq_sum[m,t] for (m,t) in self.data.MT_MIN0))
+                POSITIVE_PART_PENALTY_FUEL*sum(self.model.ppqq[m,f,t] for (m,f,t) in self.data.MFT_MIN0) + 
+                POSITIVE_PART_PENALTY_SUM*sum(self.model.ppqq_sum[m,t] for (m,t) in self.data.MT_MIN0)
                 ))
                 
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)

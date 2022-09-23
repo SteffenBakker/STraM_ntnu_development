@@ -125,10 +125,22 @@ if __name__ == "__main__":
         scenarios = sputils.ef_scenarios(ef)
         if extract_data_postprocessing:        
             output = OutputData(ef,base_data,instance_run)
-            # dataset_x_flow, dataset_charging, dataset_w_node, \
-            #         dataset_v_edge, dataset_u_upgrade, dataset_violation, \
-            #         dataset_emissions = extract_aggregated_output_ef(ef,base_data,instance_run)  #this one is quite slow!
+            output.aggregated_values
             # plot_figures(base_data,dataset_x_flow,scenarios,instance_run,solution_method)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     if solution_method == "ph":
 
