@@ -37,6 +37,8 @@ class OutputData():
         
         self.extract_model_results(base_data)
         self.cost_and_investment_table(base_data)
+        self.print_some_insights()
+        self.emission_results(base_data)
         
     def extract_model_results(self,base_data):  #currently only for extensive form
         
@@ -212,24 +214,73 @@ class OutputData():
         self.aggregated_values =  self.all_variables.groupby(['variable', 'time_period', 'scenario']).agg({'cost_contribution':'sum', 'weight':'sum'})
         #https://stackoverflow.com/questions/46431243/pandas-dataframe-groupby-how-to-get-sum-of-multiple-columns
             
-    
-    def print_some_insights(self):
-        print('The average deviations (in absolute terms) in the positive part approximation are: ')
-        print(self.positive_part_deviations_fuel['weight'].mean(), ' for q_fuel AND')
-        print(self.positive_part_deviations_sum['weight'].mean(), ' for q_sum ')
-        print('Consider setting a lower/higher penalty for computational purposes ')
         
-        output.positive_part_deviations_fuel
-    
-    
+        
+        
+        test = output.aggregated_values.groupby(['variable',"time_period"]).agg(
+            cost_contribution_mean=('cost_contribution', np.mean),
+            cost_contribution_std=('cost_contribution', np.std)
+            weight_mean =('weight', np.mean),
+            weight_std =('weight', np.std)
+            )
+        
+        #test.index  #MultiIndex
+        test.loc['h_path']
+        
         #THEN DISCOUNTED ON 2022 LEVEL
         
         #delta = base_data.D_DISCOUNT_RATE**base_data.Y_YEARS[t][0]
         # TO DO
        
 
-        
 
+        # TO DO: FIGURES
+
+    
+    def print_some_insights(self):
+        print('The average deviations (in absolute terms) in the positive part approximation are: ')
+        print(self.positive_part_deviations_fuel['weight'].mean(), ' for q_fuel AND') #-316055
+        print(self.positive_part_deviations_sum['weight'].mean(), ' for q_sum ')
+        print('Consider setting a lower/higher penalty for computational purposes ')
+            
+    
+    def emission_results(self,base_data):
+        # print('to do')
+        # self.total_emissions
+        # for t in base_data.T_TIME_PERIODS:
+        #     for scen in self.scenarios:
+        #         print(modell.total_emissions[t].value / base_data.CO2_CAP[2020])
+        
+        #create bare chart figure -> See my drawing
+        #https://stackoverflow.com/questions/46794373/make-a-bar-graph-of-2-variables-based-on-a-dataframe
+        #https://pythonforundergradengineers.com/python-matplotlib-error-bars.html
+
+        #total_emissions time_period weight scenario
+        #means = list(output.total_emissions.groupby(['time_period']).agg({'weight':'mean'})['weight'])
+        #errors = list(output.total_emissions.groupby(['time_period']).agg({'weight':'std'})['weight'])
+
+        
+        #z_emission_violation
+
+        # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
+        df = output.total_emissions.groupby('time_period').agg(
+            AvgEmission=('weight', np.mean),
+            Std=('weight', np.std))
+        goals = list(base_data.CO2_CAP.values())
+        df['Goal'] = goals
+        df['StdGoals'] = [0 for g in goals]       
+        
+        #df['Std'] = 0.1*df['AvgEmission']  #it works when there is some deviation!!
+        
+        yerrors = df[['Std', 'StdGoals']].to_numpy().T
+        
+    
+        df[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'))
+        plt.show()
+        
+        
+        
+        
 
 #EMISSIONS
 #print('--------- Total emissions -----------')

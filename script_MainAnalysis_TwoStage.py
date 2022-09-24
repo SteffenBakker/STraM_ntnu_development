@@ -38,7 +38,7 @@ start = time.time()
 
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 read_data_from_scratch = False #Use cached data? Exctracting data is a bit slow in debug mode
-extract_data_postprocessing = False #postprocessing is quite slow. No need to do when testing the model. 
+extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
 set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
 
