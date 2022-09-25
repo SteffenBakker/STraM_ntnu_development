@@ -118,30 +118,31 @@ class OutputData():
                 weight5 = modell.total_emissions[t].value
                 a_series2 = pd.Series([variable,t, weight5, scen[0]],index=self.total_emissions.columns)
                 self.total_emissions = self.total_emissions.append(a_series2, ignore_index=True)    
-            variable = 'ppqq'
-            for (m,f,t) in base_data.MFT_MIN0:
-                weight = modell.ppqq[(m,f,t)].value
-                #if weight > 0:
-                a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.ppqq.columns)
-                self.ppqq = self.ppqq.append(a_series, ignore_index=True)
-            variable = 'ppqq_sum'
-            for (m,t) in base_data.MT_MIN0:
-                weight = modell.ppqq_sum[(m,t)].value
-                #if weight > 0:
-                a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.ppqq_sum.columns)
-                self.ppqq_sum = self.ppqq_sum.append(a_series, ignore_index=True)
+            if False:
+                variable = 'ppqq'
+                for (m,f,t) in base_data.MFT_MIN0:
+                    weight = modell.ppqq[(m,f,t)].value
+                    #if weight > 0:
+                    a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.ppqq.columns)
+                    self.ppqq = self.ppqq.append(a_series, ignore_index=True)
+                variable = 'ppqq_sum'
+                for (m,t) in base_data.MT_MIN0:
+                    weight = modell.ppqq_sum[(m,t)].value
+                    #if weight > 0:
+                    a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.ppqq_sum.columns)
+                    self.ppqq_sum = self.ppqq_sum.append(a_series, ignore_index=True)
+                
+                for (m,f,t) in base_data.MFT_MIN0:
+                    weight = modell.ppqq[(m,f,t)].value - modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value
+                    a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.positive_part_deviations_fuel.columns)
+                    self.positive_part_deviations_fuel = self.positive_part_deviations_fuel.append(a_series, ignore_index=True)
+                
+                for (m,t) in base_data.MT_MIN0:
+                    weight = modell.ppqq_sum[(m,t)].value - (
+                        sum(modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value for f in base_data.FM_FUEL[m]))
+                    a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.positive_part_deviations_sum.columns)
+                    self.positive_part_deviations_sum = self.positive_part_deviations_sum.append(a_series, ignore_index=True)
             
-            for (m,f,t) in base_data.MFT_MIN0:
-                weight = modell.ppqq[(m,f,t)].value - modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value
-                a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.positive_part_deviations_fuel.columns)
-                self.positive_part_deviations_fuel = self.positive_part_deviations_fuel.append(a_series, ignore_index=True)
-            
-            for (m,t) in base_data.MT_MIN0:
-                weight = modell.ppqq_sum[(m,t)].value - (
-                    sum(modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value for f in base_data.FM_FUEL[m]))
-                a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.positive_part_deviations_sum.columns)
-                self.positive_part_deviations_sum = self.positive_part_deviations_sum.append(a_series, ignore_index=True)
-        
             self.all_variables = pd.concat([self.x_flow,self.h_path,self.y_charging,self.w_node,self.v_edge,self.u_upgrade,
                       self.z_emission_violation,self.total_emissions,self.ppqq,self.ppqq_sum],ignore_index=True)
             
@@ -215,18 +216,6 @@ class OutputData():
         #https://stackoverflow.com/questions/46431243/pandas-dataframe-groupby-how-to-get-sum-of-multiple-columns
             
         
-        
-        
-        test = output.aggregated_values.groupby(['variable',"time_period"]).agg(
-            cost_contribution_mean=('cost_contribution', np.mean),
-            cost_contribution_std=('cost_contribution', np.std)
-            weight_mean =('weight', np.mean),
-            weight_std =('weight', np.std)
-            )
-        
-        #test.index  #MultiIndex
-        test.loc['h_path']
-        
         #THEN DISCOUNTED ON 2022 LEVEL
         
         #delta = base_data.D_DISCOUNT_RATE**base_data.Y_YEARS[t][0]
@@ -235,6 +224,20 @@ class OutputData():
 
 
         # TO DO: FIGURES
+        
+    def test():    
+        
+        test = output.aggregated_values.groupby(['variable',"time_period"]).agg(
+            cost_contribution_mean=('cost_contribution', np.mean),
+            cost_contribution_std=('cost_contribution', np.std),
+            weight_mean =('weight', np.mean),
+            weight_std =('weight', np.std)
+            )
+        
+        test.index  #MultiIndex
+        test.loc['h_path']
+        
+        
 
     
     def print_some_insights(self):
@@ -263,7 +266,7 @@ class OutputData():
         #z_emission_violation
 
         # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
-        df = output.total_emissions.groupby('time_period').agg(
+        df = self.total_emissions.groupby('time_period').agg(
             AvgEmission=('weight', np.mean),
             Std=('weight', np.std))
         goals = list(base_data.CO2_CAP.values())
@@ -278,6 +281,10 @@ class OutputData():
         df[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'))
         plt.show()
         
+        #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter
+        # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
+        # This is from all transport. We do not have all transport, 
+        # But our base case in 2020 is 40 million tonn CO2!!! probaubly because of exports..
         
         
         

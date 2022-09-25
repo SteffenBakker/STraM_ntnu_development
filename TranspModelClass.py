@@ -138,7 +138,7 @@ class TranspModel:
         # Emissions
         def emissions_rule(model, t):
             return (self.model.total_emissions[t] == sum(
-                self.data.E_EMISSIONS[(i,j,m,r),f, p, t] * self.model.x_flow[i,j,m,r,f, p, t] for p in self.data.P_PRODUCTS
+                self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t] for p in self.data.P_PRODUCTS
                 for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]))
         self.model.Emissions = Constraint(self.data.TS, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
         
@@ -222,29 +222,31 @@ class TranspModel:
         #     self.model.NonAnticipativity = Constraint(self.data.AP, rule=NonAnticipativityRule)
         #     """
         
-        #Fleet Renewal
-        def TotalTransportAmountRule(model,m,f,t):
-            return (self.model.q_transp_amount[m,f,t] == sum( self.data.AVG_DISTANCE[a]*self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS 
-                                                            for a in self.data.AM_ARCS[m]))
-        self.model.TotalTranspAmount = Constraint(self.data.MFT, rule = TotalTransportAmountRule)
+        if False:
         
-        def PositivePart1Rule(model,m,f,t):
-            return (self.model.ppqq[m,f,t] >= self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,self.data.T_MIN1[t]])
-        self.model.PositivePart1 = Constraint(self.data.MFT_MIN0, rule = PositivePart1Rule)
-        
-        def PositivePart2Rule(model,m,t):
-            return (self.model.ppqq_sum[m,t] >= sum(self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,self.data.T_MIN1[t]] for f in self.data.FM_FUEL[m]))
-        self.model.PositivePart2 = Constraint(self.data.MT_MIN0, rule = PositivePart2Rule)
-        
-        def FleetRenewalRule(model,m,t):
-            return (sum(self.model.ppqq[m,f,t] for f in self.data.FM_FUEL[m]) <= self.data.RHO_FLEET_RENEWAL_RATE[m,t]*sum(
-                    self.model.q_transp_amount[m,f,self.data.T_MIN1[t]]for f in self.data.FM_FUEL[m]) + self.model.ppqq_sum[m,t])
-        self.model.FleetRenewal = Constraint(self.data.MT_MIN0, rule = FleetRenewalRule)
-        
-        #Technology maturity limit
-        def TechMaturityLimitRule(model, m, f, t):
-            return (self.model.q_transp_amount[(m,f,t)] <= self.data.Q_TECH[(m,f,t)] )   #CHANGE THIS Q_TECH to mu*M
-        self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
+            #Fleet Renewal
+            def TotalTransportAmountRule(model,m,f,t):
+                return (self.model.q_transp_amount[m,f,t] == sum( self.data.AVG_DISTANCE[a]*self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS 
+                                                                for a in self.data.AM_ARCS[m]))
+            self.model.TotalTranspAmount = Constraint(self.data.MFT, rule = TotalTransportAmountRule)
+            
+            def PositivePart1Rule(model,m,f,t):
+                return (self.model.ppqq[m,f,t] >= self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,self.data.T_MIN1[t]])
+            self.model.PositivePart1 = Constraint(self.data.MFT_MIN0, rule = PositivePart1Rule)
+            
+            def PositivePart2Rule(model,m,t):
+                return (self.model.ppqq_sum[m,t] >= sum(self.model.q_transp_amount[m,f,t] - self.model.q_transp_amount[m,f,self.data.T_MIN1[t]] for f in self.data.FM_FUEL[m]))
+            self.model.PositivePart2 = Constraint(self.data.MT_MIN0, rule = PositivePart2Rule)
+            
+            def FleetRenewalRule(model,m,t):
+                return (sum(self.model.ppqq[m,f,t] for f in self.data.FM_FUEL[m]) <= self.data.RHO_FLEET_RENEWAL_RATE[m,t]*sum(
+                        self.model.q_transp_amount[m,f,self.data.T_MIN1[t]]for f in self.data.FM_FUEL[m]) + self.model.ppqq_sum[m,t])
+            self.model.FleetRenewal = Constraint(self.data.MT_MIN0, rule = FleetRenewalRule)
+            
+            #Technology maturity limit
+            def TechMaturityLimitRule(model, m, f, t):
+                return (self.model.q_transp_amount[(m,f,t)] <= self.data.Q_TECH[(m,f,t)] )   #CHANGE THIS Q_TECH to mu*M
+            self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
 
         return self.model
     

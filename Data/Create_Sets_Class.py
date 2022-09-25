@@ -550,7 +550,7 @@ class TransportSets():
     
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
-        self.E_EMISSIONS = {((i,j,m,r),f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T 
         self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
