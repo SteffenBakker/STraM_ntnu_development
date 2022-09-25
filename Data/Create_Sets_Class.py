@@ -581,10 +581,10 @@ class TransportSets():
             #CO2 price                                
                         if self.CO2_scenario == 1:
                             self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] =  round(
-                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] * row['CO2 fee base scenario (nok/gCO2)'],1)
+                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * row['CO2 fee base scenario (nok/gCO2)'],1)
                         elif self.CO2_scenario == 2:
                             self.C_CO2[(i,j,m,r,f, row['Product group'],row['Year'])] = round(
-                                self.E_EMISSIONS[(a,f, row['Product group'],row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)'],1)
+                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)'],1)
         
         
 
@@ -715,7 +715,8 @@ class TransportSets():
             if row["Scenario"] not in self.all_scenarios:
                 self.all_scenarios.append(row["Scenario"])
         internat_cap = INTERNATIONAL_CAP  #HARDCODED
-        self.total_trans_dict = {'Road': internat_cap*FACTOR_INT_CAP_ROAD, 'Rail': internat_cap*FACTOR_INT_CAP_RAIL, 
+        self.total_trans_dict = {'Road': internat_cap*FACTOR_INT_CAP_ROAD, 
+                                 'Rail': internat_cap*FACTOR_INT_CAP_RAIL, 
                                  'Sea': internat_cap*FACTOR_INT_CAP_SEA}
 
         self.fuel_groups = {0: ['Battery electric', 'Battery train'], 1: ['Hydrogen', 'Ammonia'], 
@@ -746,6 +747,8 @@ class TransportSets():
         
         self.Q_TECH = {mft : 0 for mft in self.MFT_MATURITY}
 
+
+        #why do we need both?
         if scenario in self.det_eqvs.keys():
             # create deterministIc equivalents
             for w in self.det_eqvs[scenario]:

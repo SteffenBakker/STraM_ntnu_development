@@ -222,7 +222,7 @@ class TranspModel:
         #     self.model.NonAnticipativity = Constraint(self.data.AP, rule=NonAnticipativityRule)
         #     """
         
-        if False:
+        if True:
         
             #Fleet Renewal
             def TotalTransportAmountRule(model,m,f,t):

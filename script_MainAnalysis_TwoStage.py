@@ -43,7 +43,7 @@ set_instance_manually = True
 instance = '2'     #change instance_run to choose which instance you want to run
 
 manual_instance = {'Manual':{'sol_met':'ef',
-                                    'scen_struct':6,
+                                    'scen_struct':2,
                                     'co2_price':1,
                                     'costs':'avg_costs',
                                     'probs':'equal',

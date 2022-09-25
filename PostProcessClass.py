@@ -118,7 +118,7 @@ class OutputData():
                 weight5 = modell.total_emissions[t].value
                 a_series2 = pd.Series([variable,t, weight5, scen[0]],index=self.total_emissions.columns)
                 self.total_emissions = self.total_emissions.append(a_series2, ignore_index=True)    
-            if False:
+            if True:
                 variable = 'ppqq'
                 for (m,f,t) in base_data.MFT_MIN0:
                     weight = modell.ppqq[(m,f,t)].value
@@ -241,11 +241,12 @@ class OutputData():
 
     
     def print_some_insights(self):
+        print('-----------------------------------------')
         print('The average deviations (in absolute terms) in the positive part approximation are: ')
-        print(self.positive_part_deviations_fuel['weight'].mean(), ' for q_fuel AND') #-316055
+        print(self.positive_part_deviations_fuel['weight'].mean(), ' for q_fuel AND') #-316.055   (this is always approximately the same. I guess there is an error with the data CHECK)
         print(self.positive_part_deviations_sum['weight'].mean(), ' for q_sum ')
         print('Consider setting a lower/higher penalty for computational purposes ')
-            
+        print('-----------------------------------------')    
     
     def emission_results(self,base_data):
         # print('to do')
@@ -266,25 +267,25 @@ class OutputData():
         #z_emission_violation
 
         # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
-        df = self.total_emissions.groupby('time_period').agg(
+        self.emission_stats = self.total_emissions.groupby('time_period').agg(
             AvgEmission=('weight', np.mean),
             Std=('weight', np.std))
         goals = list(base_data.CO2_CAP.values())
-        df['Goal'] = goals
-        df['StdGoals'] = [0 for g in goals]       
+        self.emission_stats['Goal'] = goals
+        self.emission_stats['StdGoals'] = [0 for g in goals]       
         
-        #df['Std'] = 0.1*df['AvgEmission']  #it works when there is some deviation!!
+        #self.emission_stats['Std'] = 0.1*self.emission_stats['AvgEmission']  #it works when there is some deviation!!
         
-        yerrors = df[['Std', 'StdGoals']].to_numpy().T
+        yerrors = self.emission_stats[['Std', 'StdGoals']].to_numpy().T
         
     
-        df[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'))
+        self.emission_stats[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'))
         plt.show()
         
         #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter
         # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
         # This is from all transport. We do not have all transport, 
-        # But our base case in 2020 is 40 million tonn CO2!!! probaubly because of exports..
+        # But our base case in 2020 is 40 millioner tonn CO2! equivalents, probably because of international transport...?
         
         
         
