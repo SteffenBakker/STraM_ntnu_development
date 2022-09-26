@@ -126,6 +126,7 @@ if __name__ == "__main__":
         if extract_data_postprocessing:        
             output = OutputData(ef,base_data,instance_run)
             output.aggregated_values
+            output.emission_results(base_data)
             # plot_figures(base_data,dataset_x_flow,scenarios,instance_run,solution_method)
 
 
