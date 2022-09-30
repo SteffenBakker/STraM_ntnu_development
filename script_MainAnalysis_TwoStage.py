@@ -13,7 +13,7 @@ from TranspModelClass import TranspModel
 from PostProcessClass import OutputData
 from Data.Create_Sets_Class import TransportSets
 from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings, get_all_scenario_names
-from postprocessing import extract_output_ef,extract_aggregated_output_ef, extract_output_ph,plot_figures
+#from postprocessing import extract_output_ef,extract_aggregated_output_ef, extract_output_ph,plot_figures
 
 import pyomo.environ as pyo
 import numpy as np
@@ -125,10 +125,9 @@ if __name__ == "__main__":
         scenarios = sputils.ef_scenarios(ef)
         if extract_data_postprocessing:        
             output = OutputData(ef,base_data,instance_run)
-            output.aggregated_values
             output.emission_results(base_data)
             # plot_figures(base_data,dataset_x_flow,scenarios,instance_run,solution_method)
-
+            output.cost_and_investment_table(base_data)
 
 
 

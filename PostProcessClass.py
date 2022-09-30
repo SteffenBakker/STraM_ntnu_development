@@ -66,7 +66,7 @@ class OutputData():
                             weight = modell.x_flow[(a,f,p,t)].value
                             if weight > 0:
                                 a_series = pd.Series([variable,i,j,m,r,f,p,t,weight, scen[0]], index=self.x_flow.columns)
-                                self.x_flow = self.x_flow.append(a_series, ignore_index=True)
+                                self.x_flow = pd.concat([self.x_flow, a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'h_path'
             for kk in base_data.K_PATHS:
                 #k = self.K_PATH_DICT[kk]
@@ -75,7 +75,7 @@ class OutputData():
                         weight = modell.h_flow[(kk, p, t)].value
                         if weight > 0:
                             a_series = pd.Series([variable,kk, p, t, weight, scen[0]], index=self.h_path.columns)
-                            self.h_path = self.h_path.append(a_series, ignore_index=True)
+                            self.h_path = pd.concat([self.h_path,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'v_edge'
             for t in base_data.T_TIME_PERIODS:
                 for i,j,m,r in base_data.E_EDGES_RAIL:
@@ -83,7 +83,7 @@ class OutputData():
                     weight = modell.v_edge[(e, t)].value
                     if weight > 0:
                         a_series = pd.Series([variable,i,j,m,r, t, weight, scen[0]], index=self.v_edge.columns)
-                        self.v_edge = self.v_edge.append(a_series, ignore_index=True)
+                        self.v_edge = pd.concat([self.v_edge,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'u_upg'
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.U_UPGRADE:
@@ -91,7 +91,7 @@ class OutputData():
                     weight = modell.u_upg[(i,j,m,r,f,t)].value
                     if weight > 0:
                         a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen[0]],index=self.u_upgrade.columns)
-                        self.u_upgrade = self.u_upgrade.append(a_series, ignore_index=True)
+                        self.u_upgrade = pd.concat([self.u_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'w_node'
             for t in base_data.T_TIME_PERIODS:
                 for (i, m) in base_data.NM_LIST_CAP:
@@ -99,7 +99,7 @@ class OutputData():
                         weight = modell.w_node[(i, c, m, t)].value
                         if weight > 0:
                             a_series = pd.Series([variable,i, c, m, t, weight, scen[0]],index=self.w_node.columns)
-                            self.w_node = self.w_node.append(a_series, ignore_index=True)
+                            self.w_node = pd.concat([self.w_node,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'y_charging'
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.EF_CHARGING:
@@ -107,41 +107,41 @@ class OutputData():
                     weight = modell.y_charge[(i,j,m,r,f,t)].value
                     if weight > 0:
                         a_series = pd.Series([variable,i,j,m,r,f,t, weight, scen[0]],index=self.y_charging.columns)
-                        self.y_charging = self.y_charging.append(a_series, ignore_index=True)
+                        self.y_charging = pd.concat([self.y_charging,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'z_emission'
             for t in base_data.T_TIME_PERIODS:
                 weight = modell.z_emission[t].value
                 a_series = pd.Series([variable,t, weight, scen[0]],index=self.z_emission_violation.columns)
-                self.z_emission_violation = self.z_emission_violation.append(a_series, ignore_index=True)
+                self.z_emission_violation = pd.concat([self.z_emission_violation,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'total_emissions'
             for t in base_data.T_TIME_PERIODS:
                 weight5 = modell.total_emissions[t].value
                 a_series2 = pd.Series([variable,t, weight5, scen[0]],index=self.total_emissions.columns)
-                self.total_emissions = self.total_emissions.append(a_series2, ignore_index=True)    
+                self.total_emissions = pd.concat([self.total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)    
             if True:
                 variable = 'ppqq'
                 for (m,f,t) in base_data.MFT_MIN0:
                     weight = modell.ppqq[(m,f,t)].value
                     #if weight > 0:
                     a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.ppqq.columns)
-                    self.ppqq = self.ppqq.append(a_series, ignore_index=True)
+                    self.ppqq = pd.concat([self.ppqq,a_series.to_frame().T],axis=0, ignore_index=True)
                 variable = 'ppqq_sum'
                 for (m,t) in base_data.MT_MIN0:
                     weight = modell.ppqq_sum[(m,t)].value
                     #if weight > 0:
                     a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.ppqq_sum.columns)
-                    self.ppqq_sum = self.ppqq_sum.append(a_series, ignore_index=True)
+                    self.ppqq_sum = pd.concat([self.ppqq_sum,a_series.to_frame().T],axis=0, ignore_index=True)
                 
                 for (m,f,t) in base_data.MFT_MIN0:
                     weight = modell.ppqq[(m,f,t)].value - modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value
                     a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.positive_part_deviations_fuel.columns)
-                    self.positive_part_deviations_fuel = self.positive_part_deviations_fuel.append(a_series, ignore_index=True)
+                    self.positive_part_deviations_fuel = pd.concat([self.positive_part_deviations_fuel,a_series.to_frame().T],axis=0, ignore_index=True)
                 
                 for (m,t) in base_data.MT_MIN0:
                     weight = modell.ppqq_sum[(m,t)].value - (
                         sum(modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value for f in base_data.FM_FUEL[m]))
                     a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.positive_part_deviations_sum.columns)
-                    self.positive_part_deviations_sum = self.positive_part_deviations_sum.append(a_series, ignore_index=True)
+                    self.positive_part_deviations_sum = pd.concat([self.positive_part_deviations_sum,a_series.to_frame().T],axis=0, ignore_index=True)
             
             self.all_variables = pd.concat([self.x_flow,self.h_path,self.y_charging,self.w_node,self.v_edge,self.u_upgrade,
                       self.z_emission_violation,self.total_emissions,self.ppqq,self.ppqq_sum],ignore_index=True)
@@ -153,6 +153,7 @@ class OutputData():
 
         #FIRST ON YEARLY LEVEL
         
+        
         transport_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         transfer_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         edge_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
@@ -162,6 +163,8 @@ class OutputData():
         emission_violation_penalty = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         positive_part_penalty_fuel = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         positive_part_penalty_sum = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
+        
+    
         
         self.all_variables['cost_contribution'] = 0
         
@@ -214,29 +217,59 @@ class OutputData():
         #%columns_of_interest = self.all_variables.loc[:,('variable','time_period','scenario','cost_contribution')]
         self.aggregated_values =  self.all_variables.groupby(['variable', 'time_period', 'scenario']).agg({'cost_contribution':'sum', 'weight':'sum'})
         #https://stackoverflow.com/questions/46431243/pandas-dataframe-groupby-how-to-get-sum-of-multiple-columns
-            
         
-        #THEN DISCOUNTED ON 2022 LEVEL
         
-        #delta = base_data.D_DISCOUNT_RATE**base_data.Y_YEARS[t][0]
-        # TO DO
+        
+        self.all_costs = dict(transport=transport_costs,transfer=transfer_costs,edge=edge_costs, upgrade=upgrade_costs,node=node_costs,charging=charging_costs,
+                              emission=emission_violation_penalty,pp_fuel=positive_part_penalty_fuel, pp_sum=positive_part_penalty_sum)
+        self.all_costs_table = pd.DataFrame.from_dict(self.all_costs, orient='index')
+        
+        
+        
+        for t in base_data.T_TIME_PERIODS: 
+            #t = base_data.T_TIME_PERIODS[0]
+            level_values =  self.all_costs_table.columns.get_level_values(1)
+            columns = ((self.all_costs_table.columns.get_level_values(0)==t) & 
+                       ([level_values[i] in self.scenarios for i in range(len(level_values))]))
+            mean = self.all_costs_table.iloc[:,columns].mean(axis=1)
+            std = self.all_costs_table.iloc[:,columns ].std(axis=1)
+            self.all_costs_table[(t,'mean')] = mean
+            self.all_costs_table[(t,'std')] = std
+        
+        #only select mean and std data (go away from scenarios)
+        columns = ((self.all_costs_table.columns.get_level_values(1)=='mean') | (self.all_costs_table.columns.get_level_values(1)=='std'))
+        self.all_costs_table = self.all_costs_table.iloc[:,columns ].sort_index(axis=1,level=0)
+        
+        pd.set_option('display.float_format', '{:.2g}'.format)
+        round(self.all_costs_table,1)
+
+        self.plot_costs()
+
+        #PLOTTING
+    def plot_costs(self):
+        
+        for i in range(3):
+            if i == 0:
+                indices = self.all_costs_table.index
+            elif i ==1:
+                indices = [i for i in self.all_costs_table.index if i not in ['emission']]
+            else:
+                indices = [i for i in self.all_costs_table.index if i not in ['emission','pp_fuel','pp_sum']]
+            all_costs_table2 = self.all_costs_table.loc[indices]
+            mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
+            mean_data = mean_data.droplevel(1, axis=1)
+            std_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='std']
+            std_data = std_data.droplevel(1, axis=1)
+            yerrors = std_data.to_numpy()
+            ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = True)  #xlabel, ylabel
+            #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+            fig = ax.get_figure()
+            #fig.savefig('/path/to/figure.pdf')
+        
        
 
 
         # TO DO: FIGURES
-        
-    def test():    
-        
-        test = output.aggregated_values.groupby(['variable',"time_period"]).agg(
-            cost_contribution_mean=('cost_contribution', np.mean),
-            cost_contribution_std=('cost_contribution', np.std),
-            weight_mean =('weight', np.mean),
-            weight_std =('weight', np.std)
-            )
-        
-        test.index  #MultiIndex
-        test.loc['h_path']
-        
         
 
     
@@ -279,9 +312,14 @@ class OutputData():
         yerrors = self.emission_stats[['Std', 'StdGoals']].to_numpy().T
         
     
-        self.emission_stats[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'))
-        plt.show()
+        ax = self.emission_stats[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = False)
+        #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+        fig = ax.get_figure()
+        #fig.savefig('/path/to/figure.pdf')
         
+    
+    
+    
         #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter
         # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
         # This is from all transport. We do not have all transport, 
