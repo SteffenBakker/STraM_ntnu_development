@@ -3,10 +3,8 @@
 Created on Mon Nov  8 13:31:04 2021
 
 @author: ingvi
-Adapted by Ruben
+Adapted by rubenvanbeesten
 """
-
-"Example data"
 
 from collections import Counter
 import pandas as pd
@@ -287,9 +285,11 @@ class TransportSets():
 
         self.K_LINK_PATHS = []
         if self.run_file == "main":
-            all_generated_paths = pd.read_csv(r'Data/generated_paths.csv',converters={'paths': eval})
+            #all_generated_paths = pd.read_csv(r'Data/generated_paths.csv',converters={'paths': eval})
+            all_generated_paths = pd.read_csv(r'Data/generated_paths_Ruben.csv',converters={'paths': eval})
         if self.run_file == "sets":
-            all_generated_paths = pd.read_csv(r'generated_paths.csv', converters={'paths': eval})
+            #all_generated_paths = pd.read_csv(r'generated_paths.csv', converters={'paths': eval})
+            all_generated_paths = pd.read_csv(r'generated_paths_Ruben.csv', converters={'paths': eval})
         for index, row in all_generated_paths.iterrows():
             elem = row['paths']
             self.K_LINK_PATHS.append(elem)
@@ -473,7 +473,7 @@ class TransportSets():
         self.C_CO2 = {(a, t): 1000000 for a in self.A_ARCS for t in
                             self.T_TIME_PERIODS}
 
-        for index, row in cost_data.iterrows():
+        for index, row in cost_data.iterrows(): #HIERO
             for (i,j,m,r) in self.L_LINKS_DIR:
                 if m == row["Mode"]:
                     f = row["Fuel"]
