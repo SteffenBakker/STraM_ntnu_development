@@ -862,7 +862,4 @@ class TransportSets():
                     self.first_stage_emission_violation[row['time_period']] = row['weight']
 
 
-base_data = TransportSets()
-
-base_data.C_TRANSP_COST
-base_data.C_CO2
+#base_data = TransportSets()
