@@ -1,8 +1,0 @@
-To do:
-
-- Computation of transport costs (done)
-- Computation of emission factors (done)
-- Reading transport costs (done)
-- Reading emission factors (done)
-- Computation of CO2 fees
-- Reading CO2 fees
