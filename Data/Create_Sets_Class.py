@@ -111,7 +111,7 @@ class TransportSets():
 
         self.FM_FUEL = {"Road": ["Diesel","Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
                         "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],  #Hybrid: non-existing
-                        "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} ###HUSK Å SETTE INN HFO
+                        "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} 
 
         self.NEW_MF_LIST = [("Road", "Hydrogen"), ("Road", "Battery electric"), ("Rail", "Hydrogen"),
                             ("Rail", "Battery train"), ("Sea", "Hydrogen"), ("Sea", "Ammonia"), ('Road', 'Biodiesel'),
@@ -475,7 +475,7 @@ class TransportSets():
         self.RHO_FLEET_RENEWAL_RATE = {(m,t):FLEET_RR for (m,t) in self.MT_MIN0}
 
         
-        self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='Costs')
+        self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
         emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
         if self.emission_reduction == 100:
@@ -490,7 +490,7 @@ class TransportSets():
             raise ValueError('CO2_CAP should be a predefined level (100,75,73,70). Now it is {x}'.format(x=self.emission_reduction))
         self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
         
-        transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='transfer_costs')
+        transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']
         
         
@@ -501,7 +501,7 @@ class TransportSets():
             for q in self.PATH_TYPES:
                 data_index = transfer_data.loc[(transfer_data['Product'] == p) & (transfer_data['Transfer type'] == q)]
                 self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost'],1)  #10E6NOK/10E6TONNES
-
+        
         # for k in self.MULTI_MODE_PATHS:
         #     for j in range(len(k)-1):
         #         if (k[j][2] == "Sea" and k[j+1][2] == "Rail") or (k[j][2] == "Rail" and k[j+1][2] == "Sea"):
@@ -546,6 +546,17 @@ class TransportSets():
                     if mode_from != mode_to: 
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
                 self.C_TRANSFER[(kk,p)] = round(cost,1)
+            
+        CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')
+            
+        self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
+        
+        for index, row in CO2_fee_data.iterrows():
+            if self.CO2_scenario == 1:
+                self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
+            elif self.CO2_scenario == 2:
+                self.CO2_fee[row["Year"]] = row["CO2 fee scenario 2 (nok/gCO2)"]
+        
         
     
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
@@ -553,7 +564,7 @@ class TransportSets():
         self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T 
         self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                      for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
+                      for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
 
         for index, row in self.cost_data.iterrows():
             for (i,j,m,r) in self.A_ARCS:
@@ -578,13 +589,13 @@ class TransportSets():
                         #MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
                         self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = round(self.AVG_DISTANCE[a] * row[
                             'Emissions (gCO2/Tkm)'],1)
-            #CO2 price                                
+                        #CO2 costs per tonne:
                         if self.CO2_scenario == 1:
                             self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] =  round(
-                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * row['CO2 fee base scenario (nok/gCO2)'],1)
+                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
                         elif self.CO2_scenario == 2:
                             self.C_CO2[(i,j,m,r,f, row['Product group'],row['Year'])] = round(
-                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] *row['CO2 fee scenario 2 (nok/gCO2)'],1)
+                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
         
         
 
@@ -851,5 +862,7 @@ class TransportSets():
                     self.first_stage_emission_violation[row['time_period']] = row['weight']
 
 
-#base_data = TransportSets()
+base_data = TransportSets()
 
+base_data.C_TRANSP_COST
+base_data.C_CO2
