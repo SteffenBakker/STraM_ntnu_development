@@ -6,10 +6,7 @@ Created on Fri Jul 29 10:47:48 2022
 """
 
 import os
-print(os.getcwd())
-
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
-
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 from TranspModelClass import TranspModel
@@ -41,7 +38,6 @@ start = time.time()
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 read_data_from_scratch = True #Use cached data? Exctracting data is a bit slow in debug mode
 extract_data_postprocessing = False #postprocessing is quite slow. No need to do when testing the model. 
-set_instance_manually = True
 instance_run = 'base'     #change instance_run to choose which instance you want to run
 
 profiling = False
@@ -74,8 +70,8 @@ if __name__ == "__main__":
     base_model.construct_model()
     
     #Scenarios
-    scenario_numbers = [1,2,3] # To do: list of scenarios
     scenario_info = None # To do: read this from excel 
+    scenario_numbers = base_data.scenario_numbers # [1,2,3] # To do: list of scenarios
 
     #Solve model 
     scenario_creator_kwargs = {'base_data':base_data, 'scenario_info':scenario_info}
