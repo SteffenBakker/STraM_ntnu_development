@@ -17,24 +17,11 @@ class TranspModel:
 
     def __init__(self, data):
 
-        self.instance = instance
-        #timelimit in minutes, etc
-        #elf.maturity_scenario = maturity_scenario
-
-        self.results = 0  # results is an structure filled out later in solve_model()
-        self.status = ""  # status is a string filled out later in solve_model()
+        self.results = None  # results is a structure filled out later in solve_model()
+        self.status = None  # status is a string filled out later in solve_model()
         self.model = ConcreteModel()
         self.opt = pyomo.opt.SolverFactory('gurobi') #gurobi
-        self.results = 0  # results is an structure filled out later in solve_model()
-        self.status = ""  # status is a string filled out later in solve_model()
-        self.scenario = scenario
-        self.carbon_scenario = carbon_scenario
-        self.fuel_costs = fuel_costs
-        self.emission_reduction = emission_reduction
-        #IMPORT THE DATA
         self.data = data
-        self.data.update_parameters(scenario, carbon_scenario, fuel_costs, emission_reduction)
-
 
     def construct_model(self):
         
@@ -48,7 +35,7 @@ class TranspModel:
         self.model.x_flow = Var(self.data.AFPT, within=NonNegativeReals)
         self.model.b_flow = Var(self.data.AFVT, within=NonNegativeReals)
         self.model.h_flow = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
-        self.model.h_flow_balancing = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
+        self.model.h_flow_balancing = Var(self.data.KVT, within=NonNegativeReals)# flow on paths K,p
 
         self.model.StageCosts = Var(self.data.T_TIME_PERIODS, within = NonNegativeReals)
         
@@ -65,18 +52,10 @@ class TranspModel:
         self.model.q_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
         self.model.q_max_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
 
-        # self.model.AFPT = Set(initialize=self.data.AFPT)
-        # list(self.model.AFPT)
-        # self.model.C_TRANSP_COST = Param(self.model.AFPT, initialize=self.data.C_TRANSP_COST) #, default=0
-        # self.model.C_CO2 = Param(self.model.AFPT, initialize=self.data.C_CO2) #, default=0
-
         "OBJECTIVE"
-        #TO DO: check how the CO2 kicks in? Could be baked into C_TRANSP_COST
+        #TO DO: check how the CO2 kicks in? Could be baked into C_TRANSP_COST (what is the question here?)
         def StageCostsVar(model, t):
             # SOME QUICK TESTING SHOWED THAT SUM_PRODUCT IS QUITE A BIT SLOWER THAN SIMPLY TAKING THE SUM...
-            # yearly_transp_cost = (sum_product(self.model.C_TRANSP_COST ,self.model.x_flow,
-            #                                  index=[(i,j,m,r,f,p,tt) for (i,j,m,r,f,p,tt) in self.data.AFPT if tt==t]) +
-            #                       sum_product(self.model.C_CO2 ,self.model.x_flow,index=[(i,j,m,r,f,p,tt) for (i,j,m,r,f,p,tt) in self.data.AFPT if tt==t]))
             yearly_transp_cost = sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t)]+self.data.C_CO2[(i,j,m,r,f,p,t)])*(self.model.x_flow[(i,j,m,r,f,p,t)]+self.model.b_flow[(i,j,m,r,f,p,t)]) 
                                       for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m])
             yearly_transfer_cost = sum(self.data.C_TRANSFER[(k,p)]*self.model.h_flow[k,p,t] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)

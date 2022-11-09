@@ -439,6 +439,7 @@ class TransportSets():
         self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
                          self.T_TIME_PERIODS]  
         self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
+        self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
 
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
         self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
@@ -512,10 +513,8 @@ class TransportSets():
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
                 self.C_TRANSFER[(kk,p)] = round(cost,1)
             
-        CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')
-            
+        CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
-        
         for index, row in CO2_fee_data.iterrows():
             self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
             
@@ -540,12 +539,9 @@ class TransportSets():
                         self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = round(self.AVG_DISTANCE[a] * row[
                             'Emissions (gCO2/Tkm)'],1)
                         #CO2 costs per tonne:
-                        if self.CO2_scenario == 1:
-                            self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] =  round(
-                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
-                        elif self.CO2_scenario == 2:
-                            self.C_CO2[(i,j,m,r,f, row['Product group'],row['Year'])] = round(
-                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
+                        self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] =  round(
+                            self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
+
         
         
 
