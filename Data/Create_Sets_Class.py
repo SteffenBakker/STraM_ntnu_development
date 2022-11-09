@@ -31,45 +31,24 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 class TransportSets():
 
-    def __init__(self, scenario='HHH', carbon_scenario=1, fuel_costs='avg_costs', emission_reduction=75):# or (self)
+    def __init__(self):# or (self)
+        #scenario='HHH', carbon_scenario=1, emission_reduction=75
         self.run_file = "main"  # "sets" or "main"
         self.prefix = '' 
         if self.run_file == "main":
             self.prefix = r'Data/'
         elif self.run_file =="sets":
             self.prefix = '' 
-            
-        #self.user = "i"  # "i" or "a"
-        self.scenario = scenario # "['average']" #or scenario
-        self.CO2_scenario = carbon_scenario
-        self.fuel_costs = fuel_costs
-        self.emission_reduction = emission_reduction
-        self.read_dataframes()
+                    
         self.construct_pyomo_data()
 
-        
-
-
-    def read_dataframes(self):
+    def construct_pyomo_data(self):
 
         self.pwc_aggr = pd.read_csv(self.prefix+r'demand.csv')
         self.city_coords = pd.read_csv(self.prefix+r'zonal_aggregation.csv', sep=';')
 
 
-    def uniq(self, lst):
-        last = object()
-        for item in lst:
-            if item == last:
-                continue
-            yield item
-            last = item
-
-    def sort_and_deduplicate(self, l):
-        return list(self.uniq(sorted(l, reverse=True)))
-
-    def construct_pyomo_data(self):
-
-        print("Constructing scenario")
+        print("Reading and constructing data")
 
         self.scaling_factor = SCALING_FACTOR #10E-5
         self.precision_digits = 6
@@ -237,15 +216,6 @@ class TransportSets():
             self.AE_ARCS[e].append(a2)
             self.AM_ARCS[m].append(a1)
             self.AM_ARCS[m].append(a2)
-            
-            #the next part can be simplified
-            # for f in self.FM_FUEL[m]:
-            #     arc = (i, j, m, r)
-            #     if not(f == "HFO" and i in self.N_NODES_NORWAY and j in self.N_NODES_NORWAY):
-            #         self.A_ARCS.append(arc)
-            #         if i != j:
-            #             arc2 = (j, i, m, r)
-            #             self.A_ARCS.append(arc2)
                 
         
         for l in self.E_EDGES_NORWAY:
@@ -256,8 +226,6 @@ class TransportSets():
         rail_cap_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Cap rail')
         inv_rail_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Invest rail')
         inv_sea_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Invest sea')
-        
-            
      
         for index, row in inv_rail_data.iterrows():
             if pd.isnull(row["From"]):
@@ -268,8 +236,6 @@ class TransportSets():
         for e in self.E_EDGES_UPG:
             self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
             
-
-
 
         ####################################
         ### ORIGIN, DESTINATION AND DEMAND #
@@ -403,7 +369,7 @@ class TransportSets():
             self.AVG_DISTANCE[key] = round(value,1)
 
 
-        #multi-mode paths
+        #multi-mode paths and unimodal paths
         self.MULTI_MODE_PATHS = []
         for kk in self.K_PATHS:
             k = self.K_PATH_DICT[kk]
@@ -411,7 +377,8 @@ class TransportSets():
                 for i in range(len(k)-1):
                     if k[i][2] != k[i+1][2]:
                         self.MULTI_MODE_PATHS.append(kk)
-                
+        self.UNI_MODAL_PATHS = list(set(self.K_PATHS)-set(self.MULTI_MODE_PATHS))
+
         #Paths with transfer in node i to/from mode m
         self.TRANSFER_PATHS = {(i,m) : [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
         
@@ -443,6 +410,24 @@ class TransportSets():
             for (i,j,m,r) in k:
                 a = (i,j,m,r)
                 self.KA_PATHS[a].append(kk)
+
+        self.KA_PATHS_UNIMODAL = {a:[] for a in self.A_ARCS}
+        for kk in self.UNI_MODAL_PATHS:
+            k = self.K_PATH_DICT[kk]
+            for (i,j,m,r) in k:
+                a = (i,j,m,r)
+                self.KA_PATHS_UNIMODAL[a].append(kk)
+        
+        #Vehicle types
+        self.prod_to_vehicle_type = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
+        self.VEHICLE_TYPE_MP = {}
+        self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}  
+        for (m,p,v) in zip(self.prod_to_vehicle_type['Mode'], self.prod_to_vehicle_type['Product group'], self.prod_to_vehicle_type['Vehicle type']):
+            self.VEHICLE_TYPE_MP[(m,p)] = v
+            self.VEHICLE_TYPES_M[m].append(v)
+        for m in self.M_MODES:
+            self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
+        self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
         
         
         "Combined sets"
@@ -450,7 +435,9 @@ class TransportSets():
         self.TS = [(t) for t in self.T_TIME_PERIODS]
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
-                         self.T_TIME_PERIODS]        
+                         self.T_TIME_PERIODS]
+        self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
+                         self.T_TIME_PERIODS]  
         self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
 
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
@@ -471,21 +458,22 @@ class TransportSets():
 
         "Parameters"
 
-        #fleet renewal  TO DO: FIND SENSIBLE VALUES
-        self.RHO_FLEET_RENEWAL_RATE = {(m,t):FLEET_RR for (m,t) in self.MT_MIN0}
+        #fleet renewal  NOT NECESSARY ANYMORE
+        #self.RHO_FLEET_RENEWAL_RATE = {(m,t):FLEET_RR for (m,t) in self.MT_MIN0}
 
         
+
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
-        emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
+        self.emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
         if self.emission_reduction == 100:
-            self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap']))
+            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap']))
         elif self.emission_reduction == 75:
-            self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap1']))
+            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap1']))
         elif self.emission_reduction == 73:
-            self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap2']))
+            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap2']))
         elif self.emission_reduction == 70:
-            self.CO2_CAP = dict(zip(emission_data['Year'], emission_data['Cap3']))
+            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap3']))
         else:
             raise ValueError('CO2_CAP should be a predefined level (100,75,73,70). Now it is {x}'.format(x=self.emission_reduction))
         self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
@@ -502,14 +490,6 @@ class TransportSets():
                 data_index = transfer_data.loc[(transfer_data['Product'] == p) & (transfer_data['Transfer type'] == q)]
                 self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost'],1)  #10E6NOK/10E6TONNES
         
-        # for k in self.MULTI_MODE_PATHS:
-        #     for j in range(len(k)-1):
-        #         if (k[j][2] == "Sea" and k[j+1][2] == "Rail") or (k[j][2] == "Rail" and k[j+1][2] == "Sea"):
-        #             self.MULTI_MODE_PATHS_DICT["sea-rail"].append(k)
-        #         if (k[j][2] == "Sea" and k[j+1][2] == "Road") or (k[j][2] == "Road" and k[j+1][2] == "Sea"):
-        #             self.MULTI_MODE_PATHS_DICT["sea-road"].append(k)
-        #         if (k[j][2] == "Rail" and k[j+1][2] == "Road") or (k[j][2] == "Road" and k[j+1][2] == "Rail"):
-        #             self.MULTI_MODE_PATHS_DICT["rail-road"].append(k)
         
         mode_to_transfer = {('Sea','Rail'):'sea-rail',
                             ('Sea','Road'):'sea-road',
@@ -517,21 +497,6 @@ class TransportSets():
                             ('Rail','Sea'):'sea-rail',
                             ('Road','Sea'):'sea-road',
                             ('Road','Rail'):'rail-road'}            
-        
-
-        # num_transfers_in_paths = []
-        # type_path = []
-        # for k in self.MULTI_MODE_PATHS:
-        #     num_transfers = len(k)-1
-        #     num_transfers_in_paths.append(num_transfers)
-        #     path_type = [k[0][2]]
-        #     for n in range(num_transfers):
-        #         mode_from = k[n][2]
-        #         mode_to = k[n+1][2]
-        #         path_type.append(mode_to)
-        #     type_path.append(path_type)
-        # np.unique(type_path)
-        #many paths with multiple transfers. Also, we have e.g. rail-rail-rail-road
           
         self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
         
@@ -552,12 +517,8 @@ class TransportSets():
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         
         for index, row in CO2_fee_data.iterrows():
-            if self.CO2_scenario == 1:
-                self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
-            elif self.CO2_scenario == 2:
-                self.CO2_fee[row["Year"]] = row["CO2 fee scenario 2 (nok/gCO2)"]
-        
-        
+            self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
+            
     
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
@@ -572,18 +533,7 @@ class TransportSets():
                 if m == row["Mode"]:
                     f = row["Fuel"]
                     if f in self.FM_FUEL[m]: #get rid of the hybrid!!
-                        factor = None
-                        if self.fuel_costs == "avg_costs":
-                            factor = row['Cost (NOK/Tkm)']
-                        elif self.fuel_costs == "low_costs":
-                            factor =  row['Cost - lav (-25%)']
-                        elif self.fuel_costs == "high_costs":
-                            factor = row['Cost - høy (+25%)']
-                        elif self.fuel_costs == "very_low_costs":
-                            if f in self.NEW_F_LIST:
-                                factor = row['Cost (NOK/Tkm)'] * NEW_FUEL_FACTOR
-                            else:
-                                factor = row['Cost (NOK/Tkm)']
+                        factor = row['Cost (NOK/Tkm)']
                         self.C_TRANSP_COST[(i, j, m, r,f,row['Product group'],row['Year'] )] = round((
                             self.AVG_DISTANCE[a] * factor),2)
                         #MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
@@ -718,40 +668,23 @@ class TransportSets():
         ######Innlesning av scenarier 
         # -----------------
 
-        
-        self.scen_data = pd.read_csv(self.prefix+r'scenarios_maturities_27.csv')  #how is this one constructed? It gives percentages 
-        
-        self.all_scenarios = []
-        for index, row in self.scen_data.iterrows():
-            if row["Scenario"] not in self.all_scenarios:
-                self.all_scenarios.append(row["Scenario"])
-        internat_cap = INTERNATIONAL_CAP  #HARDCODED
-        self.total_trans_dict = {'Road': internat_cap*FACTOR_INT_CAP_ROAD, 
-                                 'Rail': internat_cap*FACTOR_INT_CAP_RAIL, 
-                                 'Sea': internat_cap*FACTOR_INT_CAP_SEA}
+        #TO DO RUBEN -> Scenarier
 
-        self.fuel_groups = {0: ['Battery electric', 'Battery train'], 1: ['Hydrogen', 'Ammonia'], 
-                       2: ['Biodiesel (HVO)', 'Biogas', 'Biodiesel']}
+        #TO DO STEFFEN: MATURITIES / TECHN: READINESS
 
-        self.base_scenarios = ['HHH', 'LLL', 'HHL', 'HLH', 'HLL', 'LHH', 'LHL', 'LLH']
-        self.three_scenarios = ['HHH', 'MMM', 'LLL']
+        if False: #REMOVE
 
-        self.det_eqvs = {'AVG1': self.base_scenarios,
-                         'AVG11': self.base_scenarios,
-                         'AVG2': self.three_scenarios,
-                         'AVG22': self.three_scenarios,
-                         'AVG3': self.three_scenarios,
-                         'AVG33': self.three_scenarios}  # yields same avg as all scenarios
+            self.scen_data = pd.read_csv(self.prefix+r'scenarios_maturities_27.csv')  #how is this one constructed? It gives percentages 
+            
+            self.all_scenarios = []
+            for index, row in self.scen_data.iterrows():
+                if row["Scenario"] not in self.all_scenarios:
+                    self.all_scenarios.append(row["Scenario"])
+            
 
-        
-
-        VSS = False
-        if VSS:
-            self.VSS_code()
-    
-        self.update_scenario_dependent_parameters(self.scenario)
+        self.update_scenario_dependent_parameters(self.scenario_nr)
                         
-    def update_scenario_dependent_parameters(self,scenario):
+    def update_scenario_dependent_parameters(self,scenario_nr):
         
         #TO DO: change this way of defining the maturity constraints!!
         #Go from Q_TECH (in tonnes) to mu*M (in tonne-km)
@@ -783,83 +716,6 @@ class TransportSets():
                                         row[str(year)] * total_trans / 100) / self.scaling_factor   #MTONNES    at the moment
                                 
         
-                        
-    def update_parameters(self,scenario, carbon_scenario, fuel_costs, emission_reduction):
-        self.scenario = scenario # "['average']" #or scenario
-        self.CO2_scenario = carbon_scenario
-        self.fuel_costs = fuel_costs
-        self.emission_reduction = emission_reduction
-        
-    def VSS_code(self):
-        # colnames = ['','from', 'to', 'Mode', 'fuel', 'route','product','weight','time_period','scenario']
+
     
-        # TO DO: have not checked the data here
-    
-        #HERE IS HARDCODING WITH THIS INSTANCE 3
-        folder_instance =  r'Instance_results_with_data/Instance3/'
-        
-        first_stage_data_x = pd.read_csv(self.prefix+folder_instance+r'Inst_3_X_flow.csv', encoding='utf8')
-        first_stage_data_h = pd.read_csv(self.prefix+folder_instance+r'Inst_3_H_flow.csv', converters={'path': eval}, encoding='utf8')
-        first_stage_data_z_inv_cap = pd.read_csv(self.prefix+folder_instance+r'Inst_3_z_inv_cap.csv', encoding='utf8')
-        first_stage_data_z_inv_node = pd.read_csv(self.prefix+folder_instance+r'Inst_3_z_inv_node.csv',encoding='utf8')
-        first_stage_data_z_inv_upg = pd.read_csv(self.prefix+folder_instance+r'Inst_3_z_inv_upg.csv',encoding='utf8')
-        first_stage_data_charge_link = pd.read_csv(self.prefix+folder_instance+r'Inst_3_charge_link.csv',encoding='utf8')
-        first_stage_data_emission_violation = pd.read_csv(self.prefix+folder_instance+r'Inst_3_emission_violation.csv', encoding='utf8')
-
-        # print(first_stage_data_z_inv_cap)
-        self.APT_fs = [a + (p,) + (t,) for a in self.A_ARCS for p in self.P_PRODUCTS for t in[2020, 2025]]
-        self.KPT_fs = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in [2020, 2025]]
-        self.ET_RAIL_fs = [l + (t,) for l in self.E_EDGES_RAIL for t in [2020, 2025]]
-        self.NMBT_CAP_fs = [(i, m) + (b,) + (t,) for (i, m) in self.NM_LIST_CAP for b in self.TERMINAL_TYPE[m] 
-                            for t in [2020, 2025]]
-        self.LUT_UPG_fs = [l + (u,) + (t,) for l in self.E_EDGES_UPG for u in self.UL_UPG[l] for t in [2020, 2025]]
-        self.CHARGING_AT_fs = [a + (t,) for a in self.CHARGING_ARCS for t in [2020, 2025]]
-        self.TS_fs = [2020, 2025]
-
-        self.first_stage_x = {apt: 0 for apt in self.APT_fs}
-        self.first_stage_h = {kpt: 0 for kpt in self.KPT_fs}
-        self.first_stage_z_inv_cap = {lt: 0 for lt in self.ET_RAIL_fs}
-        self.first_stage_z_inv_node = {imbt: 0 for imbt in self.NMBT_CAP_fs}
-        self.first_stage_z_inv_upg = {lut: 0 for lut in self.LUT_UPG_fs}
-        self.first_stage_charge_link = {at: 0 for at in self.CHARGING_AT_fs}
-        self.first_stage_emission_violation = {t: 0 for t in [2020, 2025]}
-
-        for t in [2020, 2025]:
-            for index, row in first_stage_data_x[first_stage_data_x['time_period'] == t].iterrows():
-                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                    self.first_stage_x[row['from'], row['to'], row['Mode'], row['fuel'], row['route'],
-                                       row['product'], row['time_period']] = row['weight']
-
-            for index, row in first_stage_data_h[first_stage_data_h['time_period'] == t].iterrows():
-                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                    self.first_stage_h[str(row['path']), row['product'], row['time_period']] = row['weight']
-
-            for index, row in first_stage_data_z_inv_cap[first_stage_data_z_inv_cap['time_period'] == t].iterrows():
-                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                    self.first_stage_z_inv_cap[
-                        row['from'], row['to'], row['Mode'], row['route'], row['time_period']] = row['weight']
-
-            for index, row in first_stage_data_z_inv_node[
-                first_stage_data_z_inv_node['time_period'] == t].iterrows():
-                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                    self.first_stage_z_inv_node[
-                        row['Node'], row['Mode'], row['terminal_type'], row['time_period']] = row['weight']
-
-            for index, row in first_stage_data_z_inv_upg[first_stage_data_z_inv_upg['time_period'] == t].iterrows():
-                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                    self.first_stage_z_inv_upg[row['from'], row['to'], row['Mode'], row['route'],
-                                               row['upgrade'], row['time_period']] = row['weight']
-
-            for index, row in first_stage_data_charge_link[
-                first_stage_data_charge_link['time_period'] == t].iterrows():
-                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                    self.first_stage_charge_link[row['from'], row['to'], row['Mode'], row['fuel'], row['route'],
-                                                 row['time_period']] = row['weight']
-
-            for index, row in first_stage_data_emission_violation[
-                first_stage_data_emission_violation['time_period'] == t].iterrows():
-                if row['scenario'] == 'AVG1':  # egentlig AVG1!!! hvis vi bare regner ut VSS for base case
-                    self.first_stage_emission_violation[row['time_period']] = row['weight']
-
-
 #base_data = TransportSets()

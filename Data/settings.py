@@ -14,7 +14,6 @@ SCALING_FACTOR = 100000 #for computational purposes, from TONNES -> MEGATONNES  
 
 # Data settings (create_sets_class)
 
-NEW_FUEL_FACTOR = 0.5
 RISK_FREE_RATE = 0.02 
 MAX_TRUCK_CAP = 30
 FLEET_RR = 0.2  # TO DO: define different fleet renewal rates (for mode fuel combinations)
@@ -29,5 +28,4 @@ FACTOR_INT_CAP_SEA = 0.75
 #Model settings
 
 EMISSION_VIOLATION_PENALTY = 1*10**5  # THIS WAS 500    #CO2 Cap is at most 4E7, while obj function is now around 7E12, so I believe this penalty should be higher! Maybe 1-1.5E5
-POSITIVE_PART_PENALTY_FUEL = 100  #TO DO: test the value of this parameter. It seems like changing this value does not affect anything.. Why not?
-POSITIVE_PART_PENALTY_SUM = 100  #TO DO: test the value of this parameter
+MAX_TRANSPORT_AMOUNT_PENALTY = 100  #TO DO: test the value of this parameter. 
