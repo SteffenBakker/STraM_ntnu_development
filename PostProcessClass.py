@@ -25,9 +25,9 @@ class OutputData():
         self.y_charging =  None
         self.z_emission_violation= None
         self.total_emissions = None
-        self.w_node = None
-        self.v_edge = None
-        self.u_upgrade= None
+        self.nu_node = None
+        self.epsilon_edge = None
+        self.upsilon_upgrade= None
         self.ppqq = None
         self.ppqq_sum = None
         
@@ -45,9 +45,9 @@ class OutputData():
         self.x_flow =               pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','product','time_period','weight', 'scenario'])
         self.h_path =               pd.DataFrame(columns = ['variable','path','product','time_period','weight', 'scenario'])
         self.y_charging =           pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','time_period','weight','scenario'])
-        self.w_node =               pd.DataFrame(columns = ['variable','from', 'terminal_type','mode', 'time_period', 'weight', 'scenario'])
-        self.v_edge =               pd.DataFrame(columns = ['variable','from','to','mode','route','time_period','weight','scenario'])
-        self.u_upgrade =            pd.DataFrame(columns = ['variable','from', 'to', 'mode', 'route','fuel', 'time_period', 'weight', 'scenario'])
+        self.nu_node =               pd.DataFrame(columns = ['variable','from', 'terminal_type','mode', 'time_period', 'weight', 'scenario'])
+        self.epsilon_edge =               pd.DataFrame(columns = ['variable','from','to','mode','route','time_period','weight','scenario'])
+        self.upsilon_upgrade =            pd.DataFrame(columns = ['variable','from', 'to', 'mode', 'route','fuel', 'time_period', 'weight', 'scenario'])
         self.z_emission_violation = pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
         self.total_emissions =      pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
         self.ppqq =                 pd.DataFrame(columns = ['variable','mode' ,'fuel','time_period','weight','scenario']) 
@@ -76,30 +76,30 @@ class OutputData():
                         if weight > 0:
                             a_series = pd.Series([variable,kk, p, t, weight, scen[0]], index=self.h_path.columns)
                             self.h_path = pd.concat([self.h_path,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'v_edge'
+            variable = 'epsilon_edge'
             for t in base_data.T_TIME_PERIODS:
                 for i,j,m,r in base_data.E_EDGES_RAIL:
                     e = (i,j,m,r)
-                    weight = modell.v_edge[(e, t)].value
+                    weight = modell.epsilon_edge[(e, t)].value
                     if weight > 0:
-                        a_series = pd.Series([variable,i,j,m,r, t, weight, scen[0]], index=self.v_edge.columns)
-                        self.v_edge = pd.concat([self.v_edge,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'u_upg'
+                        a_series = pd.Series([variable,i,j,m,r, t, weight, scen[0]], index=self.epsilon_edge.columns)
+                        self.epsilon_edge = pd.concat([self.epsilon_edge,a_series.to_frame().T],axis=0, ignore_index=True)
+            variable = 'upsilon_upg'
             for t in base_data.T_TIME_PERIODS:
-                for (e,f) in base_data.U_UPGRADE:
+                for (e,f) in base_data.upsilon_upgRADE:
                     (i,j,m,r) = e
-                    weight = modell.u_upg[(i,j,m,r,f,t)].value
+                    weight = modell.upsilon_upg[(i,j,m,r,f,t)].value
                     if weight > 0:
-                        a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen[0]],index=self.u_upgrade.columns)
-                        self.u_upgrade = pd.concat([self.u_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'w_node'
+                        a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen[0]],index=self.upsilon_upgrade.columns)
+                        self.upsilon_upgrade = pd.concat([self.upsilon_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
+            variable = 'nu_node'
             for t in base_data.T_TIME_PERIODS:
                 for (i, m) in base_data.NM_LIST_CAP:
                     for c in base_data.TERMINAL_TYPE[m]:
-                        weight = modell.w_node[(i, c, m, t)].value
+                        weight = modell.nu_node[(i, c, m, t)].value
                         if weight > 0:
-                            a_series = pd.Series([variable,i, c, m, t, weight, scen[0]],index=self.w_node.columns)
-                            self.w_node = pd.concat([self.w_node,a_series.to_frame().T],axis=0, ignore_index=True)
+                            a_series = pd.Series([variable,i, c, m, t, weight, scen[0]],index=self.nu_node.columns)
+                            self.nu_node = pd.concat([self.nu_node,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'y_charging'
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.EF_CHARGING:
@@ -143,7 +143,7 @@ class OutputData():
                     a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.positive_part_deviations_sum.columns)
                     self.positive_part_deviations_sum = pd.concat([self.positive_part_deviations_sum,a_series.to_frame().T],axis=0, ignore_index=True)
             
-            self.all_variables = pd.concat([self.x_flow,self.h_path,self.y_charging,self.w_node,self.v_edge,self.u_upgrade,
+            self.all_variables = pd.concat([self.x_flow,self.h_path,self.y_charging,self.nu_node,self.epsilon_edge,self.upsilon_upgrade,
                       self.z_emission_violation,self.total_emissions,self.ppqq,self.ppqq_sum],ignore_index=True)
             
             
@@ -191,13 +191,13 @@ class OutputData():
             elif variable == 'h_path':
                 cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*base_data.C_TRANSFER[(kk,p)]*value for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
                 transfer_costs[(t,s)] += cost_contribution
-            elif variable == 'v_edge':
+            elif variable == 'epsilon_edge':
                 cost_contribution = base_data.C_EDGE_RAIL[e]*value
                 edge_costs[(t,s)] += cost_contribution
-            elif variable == 'u_upg':
+            elif variable == 'upsilon_upg':
                 cost_contribution = base_data.C_UPG[(e,f)]*value
                 upgrade_costs[(t,s)] += cost_contribution
-            elif variable == 'w_node':
+            elif variable == 'nu_node':
                 cost_contribution = base_data.C_NODE[(i,c,m)]*value
                 node_costs[(t,s)] += cost_contribution
             elif variable == 'y_charging':
@@ -206,12 +206,7 @@ class OutputData():
             elif variable == 'z_emission':
                 cost_contribution = EMISSION_VIOLATION_PENALTY*value
                 emission_violation_penalty[(t,s)] += cost_contribution
-            elif variable == 'ppqq':
-                cost_contribution = POSITIVE_PART_PENALTY_FUEL*value
-                positive_part_penalty_fuel[(t,s)] +=  cost_contribution 
-            elif variable == 'ppqq_sum':
-                cost_contribution = POSITIVE_PART_PENALTY_SUM*value 
-                positive_part_penalty_sum[(t,s)] +=  cost_contribution
+
             self.all_variables.at[index,'cost_contribution'] = cost_contribution
         
         #%columns_of_interest = self.all_variables.loc[:,('variable','time_period','scenario','cost_contribution')]

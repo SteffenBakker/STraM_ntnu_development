@@ -29,16 +29,16 @@ def scenario_creator(scenario_nr, **kwargs):
                                          [model.h_flow[:,:,t] for t in first_stage]+
                                          [model.q_transp_amount[:,:,t] for t in first_stage]+
                                          [model.y_charge[:, :, :, :, :, t] for t in first_stage]+
-                                         [model.v_edge[:,:,:,:,t] for t in first_stage]+
-                                         [model.u_upg[:,:,:,:,:,t] for t in first_stage]+ 
-                                         [model.w_node[:,:,:,t] for t in first_stage]+
+                                         [model.epsilon_edge[:,:,:,:,t] for t in first_stage]+
+                                         [model.upsilon_upg[:,:,:,:,:,t] for t in first_stage]+ 
+                                         [model.nu_node[:,:,:,t] for t in first_stage]+
                                          [model.z_emission[t] for t in first_stage] + 
                                          [model.total_emissions[t] for t in first_stage] #TO DO: check what happens if this is not included (AIM had this)
                                          )
 
     ###### set scenario probabilties if they are not assumed equal######
 
-    model._mpisppy_probability = prob(scenario_nr) #TO DO
+    model._mpisppy_probability = 0.5 #prob(scenario_nr) #TO DO
 
     return model
 

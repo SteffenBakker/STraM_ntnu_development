@@ -10,7 +10,7 @@ Adapted by Ruben
 
 import os
 #os.chdir('//home.ansatt.ntnu.no/egbertrv/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
-os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
+#os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 
 from Data.settings import *
@@ -421,7 +421,7 @@ class TransportSets():
         #Vehicle types
         self.prod_to_vehicle_type = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
         self.VEHICLE_TYPE_MP = {}
-        self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}  
+        self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
         for (m,p,v) in zip(self.prod_to_vehicle_type['Mode'], self.prod_to_vehicle_type['Product group'], self.prod_to_vehicle_type['Vehicle type']):
             self.VEHICLE_TYPE_MP[(m,p)] = v
             self.VEHICLE_TYPES_M[m].append(v)
@@ -429,11 +429,25 @@ class TransportSets():
             self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
         self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
         
+        self.PV_PRODUCTS = {v:[] for v in self.V_VEHICLE_TYPES}
+        for (m,p),v in self.VEHICLE_TYPE_MP.items():
+            self.PV_PRODUCTS[v].append(p)
+
+        self.ANM_ARCS_IN = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
+        self.ANM_ARCS_OUT = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
+        for (i,j,m,r) in self.A_ARCS:
+            a = (i,j,m,r)
+            self.ANM_ARCS_IN[(j,m)].append(a)
+            self.ANM_ARCS_OUT[(i,m)].append(a)
+
         
+
+
         "Combined sets"
         
         self.TS = [(t) for t in self.T_TIME_PERIODS]
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
+        self.AVT = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS] 
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
         self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
@@ -446,14 +460,20 @@ class TransportSets():
         
         self.NCM = [(i,c,m) for (i,m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m]]
         self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
-        
+        self.NMFVT = [(i,m,f,v,t) for i in self.N_NODES for m in self.M_MODES for f in self.FM_FUEL[m] 
+                                    for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
+
         self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
 
         self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
         self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
-        self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
-        self.MT_MIN0 = [(m,t) for m in self.M_MODES for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+        
+        self.MFTT = [(m,f,t,tau) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS 
+                            for tau in self.T_TIME_PERIODS if tau <= t]
+
+        self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] 
+                                    for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
         
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
@@ -467,16 +487,10 @@ class TransportSets():
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
         self.emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
-        if self.emission_reduction == 100:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap']))
-        elif self.emission_reduction == 75:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap1']))
-        elif self.emission_reduction == 73:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap2']))
-        elif self.emission_reduction == 70:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap3']))
-        else:
-            raise ValueError('CO2_CAP should be a predefined level (100,75,73,70). Now it is {x}'.format(x=self.emission_reduction))
+        #if self.emission_reduction == 100:
+        #self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap']))
+        #elif self.emission_reduction == 75:
+        self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap1']))
         self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
         
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
@@ -521,8 +535,13 @@ class TransportSets():
     
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
+        self.C_TRANSP_COST_NORMALIZED = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/Tkm
         self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T 
+                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
+        self.E_EMISSIONS_NORMALIZED = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
+    
         self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
 
@@ -533,11 +552,13 @@ class TransportSets():
                     f = row["Fuel"]
                     if f in self.FM_FUEL[m]: #get rid of the hybrid!!
                         factor = row['Cost (NOK/Tkm)']
+                        self.C_TRANSP_COST_NORMALIZED[(i, j, m, r,f,row['Product group'],row['Year'] )] = factor
                         self.C_TRANSP_COST[(i, j, m, r,f,row['Product group'],row['Year'] )] = round((
                             self.AVG_DISTANCE[a] * factor),2)
                         #MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
-                        self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = round(self.AVG_DISTANCE[a] * row[
-                            'Emissions (gCO2/Tkm)'],1)
+                        factor = row['Emissions (gCO2/Tkm)']
+                        self.E_EMISSIONS_NORMALIZED[(i,j,m,r,f, row['Product group'],row['Year'])] = round(factor,2)
+                        self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = round(self.AVG_DISTANCE[a] * factor,1)
                         #CO2 costs per tonne:
                         self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] =  round(
                             self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
@@ -687,30 +708,30 @@ class TransportSets():
         
         self.Q_TECH = {mft : 0 for mft in self.MFT_MATURITY}
 
-
-        #why do we need both?
-        if scenario in self.det_eqvs.keys():
-            # create deterministIc equivalents
-            for w in self.det_eqvs[scenario]:
-                for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
-                    for (m, f) in self.NEW_MF_LIST:
-                        if row['Mode'] == m and row['Fuel'] == f:
-                            total_trans = self.total_trans_dict[row['Mode']] #to do: replace with tonne-km!
-                            for year in self.T_TIME_PERIODS: 
-                                self.Q_TECH[(row['Mode'], row['Fuel'], year)] += (row[str(year)] * total_trans) / (
-                                        100 * self.scaling_factor * len(self.det_eqvs[scenario]))    #MTONNES    at the moment
-        else:
-            scen_string = scenario
-            for w in ['HHH', 'MMM', 'LLL']:
-                for key in self.fuel_groups:
-                    if scen_string[key] == w[key]:
-                        for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
-                            if row['Fuel'] in self.fuel_groups[key]:
-                                total_trans = self.total_trans_dict[row['Mode']]   #to do: replace with tonne-km!
-                                for year in self.T_TIME_PERIODS:
-                                    self.Q_TECH[(row['Mode'], row['Fuel'], year)] = (
-                                        row[str(year)] * total_trans / 100) / self.scaling_factor   #MTONNES    at the moment
-                                
+        if False:
+            #why do we need both?
+            if scenario in self.det_eqvs.keys():
+                # create deterministIc equivalents
+                for w in self.det_eqvs[scenario]:
+                    for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
+                        for (m, f) in self.NEW_MF_LIST:
+                            if row['Mode'] == m and row['Fuel'] == f:
+                                total_trans = self.total_trans_dict[row['Mode']] #to do: replace with tonne-km!
+                                for year in self.T_TIME_PERIODS: 
+                                    self.Q_TECH[(row['Mode'], row['Fuel'], year)] += (row[str(year)] * total_trans) / (
+                                            100 * self.scaling_factor * len(self.det_eqvs[scenario]))    #MTONNES    at the moment
+            else:
+                scen_string = scenario
+                for w in ['HHH', 'MMM', 'LLL']:
+                    for key in self.fuel_groups:
+                        if scen_string[key] == w[key]:
+                            for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
+                                if row['Fuel'] in self.fuel_groups[key]:
+                                    total_trans = self.total_trans_dict[row['Mode']]   #to do: replace with tonne-km!
+                                    for year in self.T_TIME_PERIODS:
+                                        self.Q_TECH[(row['Mode'], row['Fuel'], year)] = (
+                                            row[str(year)] * total_trans / 100) / self.scaling_factor   #MTONNES    at the moment
+                                    
         
 
     
