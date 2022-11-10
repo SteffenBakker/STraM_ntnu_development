@@ -9,7 +9,7 @@ Adapted by Ruben
 "Example data"
 
 import os
-#os.chdir('//home.ansatt.ntnu.no/egbertrv/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
+#os.chdir('M/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
 #os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 
@@ -49,9 +49,9 @@ class ScenarioInformation():
         #read and process scenario data
         scenario_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name='scenarios')
         self.num_scenarios = len(scenario_data)
-
-        self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
+        self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
+                
         self.fg_cost_factor = [{}] * self.num_scenarios
         for index, row in scenario_data.iterrows():
             if "Name" in scenario_data:
@@ -62,6 +62,13 @@ class ScenarioInformation():
                 new_entry = {fg : row[fg]} #new entry for the dictionary fg_cost_factor[index]
                 self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_entry) #add new entry to existing dict (trick from internet)
 
+        #make dicts for scenario name to nr and vice versa
+        self.scen_name_to_nr = {}
+        self.scen_nr_to_name = {}
+        for i in range(len(self.scenario_names)):
+            self.scen_name_to_nr[self.scenario_names[i]] = i
+            self.scen_nr_to_name[i] = self.scenario_names[i]
+        
         self.mode_fuel_cost_factor = [] #list of dictionaries (per scenario) from (m,f) pair to transport cost factor (relative to base cost)
         for s in range(self.num_scenarios):
             self.mode_fuel_cost_factor.append({})
@@ -93,7 +100,7 @@ class TransportSets():
         self.construct_pyomo_data()
 
         #read/construct scenario information
-        self.active_scenario_nr = -1 #no scenario has been activated; all data is from base scenario
+        self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
         self.scenario_information = ScenarioInformation(self.prefix) #TODO: check performance of this
 
     def construct_pyomo_data(self):
@@ -623,11 +630,8 @@ class TransportSets():
                         #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
                         self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * row['Emissions (gCO2/Tkm)'], 1)
                         #CO2 costs per tonne:
-                        if self.CO2_scenario == 1:
-                            self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
-                        elif self.CO2_scenario == 2:
-                            self.C_CO2[(i, j, m, r, f, p, y)] = round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
-        
+                        self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
+                        
         
 
         
@@ -759,36 +763,41 @@ class TransportSets():
         for index, row in self.lifespan_data.iterrows():
             self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
 
-        # -----------------
-        ######Innlesning av scenarier 
-        # -----------------
-
-        #TO DO RUBEN -> Scenarier
-
-        #TO DO STEFFEN: MATURITIES / TECHN: READINESS
-            
-            self.all_scenarios = []
-            for index, row in self.scen_data.iterrows():
-                if row["Scenario"] not in self.all_scenarios:
-                    self.all_scenarios.append(row["Scenario"])          
                 
     #Function that updates all information that depends on the current scenario number
     #Currently: update transport costs based on fuel group scenarios
-    def update_scenario_dependent_parameters(self,scenario_nr):
+    def update_scenario_dependent_parameters(self,scenario_name):
 
-        #set active scenario number 
-        self.active_scenario_nr = scenario_nr #TODO: use scenario name
+        #set active scenario
+        self.active_scenario_name = scenario_name       
+        
+        if self.active_scenario_name in self.scenario_information.scenario_names: #we are in an exising scenario           
+            #Find associated active scenario number (only store temporarily)
+            active_scenario_nr = self.scenario_information.scen_name_to_nr[self.active_scenario_name]
+            #update C_TRANSP_COST based on scenario information
+            for (i, j, m, r) in self.A_ARCS:
+                for f in self.FM_FUEL[m]:
+                    for p in self.P_PRODUCTS:
+                        for y in self.T_TIME_PERIODS:
+                            #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
+                            self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
 
-        #update C_TRANSP_COST based on scenario information
-        for (i, j, m, r) in self.A_ARCS:
-            # = (i, j, m, r)
-            for f in self.FM_FUEL[m]:
-                for p in self.P_PRODUCTS:
-                    for y in self.T_TIME_PERIODS:
-                        #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
-                        self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[scenario_nr][(m,f)] 
+        else: #we should be in the benchmark scenario
+            if self.active_scenario_name == "benchmark":
+                #set C_TRANSP_COST to benchmark levels
+                for (i, j, m, r) in self.A_ARCS:
+                    for f in self.FM_FUEL[m]:
+                        for p in self.P_PRODUCTS:
+                            for y in self.T_TIME_PERIODS:
+                                #transport cost = base transport cost:
+                                self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] #
+            else:
+                raise Exception("Active scenario name is not in scenario list, but also not equal to benchmark")
+
+
                         
 
 
+#Testing:
 #base_data = TransportSets()
 #base_data.scenario_information
