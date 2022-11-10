@@ -86,7 +86,7 @@ class OutputData():
                         self.epsilon_edge = pd.concat([self.epsilon_edge,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'upsilon_upg'
             for t in base_data.T_TIME_PERIODS:
-                for (e,f) in base_data.upsilon_upgRADE:
+                for (e,f) in base_data.U_UPGRADE:
                     (i,j,m,r) = e
                     weight = modell.upsilon_upg[(i,j,m,r,f,t)].value
                     if weight > 0:

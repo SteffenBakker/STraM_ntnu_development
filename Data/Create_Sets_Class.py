@@ -76,7 +76,12 @@ class TransportSets():
         self.RAIL_NODES.remove("Verden")
         
         self.M_MODES = ["Road", "Rail", "Sea"]
-        
+
+        self.NM_NODES = {m:None for m in self.M_MODES}
+        self.NM_NODES["Road"] = self.ROAD_NODES
+        self.NM_NODES["Sea"] = self.SEA_NODES
+        self.NM_NODES["Rail"] = self.RAIL_NODES
+
         self.M_MODES_CAP = ["Rail", "Sea"]
         
         self.RAIL_NODES_NORWAY = self.N_NODES_NORWAY.copy()
@@ -460,7 +465,7 @@ class TransportSets():
         
         self.NCM = [(i,c,m) for (i,m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m]]
         self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
-        self.NMFVT = [(i,m,f,v,t) for i in self.N_NODES for m in self.M_MODES for f in self.FM_FUEL[m] 
+        self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
                                     for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
 
         self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
@@ -477,11 +482,10 @@ class TransportSets():
         
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
+
+        #------------------------
         "Parameters"
-
-        #fleet renewal  NOT NECESSARY ANYMORE
-        #self.RHO_FLEET_RENEWAL_RATE = {(m,t):FLEET_RR for (m,t) in self.MT_MIN0}
-
+        #-----------------------
         
 
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
@@ -680,7 +684,21 @@ class TransportSets():
                                                    / (data_index.iloc[0][
                                                           "Trucks_filled_daily"] * max_truck_cap * 365)),1)  # 0.7 or not???
             #MKR/MTONNES, so no dividing here
-            
+
+
+        #Technological readiness/maturity
+        self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness")
+        self.R_TECH_READINESS_MATURITY = {}
+        for index, row in self.tech_readiness.iterrows():
+            for year in self.T_TIME_PERIODS:
+                self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'],year)] = row[str(year)]
+
+        #lifetime / lifespan
+        self.lifespan_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='lifetimes')
+        self.LIFETIME = {}
+        for index, row in self.lifespan_data.iterrows():
+            self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
+
         # -----------------
         ######Innlesning av scenarier 
         # -----------------
@@ -688,25 +706,14 @@ class TransportSets():
         #TO DO RUBEN -> Scenarier
 
         #TO DO STEFFEN: MATURITIES / TECHN: READINESS
-
-        if False: #REMOVE
-
-            self.scen_data = pd.read_csv(self.prefix+r'scenarios_maturities_27.csv')  #how is this one constructed? It gives percentages 
             
-            self.all_scenarios = []
-            for index, row in self.scen_data.iterrows():
-                if row["Scenario"] not in self.all_scenarios:
-                    self.all_scenarios.append(row["Scenario"])
-            
-
-        self.update_scenario_dependent_parameters(self.scenario_nr)
+        self.scenario_name = "1"
+        self.update_scenario_dependent_parameters(self.scenario_name)
                         
-    def update_scenario_dependent_parameters(self,scenario_nr):
+    def update_scenario_dependent_parameters(self,scenario_name):
         
-        #TO DO: change this way of defining the maturity constraints!!
-        #Go from Q_TECH (in tonnes) to mu*M (in tonne-km)
-        
-        self.Q_TECH = {mft : 0 for mft in self.MFT_MATURITY}
+        print('scenario_name:', scenario_name) #temporary
+        #self.Q_TECH = {mft : 0 for mft in self.MFT_MATURITY}
 
         if False:
             #why do we need both?

@@ -36,7 +36,7 @@ start = time.time()
 
 
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
-read_data_from_scratch = True #Use cached data? Exctracting data is a bit slow in debug mode
+read_data_from_scratch = False #Use cached data? Exctracting data is a bit slow in debug mode
 extract_data_postprocessing = False #postprocessing is quite slow. No need to do when testing the model. 
 instance_run = 'base'     #change instance_run to choose which instance you want to run
 
@@ -71,14 +71,15 @@ if __name__ == "__main__":
     
     #Scenarios
     scenario_info = None # To do: read this from excel 
-    scenario_numbers = base_data.scenario_numbers # [1,2,3] # To do: list of scenarios
+    scenario_numbers = [1,2] #base_data.scenario_numbers # [1,2,3] # To do: list of scenarios
+    scenario_names = [str(i) for i in scenario_numbers]
 
     #Solve model 
     scenario_creator_kwargs = {'base_data':base_data, 'scenario_info':scenario_info}
     options = option_settings()
     solver = pyo.SolverFactory(options["solvername"])
     ef = sputils.create_EF(
-            scenario_numbers,
+            scenario_names,  #this must be a list of STRINGS
             scenario_creator,
             scenario_creator_kwargs = scenario_creator_kwargs
         )

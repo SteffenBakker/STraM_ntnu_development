@@ -68,7 +68,7 @@ class TranspModel:
                 sum(delta*self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t)] for e in self.data.E_EDGES_RAIL) +
                 sum(delta*self.data.C_NODE[(i,c,m)]*self.model.nu_node[(i,c,m,t)] for (i, m) in self.data.NM_LIST_CAP for c in self.data.TERMINAL_TYPE[m] ) +
                 # maybe N_NODES_CAP_NORWAY is needed?
-                sum(delta*self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t)] for (e,f) in self.data.upsilon_upgRADE) +
+                sum(delta*self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE) +
                 sum(delta*self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t)] for (e,f) in self.data.EF_CHARGING) +
                 EMISSION_VIOLATION_PENALTY*self.model.z_emission[t] +
                 MAX_TRANSPORT_AMOUNT_PENALTY*sum(self.model.q_max_transp_amount[m,f,t] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) 
@@ -108,11 +108,11 @@ class TranspModel:
         # FLEET BALANCING
 
         def FleetBalance(model, n,m,f,v, t):
-            return (sum( (   sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_IN[(n,m)]) - 
-                            sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_OUT[(n,m)]))  
-                        for p in self.data.PV_PRODUCTS[v]) == 
-                        sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_OUT[(n,m)]) -
-                        sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_IN[(n,m)]))
+            disbalance_in_node = (sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_IN[(n,m)] for p in self.data.PV_PRODUCTS[v]) - 
+                    sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_OUT[(n,m)] for p in self.data.PV_PRODUCTS[v]))  
+            empty_trips = (sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_OUT[(n,m)]) -
+                        sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_IN[(n,m)]))            
+            return (disbalance_in_node == empty_trips)
         # THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.FleetBalance = Constraint(self.data.NMFVT, rule=FleetBalance)
 
@@ -204,7 +204,7 @@ class TranspModel:
         
         #Technology maturity limit
         def TechMaturityLimitRule(model, m, f, t):
-            return (self.model.q_transp_amount[(m,f,t)] <= self.data.Q_TECH[(m,f,t)])   #TO DO: CHANGE THIS Q_TECH to R*M
+            return (self.model.q_transp_amount[(m,f,t)] <= self.data.R_TECH_READINESS_MATURITY[(m,f,t)]*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
 
         #Max TransportArbeid
@@ -214,9 +214,10 @@ class TranspModel:
         
         #Fleet Renewal
         def FleetRenewalRule(model,m,f, t):
-            return (self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)] <= 
-                        (self.data.Y_YEARS[t] - self.data.Y_YEARS[self.data.T_MIN1[t]])/self.LIFESPAN[(m,f)]) * self.model.q_max_transp_amount[m,f,t]
-        self.model.FleetRenewal = Constraint(self.data.MT_MIN0, rule = FleetRenewalRule)
+            decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
+            factor = (t - self.data.T_MIN1[t])/self.data.LIFETIME[(m,f)]
+            return (decrease <= factor*self.model.q_max_transp_amount[m,f,t])
+        self.model.FleetRenewal = Constraint(self.data.MFT_MIN0, rule = FleetRenewalRule)
         
 
         return self.model

@@ -11,12 +11,12 @@ import mpisppy.scenario_tree as scenario_tree
 import copy
 
 
-def scenario_creator(scenario_nr, **kwargs):
+def scenario_creator(scenario_name, **kwargs):
     
     base_data = kwargs.get('base_data')
     scenario_info = kwargs.get('scenario_info')
     
-    base_data.update_scenario_dependent_parameters(scenario_nr)
+    base_data.update_scenario_dependent_parameters(scenario_name)
     
     #deepcopy is slower than repetitively constructing the models.
     model_instance = TranspModel(data=base_data)
@@ -25,9 +25,12 @@ def scenario_creator(scenario_nr, **kwargs):
     
     first_stage = [2020, 2025]
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage),
-                                         [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
+                                         [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+
+                                         [model.b_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
                                          [model.h_flow[:,:,t] for t in first_stage]+
+                                         [model.h_flow_balancing[:,:,t] for t in first_stage]+
                                          [model.q_transp_amount[:,:,t] for t in first_stage]+
+                                         [model.q_max_transp_amount[:,:,t] for t in first_stage]+
                                          [model.y_charge[:, :, :, :, :, t] for t in first_stage]+
                                          [model.epsilon_edge[:,:,:,:,t] for t in first_stage]+
                                          [model.upsilon_upg[:,:,:,:,:,t] for t in first_stage]+ 
