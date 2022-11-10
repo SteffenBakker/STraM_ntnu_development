@@ -19,7 +19,7 @@ class OutputData():
         
         #self.base_data = base_data
         self.instance_run = instance_run
-        self.ef = ef
+        #self.ef = ef   #gives error when  pickling
         
         self.x_flow = None
         self.b_flow = None
@@ -36,15 +36,15 @@ class OutputData():
         self.q_max_transp_amount = None
 
         self.scenarios = []
-        for scen in sputils.ef_scenarios(self.ef):
+        for scen in sputils.ef_scenarios(ef):
             self.scenarios.append(scen[0])
         
-        self.extract_model_results(base_data)
+        self.extract_model_results(base_data,ef)
         self.cost_and_investment_table(base_data)
         self.print_some_insights()
         self.emission_results(base_data)
         
-    def extract_model_results(self,base_data):  #currently only for extensive form
+    def extract_model_results(self,base_data,ef):  #currently only for extensive form
         
         self.x_flow =               pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','product','time_period','weight', 'scenario'])
         self.b_flow =               pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','vehicle_type','time_period','weight', 'scenario'])
@@ -57,7 +57,7 @@ class OutputData():
         self.total_emissions =      pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
         self.q_max_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','time_period','weight','scenario'])
         
-        for scen in sputils.ef_scenarios(self.ef):
+        for scen in sputils.ef_scenarios(ef):
             modell = scen[1]
 
             variable = 'x_flow'
@@ -132,9 +132,9 @@ class OutputData():
                 a_series2 = pd.Series([variable,t, weight5, scen[0]],index=self.total_emissions.columns)
                 self.total_emissions = pd.concat([self.total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)    
             variable = 'q_max_transp_amount'
-            for m in self.M_MODES:
-                for f in self.FM_FUEL[m]:
-                    for t in self.T_TIME_PERIODS:
+            for m in base_data.M_MODES:
+                for f in base_data.FM_FUEL[m]:
+                    for t in base_data.T_TIME_PERIODS:
                         weight = modell.q_max_transp_amount[(m, f, t)].value
                         if weight > 0:
                             a_series = pd.Series([variable,m, f, t, weight, scen[0]], index=self.q_max_transp_amount.columns)
@@ -255,7 +255,7 @@ class OutputData():
             elif i ==1:
                 indices = [i for i in self.all_costs_table.index if i not in ['emission']]
             else:
-                indices = [i for i in self.all_costs_table.index if i not in ['emission','pp_fuel','pp_sum']]
+                indices = [i for i in self.all_costs_table.index if i not in ['emission','max_transp_amount_penalty','pp_sum']]
             all_costs_table2 = self.all_costs_table.loc[indices]
             mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
             mean_data = mean_data.droplevel(1, axis=1)

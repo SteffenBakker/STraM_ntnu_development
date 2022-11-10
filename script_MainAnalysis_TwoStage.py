@@ -28,7 +28,7 @@ import pickle
 import cProfile
 import pstats
 
-start = time.time()
+
 
 #################################################
 #                   user input                  #
@@ -36,7 +36,7 @@ start = time.time()
 
 
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
-read_data_from_scratch = False #Use cached data? Exctracting data is a bit slow in debug mode
+read_data_from_scratch = True #Use cached data? Exctracting data is a bit slow in debug mode
 extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
 instance_run = 'base'     #change instance_run to choose which instance you want to run
 
@@ -79,6 +79,7 @@ if __name__ == "__main__":
     options = option_settings()
     solver = pyo.SolverFactory(options["solvername"])
     
+    start = time.time()
     
     ef = sputils.create_EF(
         scenario_names,  #this must be a list of STRINGS
@@ -94,6 +95,9 @@ if __name__ == "__main__":
     scenarios = sputils.ef_scenarios(ef)
     if extract_data_postprocessing:        
         output = OutputData(ef,base_data,instance_run)
-        output.emission_results(base_data)
+        with open(r'Data\output_data', 'wb') as output_file: 
+            pickle.dump(output, output_file)
+        
+        #output.emission_results(base_data)
         #plot_figures(base_data,dataset_x_flow,scenarios,instance_run,solution_method)
-        output.cost_and_investment_table(base_data)
+        #output.cost_and_investment_table(base_data)

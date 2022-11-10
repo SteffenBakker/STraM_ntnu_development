@@ -115,22 +115,6 @@ def plot_figures(data,dataset,scenarios,instance_run,solution_method):
                 plt.savefig("Data/Instance_results_write_to_here/Instance"+instance_run+"/Instance"+instance_run+'Scen' + str(s)+'_domestic.png')
             plt.show()
 
-def extract_output_ph(ph,data,instance_run):
-    dataset = pd.DataFrame(columns = ['from','to','Mode',"route","fuel",'product','weight','time_period', 'scenario'])
-    for e in ph.local_subproblems:
-        modell = ph.local_subproblems[e]
-        for (i,j,m,r) in data.A_ARCS:
-            a = (i,j,m,r)
-            for f in data.FM_FUEL[m]:
-                for t in data.T_TIME_PERIODS:
-                    for p in data.P_PRODUCTS:
-                        weight = modell.x_flow[(a,f,p,t)].value*data.AVG_DISTANCE[a]
-                        if weight > 1:
-                            a_series = pd.Series([i,j,m,r,f,p,weight, t, e], index=dataset.columns)
-                            #a_series = pd.Series([l[0], l[1], l[2], l[3], weight, t, e], index=dataset.columns)
-                            dataset = dataset.append(a_series, ignore_index=True)
-                        
-    return dataset
 
 print('test')
 #data = base_data
