@@ -22,15 +22,19 @@ class OutputData():
         self.ef = ef
         
         self.x_flow = None
+        self.b_flow = None
+        self.h_path = None
+
         self.y_charging =  None
         self.z_emission_violation= None
         self.total_emissions = None
-        self.w_node = None
-        self.v_edge = None
-        self.u_upgrade= None
-        self.ppqq = None
-        self.ppqq_sum = None
         
+        self.nu_node = None
+        self.epsilon_edge = None
+        self.upsilon_upgrade= None
+        
+        self.q_max_transp_amount = None
+
         self.scenarios = []
         for scen in sputils.ef_scenarios(self.ef):
             self.scenarios.append(scen[0])
@@ -43,20 +47,19 @@ class OutputData():
     def extract_model_results(self,base_data):  #currently only for extensive form
         
         self.x_flow =               pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','product','time_period','weight', 'scenario'])
+        self.b_flow =               pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','vehicle_type','time_period','weight', 'scenario'])
         self.h_path =               pd.DataFrame(columns = ['variable','path','product','time_period','weight', 'scenario'])
         self.y_charging =           pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','time_period','weight','scenario'])
-        self.w_node =               pd.DataFrame(columns = ['variable','from', 'terminal_type','mode', 'time_period', 'weight', 'scenario'])
-        self.v_edge =               pd.DataFrame(columns = ['variable','from','to','mode','route','time_period','weight','scenario'])
-        self.u_upgrade =            pd.DataFrame(columns = ['variable','from', 'to', 'mode', 'route','fuel', 'time_period', 'weight', 'scenario'])
+        self.nu_node =               pd.DataFrame(columns = ['variable','from', 'terminal_type','mode', 'time_period', 'weight', 'scenario'])
+        self.epsilon_edge =               pd.DataFrame(columns = ['variable','from','to','mode','route','time_period','weight','scenario'])
+        self.upsilon_upgrade =            pd.DataFrame(columns = ['variable','from', 'to', 'mode', 'route','fuel', 'time_period', 'weight', 'scenario'])
         self.z_emission_violation = pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
         self.total_emissions =      pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
-        self.ppqq =                 pd.DataFrame(columns = ['variable','mode' ,'fuel','time_period','weight','scenario']) 
-        self.ppqq_sum =             pd.DataFrame(columns = ['variable','mode' ,'time_period','weight','scenario']) 
-        self.positive_part_deviations_fuel =  pd.DataFrame(columns = ['variable','mode' ,'fuel','time_period','weight','scenario']) 
-        self.positive_part_deviations_sum = pd.DataFrame(columns = ['variable','mode' ,'time_period','weight','scenario']) 
+        self.q_max_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','time_period','weight','scenario'])
         
         for scen in sputils.ef_scenarios(self.ef):
             modell = scen[1]
+
             variable = 'x_flow'
             for (i,j,m,r) in base_data.A_ARCS:
                 a = (i,j,m,r)
@@ -67,6 +70,16 @@ class OutputData():
                             if weight > 0:
                                 a_series = pd.Series([variable,i,j,m,r,f,p,t,weight, scen[0]], index=self.x_flow.columns)
                                 self.x_flow = pd.concat([self.x_flow, a_series.to_frame().T],axis=0, ignore_index=True)
+            variable = 'b_flow'
+            for (i,j,m,r) in base_data.A_ARCS:
+                a = (i,j,m,r)
+                for f in base_data.FM_FUEL[m]:
+                    for t in base_data.T_TIME_PERIODS:
+                        for v in base_data.VEHICLE_TYPES_M[m]:
+                            weight = modell.b_flow[(a,f,v,t)].value
+                            if weight > 0:
+                                a_series = pd.Series([variable,i,j,m,r,f,v,t,weight, scen[0]], index=self.b_flow.columns)
+                                self.b_flow = pd.concat([self.b_flow, a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'h_path'
             for kk in base_data.K_PATHS:
                 #k = self.K_PATH_DICT[kk]
@@ -76,30 +89,30 @@ class OutputData():
                         if weight > 0:
                             a_series = pd.Series([variable,kk, p, t, weight, scen[0]], index=self.h_path.columns)
                             self.h_path = pd.concat([self.h_path,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'v_edge'
+            variable = 'epsilon_edge'
             for t in base_data.T_TIME_PERIODS:
                 for i,j,m,r in base_data.E_EDGES_RAIL:
                     e = (i,j,m,r)
-                    weight = modell.v_edge[(e, t)].value
+                    weight = modell.epsilon_edge[(e, t)].value
                     if weight > 0:
-                        a_series = pd.Series([variable,i,j,m,r, t, weight, scen[0]], index=self.v_edge.columns)
-                        self.v_edge = pd.concat([self.v_edge,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'u_upg'
+                        a_series = pd.Series([variable,i,j,m,r, t, weight, scen[0]], index=self.epsilon_edge.columns)
+                        self.epsilon_edge = pd.concat([self.epsilon_edge,a_series.to_frame().T],axis=0, ignore_index=True)
+            variable = 'upsilon_upg'
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.U_UPGRADE:
                     (i,j,m,r) = e
-                    weight = modell.u_upg[(i,j,m,r,f,t)].value
+                    weight = modell.upsilon_upg[(i,j,m,r,f,t)].value
                     if weight > 0:
-                        a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen[0]],index=self.u_upgrade.columns)
-                        self.u_upgrade = pd.concat([self.u_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'w_node'
+                        a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen[0]],index=self.upsilon_upgrade.columns)
+                        self.upsilon_upgrade = pd.concat([self.upsilon_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
+            variable = 'nu_node'
             for t in base_data.T_TIME_PERIODS:
                 for (i, m) in base_data.NM_LIST_CAP:
                     for c in base_data.TERMINAL_TYPE[m]:
-                        weight = modell.w_node[(i, c, m, t)].value
+                        weight = modell.nu_node[(i, c, m, t)].value
                         if weight > 0:
-                            a_series = pd.Series([variable,i, c, m, t, weight, scen[0]],index=self.w_node.columns)
-                            self.w_node = pd.concat([self.w_node,a_series.to_frame().T],axis=0, ignore_index=True)
+                            a_series = pd.Series([variable,i, c, m, t, weight, scen[0]],index=self.nu_node.columns)
+                            self.nu_node = pd.concat([self.nu_node,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'y_charging'
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.EF_CHARGING:
@@ -118,33 +131,19 @@ class OutputData():
                 weight5 = modell.total_emissions[t].value
                 a_series2 = pd.Series([variable,t, weight5, scen[0]],index=self.total_emissions.columns)
                 self.total_emissions = pd.concat([self.total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)    
-            if True:
-                variable = 'ppqq'
-                for (m,f,t) in base_data.MFT_MIN0:
-                    weight = modell.ppqq[(m,f,t)].value
-                    #if weight > 0:
-                    a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.ppqq.columns)
-                    self.ppqq = pd.concat([self.ppqq,a_series.to_frame().T],axis=0, ignore_index=True)
-                variable = 'ppqq_sum'
-                for (m,t) in base_data.MT_MIN0:
-                    weight = modell.ppqq_sum[(m,t)].value
-                    #if weight > 0:
-                    a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.ppqq_sum.columns)
-                    self.ppqq_sum = pd.concat([self.ppqq_sum,a_series.to_frame().T],axis=0, ignore_index=True)
-                
-                for (m,f,t) in base_data.MFT_MIN0:
-                    weight = modell.ppqq[(m,f,t)].value - modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value
-                    a_series = pd.Series([variable,m,f,t, weight, scen[0]],index=self.positive_part_deviations_fuel.columns)
-                    self.positive_part_deviations_fuel = pd.concat([self.positive_part_deviations_fuel,a_series.to_frame().T],axis=0, ignore_index=True)
-                
-                for (m,t) in base_data.MT_MIN0:
-                    weight = modell.ppqq_sum[(m,t)].value - (
-                        sum(modell.q_transp_amount[m,f,t].value - modell.q_transp_amount[m,f,base_data.T_MIN1[t]].value for f in base_data.FM_FUEL[m]))
-                    a_series = pd.Series([variable,m,t, weight, scen[0]],index=self.positive_part_deviations_sum.columns)
-                    self.positive_part_deviations_sum = pd.concat([self.positive_part_deviations_sum,a_series.to_frame().T],axis=0, ignore_index=True)
+            variable = 'q_max_transp_amount'
+            for m in self.M_MODES:
+                for f in self.FM_FUEL[m]:
+                    for t in self.T_TIME_PERIODS:
+                        weight = modell.q_max_transp_amount[(m, f, t)].value
+                        if weight > 0:
+                            a_series = pd.Series([variable,m, f, t, weight, scen[0]], index=self.q_max_transp_amount.columns)
+                            self.q_max_transp_amount = pd.concat([self.q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
+
+
             
-            self.all_variables = pd.concat([self.x_flow,self.h_path,self.y_charging,self.w_node,self.v_edge,self.u_upgrade,
-                      self.z_emission_violation,self.total_emissions,self.ppqq,self.ppqq_sum],ignore_index=True)
+            self.all_variables = pd.concat([self.x_flow,self.b_flow,self.h_path,self.y_charging,self.nu_node,self.epsilon_edge,self.upsilon_upgrade,
+                      self.z_emission_violation,self.total_emissions,self.q_max_transp_amount],ignore_index=True)
             
             
         
@@ -155,16 +154,15 @@ class OutputData():
         
         
         transport_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
+        transport_costs_empty = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         transfer_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         edge_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         node_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         upgrade_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios} 
         charging_costs = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         emission_violation_penalty = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
-        positive_part_penalty_fuel = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
-        positive_part_penalty_sum = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
+        max_transport_amount_penalty = {(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in self.scenarios}
         
-    
         
         self.all_variables['cost_contribution'] = 0
         
@@ -182,22 +180,28 @@ class OutputData():
             t = row['time_period']
             s = row['scenario']
             e = (row['from'],row['to'],row['mode'],row['route'])
-            
+            v = row['vehicle_type']
+
             cost_contribution = 0
             if variable == 'x_flow':
                 cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*(base_data.C_TRANSP_COST[(i,j,m,r,f,p,t)]+
-                                                                      base_data.C_CO2[(i,j,m,r,f,p,t)])*value for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
+                                                                      base_data.C_CO2[(i,j,m,r,f,p,t)])*value 
+                                                                      for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
+                transport_costs[(t,s)] += cost_contribution
+            if variable == 'b_flow':
+                cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*(0)*value   # TO DO: set the right value
+                                                                      for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
                 transport_costs[(t,s)] += cost_contribution
             elif variable == 'h_path':
                 cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*base_data.C_TRANSFER[(kk,p)]*value for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
                 transfer_costs[(t,s)] += cost_contribution
-            elif variable == 'v_edge':
+            elif variable == 'epsilon_edge':
                 cost_contribution = base_data.C_EDGE_RAIL[e]*value
                 edge_costs[(t,s)] += cost_contribution
-            elif variable == 'u_upg':
+            elif variable == 'upsilon_upg':
                 cost_contribution = base_data.C_UPG[(e,f)]*value
                 upgrade_costs[(t,s)] += cost_contribution
-            elif variable == 'w_node':
+            elif variable == 'nu_node':
                 cost_contribution = base_data.C_NODE[(i,c,m)]*value
                 node_costs[(t,s)] += cost_contribution
             elif variable == 'y_charging':
@@ -206,12 +210,10 @@ class OutputData():
             elif variable == 'z_emission':
                 cost_contribution = EMISSION_VIOLATION_PENALTY*value
                 emission_violation_penalty[(t,s)] += cost_contribution
-            elif variable == 'ppqq':
-                cost_contribution = POSITIVE_PART_PENALTY_FUEL*value
-                positive_part_penalty_fuel[(t,s)] +=  cost_contribution 
-            elif variable == 'ppqq_sum':
-                cost_contribution = POSITIVE_PART_PENALTY_SUM*value 
-                positive_part_penalty_sum[(t,s)] +=  cost_contribution
+            elif variable == 'q_max_transp_amount':
+                cost_contribution = MAX_TRANSPORT_AMOUNT_PENALTY*value
+                max_transport_amount_penalty[(t,s)] += cost_contribution
+
             self.all_variables.at[index,'cost_contribution'] = cost_contribution
         
         #%columns_of_interest = self.all_variables.loc[:,('variable','time_period','scenario','cost_contribution')]
@@ -221,9 +223,8 @@ class OutputData():
         
         
         self.all_costs = dict(transport=transport_costs,transfer=transfer_costs,edge=edge_costs, upgrade=upgrade_costs,node=node_costs,charging=charging_costs,
-                              emission=emission_violation_penalty,pp_fuel=positive_part_penalty_fuel, pp_sum=positive_part_penalty_sum)
+                              emission=emission_violation_penalty,max_transp_amount_penalty=max_transport_amount_penalty)
         self.all_costs_table = pd.DataFrame.from_dict(self.all_costs, orient='index')
-        
         
         
         for t in base_data.T_TIME_PERIODS: 
@@ -275,11 +276,7 @@ class OutputData():
     
     def print_some_insights(self):
         print('-----------------------------------------')
-        print('The average deviations (in absolute terms) in the positive part approximation are: ')
-        print(self.positive_part_deviations_fuel['weight'].mean(), ' for q_fuel AND') #-316.055   (this is always approximately the same. I guess there is an error with the data CHECK)
-        print(self.positive_part_deviations_sum['weight'].mean(), ' for q_sum ')
-        print('Consider setting a lower/higher penalty for computational purposes ')
-        print('-----------------------------------------')    
+        print('To do ') 
     
     def emission_results(self,base_data):
         # print('to do')

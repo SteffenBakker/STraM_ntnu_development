@@ -9,7 +9,7 @@ Adapted by Ruben
 "Example data"
 
 import os
-os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
+#os.chdir('//home.ansatt.ntnu.no/egbertrv/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
 #os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 
@@ -130,7 +130,12 @@ class TransportSets():
         self.RAIL_NODES.remove("Verden")
         
         self.M_MODES = ["Road", "Rail", "Sea"]
-        
+
+        self.NM_NODES = {m:None for m in self.M_MODES}
+        self.NM_NODES["Road"] = self.ROAD_NODES
+        self.NM_NODES["Sea"] = self.SEA_NODES
+        self.NM_NODES["Rail"] = self.RAIL_NODES
+
         self.M_MODES_CAP = ["Rail", "Sea"]
         
         self.RAIL_NODES_NORWAY = self.N_NODES_NORWAY.copy()
@@ -475,7 +480,7 @@ class TransportSets():
         #Vehicle types
         self.prod_to_vehicle_type = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
         self.VEHICLE_TYPE_MP = {}
-        self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}  
+        self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
         for (m,p,v) in zip(self.prod_to_vehicle_type['Mode'], self.prod_to_vehicle_type['Product group'], self.prod_to_vehicle_type['Vehicle type']):
             self.VEHICLE_TYPE_MP[(m,p)] = v
             self.VEHICLE_TYPES_M[m].append(v)
@@ -483,53 +488,67 @@ class TransportSets():
             self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
         self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
         
+        self.PV_PRODUCTS = {v:[] for v in self.V_VEHICLE_TYPES}
+        for (m,p),v in self.VEHICLE_TYPE_MP.items():
+            self.PV_PRODUCTS[v].append(p)
+
+        self.ANM_ARCS_IN = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
+        self.ANM_ARCS_OUT = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
+        for (i,j,m,r) in self.A_ARCS:
+            a = (i,j,m,r)
+            self.ANM_ARCS_IN[(j,m)].append(a)
+            self.ANM_ARCS_OUT[(i,m)].append(a)
+
         
+
+
         "Combined sets"
         
         self.TS = [(t) for t in self.T_TIME_PERIODS]
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
+        self.AVT = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS] 
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
         self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
                          self.T_TIME_PERIODS]  
         self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
+        self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
 
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
         self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
         
         self.NCM = [(i,c,m) for (i,m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m]]
         self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
-        
+        self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
+                                    for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
+
         self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
 
         self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
         self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
-        self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
-        self.MT_MIN0 = [(m,t) for m in self.M_MODES for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+        
+        self.MFTT = [(m,f,t,tau) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS 
+                            for tau in self.T_TIME_PERIODS if tau <= t]
+
+        self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] 
+                                    for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
         
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
+
+        #------------------------
         "Parameters"
-
-        #fleet renewal  NOT NECESSARY ANYMORE
-        #self.RHO_FLEET_RENEWAL_RATE = {(m,t):FLEET_RR for (m,t) in self.MT_MIN0}
-
+        #-----------------------
         
 
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
         self.emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
-        if self.emission_reduction == 100:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap']))
-        elif self.emission_reduction == 75:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap1']))
-        elif self.emission_reduction == 73:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap2']))
-        elif self.emission_reduction == 70:
-            self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap3']))
-        else:
-            raise ValueError('CO2_CAP should be a predefined level (100,75,73,70). Now it is {x}'.format(x=self.emission_reduction))
+        #if self.emission_reduction == 100:
+        #self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap']))
+        #elif self.emission_reduction == 75:
+        self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap1']))
         self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
         
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
@@ -566,10 +585,8 @@ class TransportSets():
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
                 self.C_TRANSFER[(kk,p)] = round(cost,1)
             
-        CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')
-            
+        CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
-        
         for index, row in CO2_fee_data.iterrows():
             self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
             
@@ -580,8 +597,13 @@ class TransportSets():
         #scenario-dependent transport cost (computed using base cost)
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
+        self.C_TRANSP_COST_NORMALIZED = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/Tkm
         self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T 
+                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
+        self.E_EMISSIONS_NORMALIZED = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
+    
         self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
 
@@ -722,7 +744,21 @@ class TransportSets():
                                                    / (data_index.iloc[0][
                                                           "Trucks_filled_daily"] * max_truck_cap * 365)),1)  # 0.7 or not???
             #MKR/MTONNES, so no dividing here
-            
+
+
+        #Technological readiness/maturity
+        self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness")
+        self.R_TECH_READINESS_MATURITY = {}
+        for index, row in self.tech_readiness.iterrows():
+            for year in self.T_TIME_PERIODS:
+                self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'],year)] = row[str(year)]
+
+        #lifetime / lifespan
+        self.lifespan_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='lifetimes')
+        self.LIFETIME = {}
+        for index, row in self.lifespan_data.iterrows():
+            self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
+
         # -----------------
         ######Innlesning av scenarier 
         # -----------------
@@ -730,10 +766,6 @@ class TransportSets():
         #TO DO RUBEN -> Scenarier
 
         #TO DO STEFFEN: MATURITIES / TECHN: READINESS
-
-        if False: #REMOVE
-
-            self.scen_data = pd.read_csv(self.prefix+r'scenarios_maturities_27.csv')  #how is this one constructed? It gives percentages 
             
             self.all_scenarios = []
             for index, row in self.scen_data.iterrows():
@@ -745,7 +777,7 @@ class TransportSets():
     def update_scenario_dependent_parameters(self,scenario_nr):
 
         #set active scenario number 
-        self.active_scenario_nr = scenario_nr
+        self.active_scenario_nr = scenario_nr #TODO: use scenario name
 
         #update C_TRANSP_COST based on scenario information
         for (i, j, m, r) in self.A_ARCS:
