@@ -1,3 +1,5 @@
+#THIS FILE IS USED AS A SKETCHBOOK FOR DEVELOPING THE SCENARIO CONSTRUCTION STUFF
+
 import os
 os.chdir("M:\Documents\GitHub\AIM_Norwegian_Freight_Model")
 
@@ -23,6 +25,7 @@ num_scenarios = len(scenario_data)
 
 probabilities = [1.0/num_scenarios] * num_scenarios #initialize as equal probabilities
 scenario_names = ["scen_" + str(i).zfill(len(str(num_scenarios))) for i in range(num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
+  
 fg_cost_factor = [{}] * num_scenarios
 for index, row in scenario_data.iterrows():
     if "Name" in scenario_data:
@@ -32,6 +35,13 @@ for index, row in scenario_data.iterrows():
     for fg in fuel_groups:
         new_entry = {fg : row[fg]} #new entry for the dictionary fg_cost_factor[index]
         fg_cost_factor[index] = dict(fg_cost_factor[index], **new_entry) #add new entry to existing dict (trick from internet)
+
+scen_name_to_nr = {}
+scen_nr_to_name = {}
+for i in range(len(scenario_names)):
+    scen_name_to_nr[scenario_names[i]] = i
+    scen_nr_to_name[i] = scenario_names[i]
+
 
 mode_fuel_cost_factor = [] #list of dictionaries (per scenario) from (m,f) pair to transport cost factor (relative to base cost)
 for s in range(num_scenarios):
