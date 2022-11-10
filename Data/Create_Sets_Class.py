@@ -9,8 +9,8 @@ Adapted by Ruben
 "Example data"
 
 import os
-#os.chdir('//home.ansatt.ntnu.no/egbertrv/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
-os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
+os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
+#os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 
 from Data.settings import *
@@ -26,9 +26,58 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 # from FreightTransportModel.Utils import plot_all_graphs  #FreightTransportModel.
 
+#Class containing information about all scenarios
+#Information in this class can be used to activate a scenario in a TransportSets object, meaning that the corresponding parameter values are changed
+class ScenarioInformation():
+    def __init__(self, prefix): 
+
+        self.prefix = prefix #get prefix from calling object
+        self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
+               
+        #read and process fuel group data
+        fuel_group_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name='fuel_groups')
+
+        self.fuel_group_names = [] #list of fuel group names
+        self.fuel_groups = {} #dict from fuel group names to (m,f) combinations
+        for index, row in fuel_group_data.iterrows():
+            if row["Fuel group"] not in self.fuel_group_names:
+                self.fuel_group_names = self.fuel_group_names + [row["Fuel group"]]    #add fuel group name to list
+                self.fuel_groups[row["Fuel group"]] = [(row["Mode"], row["Fuel"])] #create new entry in dict
+            else:
+                self.fuel_groups[row["Fuel group"]] = self.fuel_groups[row["Fuel group"]] + [(row["Mode"], row["Fuel"])]  #append entry in dict
+
+        #read and process scenario data
+        scenario_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name='scenarios')
+        self.num_scenarios = len(scenario_data)
+
+        self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
+        self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
+        self.fg_cost_factor = [{}] * self.num_scenarios
+        for index, row in scenario_data.iterrows():
+            if "Name" in scenario_data:
+                self.scenario_names[index] = row["Name"] #update scenario names if available
+            if "Probability" in scenario_data:
+                self.probabilities[index] = row["Probability"] #update probabilities if available
+            for fg in self.fuel_groups:
+                new_entry = {fg : row[fg]} #new entry for the dictionary fg_cost_factor[index]
+                self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_entry) #add new entry to existing dict (trick from internet)
+
+        self.mode_fuel_cost_factor = [] #list of dictionaries (per scenario) from (m,f) pair to transport cost factor (relative to base cost)
+        for s in range(self.num_scenarios):
+            self.mode_fuel_cost_factor.append({})
+            for fg in self.fuel_group_names:
+                for mf in self.fuel_groups[fg]:
+                    self.mode_fuel_cost_factor[s][mf] = self.fg_cost_factor[s][fg]
+
+        
+
+test_scenario_information = ScenarioInformation('Data/')
 
 
-
+#Class containing all relevant data
+#Note: also contains the scenario information (in self.scenario_information)
+#One scenario can be activated (indicated by self.active_scenario_nr) by the procedure update_scenario_dependent_parameters(self,scenario_nr)
+#Activating a scenario means that all relevant parameters are changed to their scenario values
 class TransportSets():
 
     def __init__(self):# or (self)
@@ -39,8 +88,13 @@ class TransportSets():
             self.prefix = r'Data/'
         elif self.run_file =="sets":
             self.prefix = '' 
-                    
+
+        #read/construct data                
         self.construct_pyomo_data()
+
+        #read/construct scenario information
+        self.active_scenario_nr = -1 #no scenario has been activated; all data is from base scenario
+        self.scenario_information = ScenarioInformation(self.prefix) #TODO: check performance of this
 
     def construct_pyomo_data(self):
 
@@ -88,7 +142,7 @@ class TransportSets():
         self.F_FUEL = ["Diesel", "Ammonia", "Hydrogen", "Battery electric", "Electric train (CL)", "LNG", "MGO",
                        'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"]
 
-        self.FM_FUEL = {"Road": ["Diesel","Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
+        self.FM_FUEL = {"Road": ["Diesel", "Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
                         "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],  #Hybrid: non-existing
                         "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} 
 
@@ -519,7 +573,11 @@ class TransportSets():
         for index, row in CO2_fee_data.iterrows():
             self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
             
-    
+
+        #base level transport costs (in average scenario)
+        self.C_TRANSP_COST_BASE = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
+        #scenario-dependent transport cost (computed using base cost)
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
         self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
@@ -533,19 +591,20 @@ class TransportSets():
                 if m == row["Mode"]:
                     f = row["Fuel"]
                     if f in self.FM_FUEL[m]: #get rid of the hybrid!!
+                        p = row['Product group']
+                        y = row['Year']
                         factor = row['Cost (NOK/Tkm)']
-                        self.C_TRANSP_COST[(i, j, m, r,f,row['Product group'],row['Year'] )] = round((
-                            self.AVG_DISTANCE[a] * factor),2)
-                        #MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
-                        self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] = round(self.AVG_DISTANCE[a] * row[
-                            'Emissions (gCO2/Tkm)'],1)
+                        #compute base cost
+                        self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * factor), 2) 
+                        #initially, set scenario-dependent cost equal to base cost (will be changed by separate function later)
+                        self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] #(using same indices as above)
+                        #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
+                        self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * row['Emissions (gCO2/Tkm)'], 1)
                         #CO2 costs per tonne:
                         if self.CO2_scenario == 1:
-                            self.C_CO2[(i,j,m,r,f,row['Product group'],row['Year'])] =  round(
-                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
+                            self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
                         elif self.CO2_scenario == 2:
-                            self.C_CO2[(i,j,m,r,f, row['Product group'],row['Year'])] = round(
-                                self.E_EMISSIONS[(i,j,m,r,f, row['Product group'],row['Year'])] * self.CO2_fee[row["Year"]],1)
+                            self.C_CO2[(i, j, m, r, f, p, y)] = round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
         
         
 
@@ -679,43 +738,25 @@ class TransportSets():
             self.all_scenarios = []
             for index, row in self.scen_data.iterrows():
                 if row["Scenario"] not in self.all_scenarios:
-                    self.all_scenarios.append(row["Scenario"])
-            
-
-        self.update_scenario_dependent_parameters(self.scenario_nr)
-                        
+                    self.all_scenarios.append(row["Scenario"])          
+                
+    #Function that updates all information that depends on the current scenario number
+    #Currently: update transport costs based on fuel group scenarios
     def update_scenario_dependent_parameters(self,scenario_nr):
-        
-        #TO DO: change this way of defining the maturity constraints!!
-        #Go from Q_TECH (in tonnes) to mu*M (in tonne-km)
-        
-        self.Q_TECH = {mft : 0 for mft in self.MFT_MATURITY}
+
+        #set active scenario number 
+        self.active_scenario_nr = scenario_nr
+
+        #update C_TRANSP_COST based on scenario information
+        for (i, j, m, r) in self.A_ARCS:
+            # = (i, j, m, r)
+            for f in self.FM_FUEL[m]:
+                for p in self.P_PRODUCTS:
+                    for y in self.T_TIME_PERIODS:
+                        #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
+                        self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[scenario_nr][(m,f)] 
+                        
 
 
-        #why do we need both?
-        if scenario in self.det_eqvs.keys():
-            # create deterministIc equivalents
-            for w in self.det_eqvs[scenario]:
-                for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
-                    for (m, f) in self.NEW_MF_LIST:
-                        if row['Mode'] == m and row['Fuel'] == f:
-                            total_trans = self.total_trans_dict[row['Mode']] #to do: replace with tonne-km!
-                            for year in self.T_TIME_PERIODS: 
-                                self.Q_TECH[(row['Mode'], row['Fuel'], year)] += (row[str(year)] * total_trans) / (
-                                        100 * self.scaling_factor * len(self.det_eqvs[scenario]))    #MTONNES    at the moment
-        else:
-            scen_string = scenario
-            for w in ['HHH', 'MMM', 'LLL']:
-                for key in self.fuel_groups:
-                    if scen_string[key] == w[key]:
-                        for index, row in self.scen_data[self.scen_data['Scenario'] == w].iterrows():
-                            if row['Fuel'] in self.fuel_groups[key]:
-                                total_trans = self.total_trans_dict[row['Mode']]   #to do: replace with tonne-km!
-                                for year in self.T_TIME_PERIODS:
-                                    self.Q_TECH[(row['Mode'], row['Fuel'], year)] = (
-                                        row[str(year)] * total_trans / 100) / self.scaling_factor   #MTONNES    at the moment
-                                
-        
-
-    
 #base_data = TransportSets()
+#base_data.scenario_information
