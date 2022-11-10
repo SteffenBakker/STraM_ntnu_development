@@ -37,7 +37,7 @@ start = time.time()
 
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 read_data_from_scratch = False #Use cached data? Exctracting data is a bit slow in debug mode
-extract_data_postprocessing = False #postprocessing is quite slow. No need to do when testing the model. 
+extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
 instance_run = 'base'     #change instance_run to choose which instance you want to run
 
 profiling = False
@@ -66,8 +66,8 @@ if __name__ == "__main__":
         profiler.enable()
 
     #Model   (consider removing the base_model, not used)
-    base_model = TranspModel(data=base_data)
-    base_model.construct_model()
+    #base_model = TranspModel(data=base_data)
+    #base_model.construct_model()
     
     #Scenarios
     scenario_info = None # To do: read this from excel 
@@ -78,13 +78,15 @@ if __name__ == "__main__":
     scenario_creator_kwargs = {'base_data':base_data, 'scenario_info':scenario_info}
     options = option_settings()
     solver = pyo.SolverFactory(options["solvername"])
+    
+    
     ef = sputils.create_EF(
-            scenario_names,  #this must be a list of STRINGS
-            scenario_creator,
-            scenario_creator_kwargs = scenario_creator_kwargs
-        )
-
+        scenario_names,  #this must be a list of STRINGS
+        scenario_creator,
+        scenario_creator_kwargs = scenario_creator_kwargs
+    )
     results = solver.solve(ef, logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log', tee= True)
+    
     print('EF objective value:', pyo.value(ef.EF_Obj))
     stop = time.time()
     print("The time of the run:", stop - start)
