@@ -19,8 +19,11 @@ round(output.all_costs_table,1)
 
 output.plot_costs()
 output.emission_results(base_data)
-
 output.z_emission_violation
+output.cost_and_investment_table(base_data)
+round(output.all_costs_table,1)
+
+#---------------------------------------------------------#
 
 
 #DO THE FOLLOWING FOR DOMESTIC AND INTERNATIONAL (remove nodes from and to europe and the world)
@@ -30,112 +33,71 @@ for index, row in output.x_flow.iterrows():
 
 output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] # in Tonnes KM
 
-TranspArb = output.x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario']).agg(
+subset_x_flow = output.x_flow
+if True: #domestic
+    subset_x_flow = subset_x_flow[(subset_x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (subset_x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
+
+TranspArb = subset_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg(
                                                                                                                 {'TransportArbeid':'sum'})
-TotalTranspArb = TranspArb.groupby(['time_period','scenario']).agg({'TransportArbeid':'sum'})
+                                                                                                                
+TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
 TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
 
-len(TranspArb)
-len(pd.merge(TranspArb,TotalTranspArb,how='outer',on=['time_period','scenario']))
+TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
+TranspArb['RelTranspArb'] = TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
+
+
+TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
+MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in base_data.scenario_information.scenario_names]
+all_rows = pd.DataFrame(MFTS, columns = ['mode', 'fuel', 'time_period','scenario'])
+TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
+
+
+TranspArbAvgScen = TranspArb[['mode','fuel','time_period','scenario','RelTranspArb','RelTranspArb_std']].groupby(['mode','fuel','time_period'], as_index=False).agg({'RelTranspArb':'mean','RelTranspArb_std':'std'})
+
+#(TranspArb[(TranspArb['scenario']=='Low')&(TranspArb['time_period']==2020)]) # THIS WORKS!!
+#sum(TranspArbAvgScen[(TranspArbAvgScen['time_period']==2020)]['RelTranspArb']) # THIS WORKS!!
 
 
 
+#---------------------------------------------------------#
 
 
+# PLOTTING
 
+def plot_mode_mixes(result_data,base_data):
 
+    color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
+    color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
+    color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
 
+    labels = [str(t) for t in  base_data.T_TIME_PERIODS]
+    width = 0.35       # the width of the bars: can also be len(x) sequence
 
+    color_dict = {}
+    for m in ["Road", "Rail", "Sea"]:
+        for f in base_data.FM_FUEL[m]:
+            if m == "Road":
+                color_dict[m,f] = next(color_road)
+            elif m == "Rail":
+                color_dict[m, f] = next(color_rail)
+            elif m == "Sea":
+                color_dict[m, f] = next(color_sea)
 
+    for m in ["Road", "Rail", "Sea"]:
 
-#data is base data, dataset is output from model
-def plot_figures(output,base_data):
-    
-    for s in output.scenarios:
-        dataset_scen = 2 # to do
-        fuel_list = []
-        fuel_list1 = []
-        for m in base_data.M_MODES:
-            for f in base_data.FM_FUEL[m]:
-                for t in base_data.T_TIME_PERIODS:
-                    #Dataset for domestic and for international
-                    yearly_weight_int = dataset_scen_int[dataset_scen_int["time_period"] == t]["weight"].sum()
-                    dataset_temp_int = dataset_scen_int[(dataset_scen_int["Mode"] == m) & (dataset_scen_int["fuel"] == f) & (dataset_scen_int["time_period"] == t)]
+        fig, ax = plt.subplots()
 
-                    yearly_weight_dom = dataset_scen_dom[dataset_scen_dom["time_period"] == t]["weight"].sum()
-                    dataset_temp_dom = dataset_scen_dom[
-                        (dataset_scen_dom["Mode"] == m) & (dataset_scen_dom["fuel"] == f) & (
-                                    dataset_scen_dom["time_period"] == t)]
-                    if len(dataset_temp_int) > 0:
-                        fuel_list.append((m,f,t,dataset_temp_int["weight"].sum()*100/yearly_weight_int))
-                    else:
-                        fuel_list.append((m,f,t,0))
-                    if len(dataset_temp_dom) > 0:
-                        fuel_list1.append((m,f,t,dataset_temp_dom["weight"].sum()*100/yearly_weight_dom))
-                    else:
-                        fuel_list1.append((m,f,t,0))
+        bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
+        for f in base_data.FM_FUEL[m]:
+            subset = result_data[(result_data['mode']==m)&(result_data['fuel']==f)]
+            ax.bar(labels, subset['RelTranspArb'].tolist(), width, yerr=subset['RelTranspArb_std'].tolist(), 
+                        bottom = bottom,label=f,color=color_dict[m,f])
+            bottom = [subset['RelTranspArb'].tolist()[i]+bottom[i] for i in range(len(bottom))]
+        ax.set_ylabel('Transport work share (%)')
+        ax.set_title(m)
+        ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
 
-        for plot_nr in range(2):
-            if plot_nr == 0:
-                fuel_list = fuel_list
-            if plot_nr == 1:
-                fuel_list = fuel_list1
-            fuel_list_road = []
-            fuel_list_rail = []
-            fuel_list_sea = []
+        plt.show()
 
-            for e in fuel_list:
-                if e[0] == "Road":
-                    fuel_list_road.append(e)
-                elif e[0] == "Rail":
-                    fuel_list_rail.append(e)
-                elif e[0] == "Sea":
-                    fuel_list_sea.append(e)
-
-            color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
-            color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
-            color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
-
-            labels = ['2022', '2025', '2030', '2040', '2050']
-            width = 0.35       # the width of the bars: can also be len(x) sequence
-            bottom = np.array([0,0,0,0,0])
-
-            FM_FUEL = data.FM_FUEL
-
-            color_dict = {}
-            for m in ["Road", "Rail", "Sea"]:
-                for f in FM_FUEL[m]:
-                    if m == "Road":
-                        color_dict[m,f] = next(color_road)
-                    elif m == "Rail":
-                        color_dict[m, f] = next(color_rail)
-                    elif m == "Sea":
-                        color_dict[m, f] = next(color_sea)
-
-            fig, ax = plt.subplots()
-            for i in range(0,len(fuel_list),5):
-                chunk = fuel_list[i:i + 5]
-                fuel_flow = []
-                for elem in chunk:
-                    fuel_flow.append(elem[3])
-                if sum(fuel_flow) > 0.0001:
-                    ax.bar(labels, fuel_flow, width, bottom=bottom,
-                        label=str(chunk[0][0])+" "+str(chunk[0][1]), color=color_dict[chunk[0][0],chunk[0][1]])
-                    bottom = np.add(bottom,np.array(fuel_flow))
-
-            if plot_nr == 0:
-                ax.set_title("Instance "+instance_run+' Scen '+str(s)+" All")
-            elif plot_nr == 1:
-                ax.set_title("Instance "+instance_run+' Scen '+str(s)+" Domestic")
-            box = ax.get_position()
-            #ax.set_position([box.x0, box.y0, box.width * 0.9, box.height*0.9]) #legends!!!
-            ax.set_position([box.x0, box.y0, box.width * 0.7, box.height]) #correct
-            plt.xticks(fontsize=16)
-            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
-            #plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.02),
-            #     ncol=3, fancybox=True, shadow=True)  #LEGENDS!
-            if plot_nr == 0:
-                plt.savefig("Data/Instance_results_write_to_here/Instance"+instance_run+"/Instance"+instance_run+'Scen' + str(s)+'_international.png')
-            elif plot_nr == 1:
-                plt.savefig("Data/Instance_results_write_to_here/Instance"+instance_run+"/Instance"+instance_run+'Scen' + str(s)+'_domestic.png')
-            plt.show()
+plot_mode_mixes(TranspArbAvgScen,base_data)

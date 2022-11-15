@@ -631,8 +631,6 @@ class TransportSets():
                         self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * row['Emissions (gCO2/Tkm)'], 1)
                         #CO2 costs per tonne:
                         self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
-                        
-        
 
         
 

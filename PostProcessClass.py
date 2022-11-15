@@ -43,6 +43,7 @@ class OutputData():
         self.cost_and_investment_table(base_data)
         self.print_some_insights()
         self.emission_results(base_data)
+        self.mode_mix_calculations()
         
     def extract_model_results(self,base_data,ef):  #currently only for extensive form
         
@@ -145,8 +146,6 @@ class OutputData():
             self.all_variables = pd.concat([self.x_flow,self.b_flow,self.h_path,self.y_charging,self.nu_node,self.epsilon_edge,self.upsilon_upgrade,
                       self.z_emission_violation,self.total_emissions,self.q_max_transp_amount],ignore_index=True)
             
-            
-        
     def cost_and_investment_table(self,base_data):
         
 
@@ -242,7 +241,7 @@ class OutputData():
         self.all_costs_table = self.all_costs_table.iloc[:,columns ].sort_index(axis=1,level=0)
         
         pd.set_option('display.float_format', '{:.2g}'.format)
-        round(self.all_costs_table,1)
+        print(round(self.all_costs_table,1))
 
         self.plot_costs()
 
@@ -255,7 +254,7 @@ class OutputData():
             elif i ==1:
                 indices = [i for i in self.all_costs_table.index if i not in ['emission']]
             else:
-                indices = [i for i in self.all_costs_table.index if i not in ['emission','max_transp_amount_penalty','pp_sum']]
+                indices = [i for i in self.all_costs_table.index if i not in ['emission','max_transp_amount_penalty']]
             all_costs_table2 = self.all_costs_table.loc[indices]
             mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
             mean_data = mean_data.droplevel(1, axis=1)
@@ -266,13 +265,8 @@ class OutputData():
             #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
             fig = ax.get_figure()
             #fig.savefig('/path/to/figure.pdf')
-        
-       
-
 
         # TO DO: FIGURES
-        
-
     
     def print_some_insights(self):
         print('-----------------------------------------')
@@ -308,7 +302,6 @@ class OutputData():
         
         yerrors = self.emission_stats[['Std', 'StdGoals']].to_numpy().T
         
-    
         ax = self.emission_stats[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = False)
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
         fig = ax.get_figure()
@@ -322,23 +315,73 @@ class OutputData():
         # This is from all transport. We do not have all transport, 
         # But our base case in 2020 is 40 millioner tonn CO2! equivalents, probably because of international transport...?
         
+
+#---------------------------------------------------------#
+#       MODE MIX
+    
+    #DO THE FOLLOWING FOR DOMESTIC AND INTERNATIONAL (remove nodes from and to europe and the world)
+    def mode_mix_calculations(self):
+        self.x_flow['Distance'] = 0 # in Tonnes KM
+        for index, row in self.x_flow.iterrows():
+                self.x_flow.at[index,'Distance'] = self.base_data.AVG_DISTANCE[(row['from'],row['to'],row['mode'],row['route'])]
+
+        self.x_flow['TransportArbeid'] = self.x_flow['Distance']*self.x_flow['weight'] # in Tonnes KM
+
         
-        
+        subset_x_flow = output.x_flow
+        subset_x_flow_domestic = subset_x_flow[(subset_x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (subset_x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
 
-#EMISSIONS
-#print('--------- Total emissions -----------')
-    #print(e[0],t, 'Total emissions: ',modell.total_emissions[t].value,', emission violation: ',
-    #    modell.z_emission[t].value,', violation/emission_cap: ', 1-(modell.total_emissions[t].value/(base_data.CO2_CAP[2020])))
-#print('Number of variables: ',modell.nvariables())
-#print('Number of constraints: ',modell.nconstraints())
+        for ss_x_flow in [subset_x_flow,subset_x_flow_domestic]:
 
-        
+            TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg(
+                                                                                                                            {'TransportArbeid':'sum'})                                                                                                    
+            TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
+            TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
 
+            TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
+            TranspArb['RelTranspArb'] = TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
+            
+            TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
+            MFTS = [(m,f,t,s) for (m,f,t) in self.base_data.MFT for s in self.base_data.scenario_information.scenario_names]
+            all_rows = pd.DataFrame(MFTS, columns = ['mode', 'fuel', 'time_period','scenario'])
+            TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
 
+            TranspArbAvgScen = TranspArb[['mode','fuel','time_period','scenario','RelTranspArb','RelTranspArb_std']].groupby(['mode','fuel','time_period'], as_index=False).agg({'RelTranspArb':'mean','RelTranspArb_std':'std'})
 
-#PLAY AROUND
+            self.plot_mode_mixes(TranspArbAvgScen,self.base_data)
+    
+    # PLOTTING
 
-#output.h_path['weight'].describe()   #mean 3.2
-#output.x_flow['weight'].describe()  # mean 3911
- 
-        
+    def plot_mode_mixes(self,result_data,base_data):
+        color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
+        color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
+        color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
+
+        labels = [str(t) for t in  base_data.T_TIME_PERIODS]
+        width = 0.35       # the width of the bars: can also be len(x) sequence
+
+        color_dict = {}
+        for m in ["Road", "Rail", "Sea"]:
+            for f in base_data.FM_FUEL[m]:
+                if m == "Road":
+                    color_dict[m,f] = next(color_road)
+                elif m == "Rail":
+                    color_dict[m, f] = next(color_rail)
+                elif m == "Sea":
+                    color_dict[m, f] = next(color_sea)
+
+        for m in ["Road", "Rail", "Sea"]:
+
+            fig, ax = plt.subplots()
+
+            bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
+            for f in base_data.FM_FUEL[m]:
+                subset = result_data[(result_data['mode']==m)&(result_data['fuel']==f)]
+                ax.bar(labels, subset['RelTranspArb'].tolist(), width, yerr=subset['RelTranspArb_std'].tolist(), 
+                            bottom = bottom,label=f,color=color_dict[m,f])
+                bottom = [subset['RelTranspArb'].tolist()[i]+bottom[i] for i in range(len(bottom))]
+            ax.set_ylabel('Transport work share (%)')
+            ax.set_title(m)
+            ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
+
+            plt.show()
