@@ -14,7 +14,6 @@ import copy
 def scenario_creator(scenario_name, **kwargs):
     
     base_data = kwargs.get('base_data')
-    scenario_info = kwargs.get('scenario_info')
     
     base_data.update_scenario_dependent_parameters(scenario_name)
     

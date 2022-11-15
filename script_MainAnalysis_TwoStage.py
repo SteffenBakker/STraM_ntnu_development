@@ -91,7 +91,7 @@ if __name__ == "__main__":
     stop = time.time()
     print("The time of the run:", stop - start)
 
-    scenarios = sputils.ef_scenarios(ef)
+    #scenarios = sputils.ef_scenarios(ef)
     if extract_data_postprocessing:        
         output = OutputData(ef,base_data,instance_run)
         with open(r'Data\output_data', 'wb') as output_file: 
