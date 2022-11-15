@@ -68,9 +68,10 @@ if __name__ == "__main__":
     #Model   (consider removing the base_model, not used)
     #base_model = TranspModel(data=base_data)
     #base_model.construct_model()
-    
+
     #Scenarios
     scenario_names = base_data.scenario_information.scenario_names
+
 
     #Solve model 
     scenario_creator_kwargs = {'base_data':base_data}
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     start = time.time()
     
     ef = sputils.create_EF(
-        scenario_names,  #this must be a list of STRINGS
+        base_data.scenario_information.scenario_names,
         scenario_creator,
         scenario_creator_kwargs = scenario_creator_kwargs
     )
