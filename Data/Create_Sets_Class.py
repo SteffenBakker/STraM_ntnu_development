@@ -623,13 +623,7 @@ class TransportSets():
                         #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
                         self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * row['Emissions (gCO2/Tkm)'], 1)
                         #CO2 costs per tonne:
-                        if self.CO2_scenario == 1:
-                            self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
-                        elif self.CO2_scenario == 2:
-                            self.C_CO2[(i, j, m, r, f, p, y)] = round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
-        
-        
-
+                        self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
         
 
         #################
@@ -759,18 +753,7 @@ class TransportSets():
         for index, row in self.lifespan_data.iterrows():
             self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
 
-        # -----------------
-        ######Innlesning av scenarier 
-        # -----------------
-
-        #TO DO RUBEN -> Scenarier
-
-        #TO DO STEFFEN: MATURITIES / TECHN: READINESS
-            
-            self.all_scenarios = []
-            for index, row in self.scen_data.iterrows():
-                if row["Scenario"] not in self.all_scenarios:
-                    self.all_scenarios.append(row["Scenario"])          
+    
                 
     #Function that updates all information that depends on the current scenario number
     #Currently: update transport costs based on fuel group scenarios

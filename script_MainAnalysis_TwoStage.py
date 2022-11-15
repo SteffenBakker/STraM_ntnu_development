@@ -70,12 +70,10 @@ if __name__ == "__main__":
     #base_model.construct_model()
     
     #Scenarios
-    scenario_info = None # To do: read this from excel 
-    scenario_numbers = [1,2] #base_data.scenario_numbers # [1,2,3] # To do: list of scenarios
-    scenario_names = [str(i) for i in scenario_numbers]
+    scenario_names = base_data.scenario_information.scenario_names
 
     #Solve model 
-    scenario_creator_kwargs = {'base_data':base_data, 'scenario_info':scenario_info}
+    scenario_creator_kwargs = {'base_data':base_data}
     options = option_settings()
     solver = pyo.SolverFactory(options["solvername"])
     

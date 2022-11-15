@@ -145,7 +145,8 @@ class OutputData():
             self.all_variables = pd.concat([self.x_flow,self.b_flow,self.h_path,self.y_charging,self.nu_node,self.epsilon_edge,self.upsilon_upgrade,
                       self.z_emission_violation,self.total_emissions,self.q_max_transp_amount],ignore_index=True)
             
-            
+     
+
         
     def cost_and_investment_table(self,base_data):
         
@@ -255,7 +256,7 @@ class OutputData():
             elif i ==1:
                 indices = [i for i in self.all_costs_table.index if i not in ['emission']]
             else:
-                indices = [i for i in self.all_costs_table.index if i not in ['emission','max_transp_amount_penalty','pp_sum']]
+                indices = [i for i in self.all_costs_table.index if i not in ['emission','max_transp_amount_penalty']]
             all_costs_table2 = self.all_costs_table.loc[indices]
             mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
             mean_data = mean_data.droplevel(1, axis=1)
@@ -266,13 +267,8 @@ class OutputData():
             #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
             fig = ax.get_figure()
             #fig.savefig('/path/to/figure.pdf')
-        
-       
-
 
         # TO DO: FIGURES
-        
-
     
     def print_some_insights(self):
         print('-----------------------------------------')
@@ -308,7 +304,6 @@ class OutputData():
         
         yerrors = self.emission_stats[['Std', 'StdGoals']].to_numpy().T
         
-    
         ax = self.emission_stats[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = False)
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
         fig = ax.get_figure()

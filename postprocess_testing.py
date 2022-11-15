@@ -19,8 +19,11 @@ round(output.all_costs_table,1)
 
 output.plot_costs()
 output.emission_results(base_data)
-
 output.z_emission_violation
+
+
+
+#---------------------------------------------------------#
 
 
 #DO THE FOLLOWING FOR DOMESTIC AND INTERNATIONAL (remove nodes from and to europe and the world)
@@ -30,13 +33,73 @@ for index, row in output.x_flow.iterrows():
 
 output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] # in Tonnes KM
 
-TranspArb = output.x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario']).agg(
+TranspArb = output.x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg(
                                                                                                                 {'TransportArbeid':'sum'})
-TotalTranspArb = TranspArb.groupby(['time_period','scenario']).agg({'TransportArbeid':'sum'})
+TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
 TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
 
-len(TranspArb)
-len(pd.merge(TranspArb,TotalTranspArb,how='outer',on=['time_period','scenario']))
+TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
+TranspArb['RelTranspArb'] = TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
+TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
+
+TranspArbAvgScen = TranspArb.groupby(['mode','fuel','time_period'], as_index=False).agg({'RelTranspArb':'mean','RelTranspArb_std':'std'})
+all_rows = pd.DataFrame(base_data.MFT, columns = ['mode', 'fuel', 'time_period'])
+TranspArbAvgScen2 = pd.merge(all_rows,TranspArbAvgScen,how='left',on=['mode','fuel','time_period']).fillna(0)
+
+
+
+
+#---------------------------------------------------------#
+
+
+# PLOTTING
+
+color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
+color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
+color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
+
+labels = [str(t) for t in  base_data.T_TIME_PERIODS]
+width = 0.35       # the width of the bars: can also be len(x) sequence
+bottom = np.array([0,0,0,0,0])
+
+color_dict = {}
+for m in ["Road", "Rail", "Sea"]:
+    for f in base_data.FM_FUEL[m]:
+        if m == "Road":
+            color_dict[m,f] = next(color_road)
+        elif m == "Rail":
+            color_dict[m, f] = next(color_rail)
+        elif m == "Sea":
+            color_dict[m, f] = next(color_sea)
+
+for m in ["Road", "Rail", "Sea"]:
+
+    fig, ax = plt.subplots()
+
+    for f in base_data.FM_FUEL[m]:
+        
+        subset = TranspArbAvgScen2[(TranspArbAvgScen2['mode']==m)&(TranspArbAvgScen2['fuel']==f)]
+        ax.bar(labels, subset['RelTranspArb'].tolist(), width, yerr=subset['RelTranspArb_std'].tolist(), label=f,color=color_dict[m,f])
+            
+    ax.set_ylabel('Transport work share (%)')
+    ax.set_title(m)
+    ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
+
+    plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
