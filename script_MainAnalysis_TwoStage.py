@@ -10,7 +10,7 @@ import os
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 from TranspModelClass import TranspModel
-from PostProcessClass import OutputData
+from ExtractModelResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings
 #from postprocessing import extract_output_ef,extract_aggregated_output_ef, extract_output_ph,plot_figures
@@ -68,10 +68,11 @@ if __name__ == "__main__":
     #Model   (consider removing the base_model, not used)
     #base_model = TranspModel(data=base_data)
     #base_model.construct_model()
+    #base_model.solve_model()
 
     #Scenarios
     scenario_names = base_data.scenario_information.scenario_names
-
+    #scenario_names = ['LLL','HHH']
 
     #Solve model 
     scenario_creator_kwargs = {'base_data':base_data}
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     start = time.time()
     
     ef = sputils.create_EF(
-        base_data.scenario_information.scenario_names,
+        scenario_names,
         scenario_creator,
         scenario_creator_kwargs = scenario_creator_kwargs
     )

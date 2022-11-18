@@ -177,8 +177,9 @@ class TransportSets():
             if i < num_periods-1:
                 tp1 = self.T_TIME_PERIODS[i+1]
                 self.Y_YEARS[t] = list(range(t-t0,tp1-t0))
-            elif i == num_periods - 1:  #this is the last time period. Lasts only a year?? 
-                self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0]
+            elif i == (num_periods - 1):  #this is the last time period. Lasts only a year?? 
+                duration_previous = len(self.Y_YEARS[t-1])
+                self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0 + j for j in range(duration_previous)]
 
         self.P_PRODUCTS = ['Dry bulk', 'Fish', 'General cargo', 'Industrial goods', 'Other thermo',
                            'Timber', 'Wet bulk']
