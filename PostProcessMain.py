@@ -24,9 +24,9 @@ with open(r'Data\base_data', 'rb') as data_file:
 def plot_costs(output):
     for i in range(2):
         if i == 0:
-            indices = output.all_costs_table.index
+            indices = [i for i in output.all_costs_table.index if i not in [0]]
         elif i ==1:
-            indices = [i for i in output.all_costs_table.index if i not in ['emission','max_transp_amount_penalty']]
+            indices = [i for i in output.all_costs_table.index if i not in [0,'emission','max_transp_amount_penalty']]
         all_costs_table2 = output.all_costs_table.loc[indices]
         mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
         mean_data = mean_data.droplevel(1, axis=1)
@@ -37,8 +37,6 @@ def plot_costs(output):
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
         fig = ax.get_figure()
         #fig.savefig('/path/to/figure.pdf')
-
-
 
 def cost_and_investment_table(base_data,output):
     
@@ -70,16 +68,17 @@ def cost_and_investment_table(base_data,output):
         e = (row['from'],row['to'],row['mode'],row['route'])
         v = row['vehicle_type']
 
-        cost_contribution = 0
+        cost_contribution = 0  #operational costs are discounted to their base years, not more!
         if variable == 'x_flow':
             cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*(base_data.C_TRANSP_COST[(i,j,m,r,f,p,t)]+
                                                                     base_data.C_CO2[(i,j,m,r,f,p,t)])*value 
                                                                     for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
             transport_costs[(t,s)] += cost_contribution
         if variable == 'b_flow':
-            cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*(0)*value   # TO DO: set the right value
+            cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*EMPTY_VEHICLE_FACTOR*(base_data.C_TRANSP_COST[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
+                                                                    base_data.C_CO2[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)])*value  
                                                                     for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
-            transport_costs[(t,s)] += cost_contribution
+            transport_costs_empty[(t,s)] += cost_contribution
         elif variable == 'h_path':
             cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*base_data.C_TRANSFER[(kk,p)]*value for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
             transfer_costs[(t,s)] += cost_contribution
@@ -109,7 +108,9 @@ def cost_and_investment_table(base_data,output):
     #https://stackoverflow.com/questions/46431243/pandas-dataframe-groupby-how-to-get-sum-of-multiple-columns
     
     
-    output.all_costs = dict(transport=transport_costs,transfer=transfer_costs,edge=edge_costs, upgrade=upgrade_costs,node=node_costs,charging=charging_costs,
+    
+
+    output.all_costs = dict(transport=transport_costs,transport_empty=transport_costs_empty,transfer=transfer_costs,edge=edge_costs, upgrade=upgrade_costs,node=node_costs,charging=charging_costs,
                             emission=emission_violation_penalty,max_transp_amount_penalty=max_transport_amount_penalty)
     output.all_costs_table = pd.DataFrame.from_dict(output.all_costs, orient='index')
     
@@ -128,29 +129,26 @@ def cost_and_investment_table(base_data,output):
     columns = ((output.all_costs_table.columns.get_level_values(1)=='mean') | (output.all_costs_table.columns.get_level_values(1)=='std'))
     output.all_costs_table = output.all_costs_table.iloc[:,columns ].sort_index(axis=1,level=0)
     
+    discount_factors = pd.Series([round(base_data.D_DISCOUNT_RATE**n,3) for n in [t - base_data.T_TIME_PERIODS[0]  for t in base_data.T_TIME_PERIODS for dd in range(2)]],index = output.all_costs_table.columns).to_frame().T #index =
+    
+    output.all_costs_table = pd.concat([output.all_costs_table, discount_factors],axis=0, ignore_index=False)
+
     pd.set_option('display.float_format', '{:.2g}'.format)
-    print(round(output.all_costs_table,1))
+    print(round(output.all_costs_table,2))
 
-    plot_costs(output)
+    return output
 
-
-
-cost_and_investment_table(base_data,output)
-
+output = cost_and_investment_table(base_data,output)
+plot_costs(output)
 
 
 #---------------------------------------------------------#
 #       EMISSIONS 
 #---------------------------------------------------------#
 
-def emission_results(output,base_data):
-    # print('to do')
-    # output.total_emissions
-    # for t in base_data.T_TIME_PERIODS:
-    #     for scen in output.scenarios:
-    #         print(modell.total_emissions[t].value / base_data.CO2_CAP[2020])
-    
-    #create bare chart figure -> See my drawing
+def plot_emission_results(output,base_data):
+
+    #create bar chart figure -> See my drawing
     #https://stackoverflow.com/questions/46794373/make-a-bar-graph-of-2-variables-based-on-a-dataframe
     #https://pythonforundergradengineers.com/python-matplotlib-error-bars.html
 
@@ -159,8 +157,7 @@ def emission_results(output,base_data):
     #errors = list(output.total_emissions.groupby(['time_period']).agg({'weight':'std'})['weight'])
 
     
-    #z_emission_violation
-
+    
     # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
     output.emission_stats = output.total_emissions.groupby('time_period').agg(
         AvgEmission=('weight', np.mean),
@@ -168,30 +165,28 @@ def emission_results(output,base_data):
     goals = list(base_data.CO2_CAP.values())
     output.emission_stats['Goal'] = goals
     output.emission_stats['StdGoals'] = [0 for g in goals]       
-    
+    print(output.emission_stats)
+
     #output.emission_stats['Std'] = 0.1*output.emission_stats['AvgEmission']  #it works when there is some deviation!!
     
     yerrors = output.emission_stats[['Std', 'StdGoals']].to_numpy().T
-    
     ax = output.emission_stats[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = False)
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     fig = ax.get_figure()
     #fig.savefig('/path/to/figure.pdf')
     
-
-
-
     #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter
     # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
     # This is from all transport. We do not have all transport, 
     # But our base case in 2020 is 40 millioner tonn CO2! equivalents, probably because of international transport...?
     
+plot_emission_results(output,base_data)
 
 #---------------------------------------------------------#
 #       MODE MIX
 #---------------------------------------------------------#
 
-def plot_mode_mixes(TranspArbAvgScen,base_data):  #result data = TranspArbAvgScen
+def plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type):  #result data = TranspArbAvgScen
     color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
     color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
     color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
@@ -220,7 +215,7 @@ def plot_mode_mixes(TranspArbAvgScen,base_data):  #result data = TranspArbAvgSce
                         bottom = bottom,label=f,color=color_dict[m,f])
             bottom = [subset['RelTranspArb'].tolist()[i]+bottom[i] for i in range(len(bottom))]
         ax.set_ylabel('Transport work share (%)')
-        ax.set_title(m)
+        ax.set_title(m + ' - ' + analysis_type)
         ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
 
         plt.show()
@@ -234,27 +229,32 @@ def mode_mix_calculations(output,base_data):
 
     output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] # in Tonnes KM
 
-    subset_x_flow = output.x_flow
-    subset_x_flow_domestic = subset_x_flow[(subset_x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (subset_x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
 
-    for ss_x_flow in [subset_x_flow,subset_x_flow_domestic]:
-        #ss_x_flow = subset_x_flow
+
+    for i in range(2):
+        if i == 0:
+            analysis_type = 'Domestic'
+            ss_x_flow = output.x_flow[(output.x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (output.x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
+        elif i == 1:
+            analysis_type = 'All transport'
+            ss_x_flow = output.x_flow
+
         TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
         print(TotalTranspArb)
 
         TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
-        TranspArb['RelTranspArb'] = TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
+        TranspArb['RelTranspArb'] = 100*TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
         
         TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
-        MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in base_data.scenario_information.scenario_names]
+        MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in output.scenarios]
         all_rows = pd.DataFrame(MFTS, columns = ['mode', 'fuel', 'time_period','scenario'])
         TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
 
         TranspArbAvgScen = TranspArb[['mode','fuel','time_period','scenario','RelTranspArb','RelTranspArb_std']].groupby(['mode','fuel','time_period'], as_index=False).agg({'RelTranspArb':'mean','RelTranspArb_std':'std'})
 
-        plot_mode_mixes(TranspArbAvgScen,base_data)
+        plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type)
 
     return output
 

@@ -178,7 +178,7 @@ class TransportSets():
                 tp1 = self.T_TIME_PERIODS[i+1]
                 self.Y_YEARS[t] = list(range(t-t0,tp1-t0))
             elif i == (num_periods - 1):  #this is the last time period. Lasts only a year?? 
-                duration_previous = len(self.Y_YEARS[t-1])
+                duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS[i-1]])
                 self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0 + j for j in range(duration_previous)]
 
         self.P_PRODUCTS = ['Dry bulk', 'Fish', 'General cargo', 'Industrial goods', 'Other thermo',
@@ -507,8 +507,6 @@ class TransportSets():
             self.ANM_ARCS_IN[(j,m)].append(a)
             self.ANM_ARCS_OUT[(i,m)].append(a)
 
-        
-
 
         "Combined sets"
         
@@ -603,15 +601,14 @@ class TransportSets():
         self.C_TRANSP_COST_BASE = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
         #scenario-dependent transport cost (computed using base cost)
+        self.C_TRANSP_COST_NORMALIZED = {(m,f, p, t): 1000000 for m in self.M_MODES for f in self.FM_FUEL[m] 
+                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/Tkm
+        self.E_EMISSIONS_NORMALIZED = {(m,f,p,t): 1000000 for m in self.M_MODES for f in self.FM_FUEL[m] 
+                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
         self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
-        self.C_TRANSP_COST_NORMALIZED = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/Tkm
         self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
-        self.E_EMISSIONS_NORMALIZED = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                            for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
-    
         self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
 
@@ -623,9 +620,10 @@ class TransportSets():
                     if f in self.FM_FUEL[m]: #get rid of the hybrid!!
                         p = row['Product group']
                         y = row['Year']
-                        factor = row['Cost (NOK/Tkm)']
+                        self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)] = row['Cost (NOK/Tkm)']
+                        self.E_EMISSIONS_NORMALIZED[(m,f,p,y)] = row['Emissions (gCO2/Tkm)']
                         #compute base cost
-                        self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * factor), 2) 
+                        self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)]), 2) 
                         #initially, set scenario-dependent cost equal to base cost (will be changed by separate function later)
                         self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] #(using same indices as above)
                         #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
@@ -634,6 +632,17 @@ class TransportSets():
                         self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
 
         
+        #find the "cheapest" product group per vehicle type. 
+        self.cheapest_product_per_vehicle = {(m,f,t,v):None for (m,f,t) in self.MFT for v in self.VEHICLE_TYPES_M[m]}
+        for (m,f,t) in self.MFT:
+            for v in self.VEHICLE_TYPES_M[m]:
+                cheapest_product = None
+                lowest_cost = 200000000
+                for p in self.PV_PRODUCTS[v]:
+                    if self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] < lowest_cost:
+                        lowest_cost = self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)]
+                        cheapest_product = p
+                self.cheapest_product_per_vehicle[(m,f,t,v)] = p
 
         #################
         #  INVESTMENTS  #
@@ -784,12 +793,7 @@ class TransportSets():
         else: #we should be in the benchmark scenario
             if self.active_scenario_name == "benchmark":
                 #set C_TRANSP_COST to benchmark levels
-                for (i, j, m, r) in self.A_ARCS:
-                    for f in self.FM_FUEL[m]:
-                        for p in self.P_PRODUCTS:
-                            for y in self.T_TIME_PERIODS:
-                                #transport cost = base transport cost:
-                                self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] #
+                self.C_TRANSP_COST = self.C_TRANSP_COST_BASE
             else:
                 raise Exception("Active scenario name is not in scenario list, but also not equal to benchmark")
 

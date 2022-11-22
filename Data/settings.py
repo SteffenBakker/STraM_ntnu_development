@@ -14,6 +14,7 @@ SCALING_FACTOR = 100000 #for computational purposes, from TONNES -> MEGATONNES  
 
 RISK_FREE_RATE = 0.02 
 MAX_TRUCK_CAP = 30
+EMPTY_VEHICLE_FACTOR = 0.6
 
 #Model settings
 

@@ -141,42 +141,8 @@ class OutputData():
                             a_series = pd.Series([variable,m, f, t, weight, scen[0]], index=self.q_max_transp_amount.columns)
                             self.q_max_transp_amount = pd.concat([self.q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
 
-
-            
             self.all_variables = pd.concat([self.x_flow,self.b_flow,self.h_path,self.y_charging,self.nu_node,self.epsilon_edge,self.upsilon_upgrade,
                       self.z_emission_violation,self.total_emissions,self.q_max_transp_amount],ignore_index=True)
             
     
-        color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
-        color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
-        color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
-
-        labels = [str(t) for t in  base_data.T_TIME_PERIODS]
-        width = 0.35       # the width of the bars: can also be len(x) sequence
-
-        color_dict = {}
-        for m in ["Road", "Rail", "Sea"]:
-            for f in base_data.FM_FUEL[m]:
-                if m == "Road":
-                    color_dict[m,f] = next(color_road)
-                elif m == "Rail":
-                    color_dict[m, f] = next(color_rail)
-                elif m == "Sea":
-                    color_dict[m, f] = next(color_sea)
-
-        for m in ["Road", "Rail", "Sea"]:
-
-            fig, ax = plt.subplots()
-
-            bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
-            for f in base_data.FM_FUEL[m]:
-                subset = result_data[(result_data['mode']==m)&(result_data['fuel']==f)]
-                ax.bar(labels, subset['RelTranspArb'].tolist(), width, yerr=subset['RelTranspArb_std'].tolist(), 
-                            bottom = bottom,label=f,color=color_dict[m,f])
-                bottom = [subset['RelTranspArb'].tolist()[i]+bottom[i] for i in range(len(bottom))]
-            ax.set_ylabel('Transport work share (%)')
-            ax.set_title(m)
-            ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
-
-            plt.show()
 
