@@ -187,23 +187,39 @@ plot_emission_results(output,base_data)
 #---------------------------------------------------------#
 
 def plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type):  #result data = TranspArbAvgScen
-    color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
-    color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
-    color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
+    # color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
+    # color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
+    # color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
+
+    # color_dict = {}
+    # for m in ["Road", "Rail", "Sea"]:
+    #     for f in base_data.FM_FUEL[m]:
+    #         if m == "Road":
+    #             color_dict[m,f] = next(color_road)
+    #         elif m == "Rail":
+    #             color_dict[m, f] = next(color_rail)
+    #         elif m == "Sea":
+    #             color_dict[m, f] = next(color_sea)
+
+    #https://matplotlib.org/stable/gallery/color/named_colors.html
+    color_dict = {'Diesel':                 'firebrick', 
+                    'Ammonia':              'royalblue', 
+                    'Hydrogen':             'green', 
+                    'Battery electric':     'mediumseagreen',
+                    'Battery train':        'seagreen', 
+                    'Electric train (CL)':  'mediumseagreen', 
+                    'LNG':                  'blue', 
+                    'MGO':                  'darkviolet', 
+                    'Biogas':               'teal', 
+                    'Biodiesel':            'darkorange', 
+                    'Biodiesel (HVO)':      'darkorange', 
+                    'HFO':                  'firebrick'           }
+
 
     labels = [str(t) for t in  base_data.T_TIME_PERIODS]
     width = 0.35       # the width of the bars: can also be len(x) sequence
 
-    color_dict = {}
-    for m in ["Road", "Rail", "Sea"]:
-        for f in base_data.FM_FUEL[m]:
-            if m == "Road":
-                color_dict[m,f] = next(color_road)
-            elif m == "Rail":
-                color_dict[m, f] = next(color_rail)
-            elif m == "Sea":
-                color_dict[m, f] = next(color_sea)
-
+    
     for m in ["Road", "Rail", "Sea"]:
 
         fig, ax = plt.subplots()
@@ -212,7 +228,7 @@ def plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type):  #result data = 
         for f in base_data.FM_FUEL[m]:
             subset = TranspArbAvgScen[(TranspArbAvgScen['mode']==m)&(TranspArbAvgScen['fuel']==f)]
             ax.bar(labels, subset['RelTranspArb'].tolist(), width, yerr=subset['RelTranspArb_std'].tolist(), 
-                        bottom = bottom,label=f,color=color_dict[m,f])
+                        bottom = bottom,label=f,color=color_dict[f])
             bottom = [subset['RelTranspArb'].tolist()[i]+bottom[i] for i in range(len(bottom))]
         ax.set_ylabel('Transport work share (%)')
         ax.set_title(m + ' - ' + analysis_type)
@@ -242,7 +258,7 @@ def mode_mix_calculations(output,base_data):
         TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
-        print(TotalTranspArb)
+        print(TranspArb[(TranspArb["time_period"].isin([2020,2025])) & (TranspArb["scenario"]=='HHH') & (TranspArb["mode"]=='Road') ])
 
         TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
         TranspArb['RelTranspArb'] = 100*TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
@@ -259,3 +275,10 @@ def mode_mix_calculations(output,base_data):
     return output
 
 output = mode_mix_calculations(output,base_data)
+
+
+
+# dir(output)
+# decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
+# factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
+# return (decrease <= factor*self.model.q_max_transp_amount[m,f,t])

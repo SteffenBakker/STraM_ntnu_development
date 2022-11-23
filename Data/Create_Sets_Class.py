@@ -551,11 +551,8 @@ class TransportSets():
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
         self.emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
-        #if self.emission_reduction == 100:
-        #self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap']))
-        #elif self.emission_reduction == 75:
-        self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Cap1']))
-        self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
+        self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
+        #self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
         
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']

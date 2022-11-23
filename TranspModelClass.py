@@ -136,7 +136,7 @@ class TranspModel:
 
         # Emission limit
         def EmissionCapRule(model, t):
-            return self.model.total_emissions[t] <= self.data.CO2_CAP[t] + self.model.z_emission[t]
+            return self.model.total_emissions[t] <= self.data.CO2_CAP[t]*self.model.total_emissions[self.data.T_TIME_PERIODS[0]] + self.model.z_emission[t]
         self.model.EmissionCap = Constraint(self.data.TS, rule=EmissionCapRule)
         
         #-----------------------------------------------#
@@ -217,7 +217,7 @@ class TranspModel:
         #Fleet Renewal
         def FleetRenewalRule(model,m,f, t):
             decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
-            factor = (t - self.data.T_MIN1[t])/self.data.LIFETIME[(m,f)]
+            factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
             return (decrease <= factor*self.model.q_max_transp_amount[m,f,t])
         self.model.FleetRenewal = Constraint(self.data.MFT_MIN0, rule = FleetRenewalRule)
         
