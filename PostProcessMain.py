@@ -18,6 +18,47 @@ with open(r'Data\base_data', 'rb') as data_file:
         base_data = pickle.load(data_file)
 
 
+
+#---------------------------------------------------------#
+#       Accuracy of Q MAX approximation due to penalty -> should become zero
+#---------------------------------------------------------#
+
+def accuracy_of_q_max(output,base_data):
+    max_transp_amount_df = None
+
+    temp_df = output.q_max_transp_amount
+    temp_df = temp_df.rename(columns={'weight': 'max_value'})
+    max_transp_amount_df = pd.merge(output.q_transp_amount,temp_df.drop('variable',axis=1),how='left',on=['mode','fuel','time_period','scenario'])
+    max_transp_amount_df = max_transp_amount_df.sort_values(by=['mode','fuel','scenario','time_period']).reset_index()
+    max_transp_amount_df['max_value_true'] = 0
+
+    for index,row in max_transp_amount_df.iterrows():
+        m = row['mode']
+        f = row['fuel']
+        t = row['time_period']
+        s = row['scenario']
+        max_q = 0
+        subset = max_transp_amount_df[(max_transp_amount_df['mode']==m) & (max_transp_amount_df['fuel']==f) &
+                                (max_transp_amount_df['scenario']==s)]
+        for tau in base_data.T_TIME_PERIODS:
+            if (tau <= t):
+                if len(subset[subset['time_period']==tau])==1:
+                # pick the specific row
+                    val = subset[subset['time_period']==tau]['weight'].iloc[0]
+                    if (val > max_q):
+                        max_q = val
+        max_transp_amount_df.at[index,'max_value_true'] = max_q
+    max_transp_amount_df['diff'] = max_transp_amount_df['max_value']-max_transp_amount_df['max_value_true']
+
+    return round(sum(max_transp_amount_df['diff']),2)
+
+result_q_max = accuracy_of_q_max(output,base_data)
+print('--------------------------------------------------------')
+print('Total deviation from tha actual max transport amount: ' + str(result_q_max))
+print('--------------------------------------------------------')
+
+
+
 #---------------------------------------------------------#
 #       COSTS
 #---------------------------------------------------------#
@@ -133,7 +174,8 @@ def cost_and_investment_table(base_data,output):
     output.all_costs_table = output.all_costs_table.iloc[:,columns ].sort_index(axis=1,level=0)
     
     discount_factors = pd.Series([round(base_data.D_DISCOUNT_RATE**n,3) for n in [t - base_data.T_TIME_PERIODS[0]  for t in base_data.T_TIME_PERIODS for dd in range(2)]],index = output.all_costs_table.columns).to_frame().T #index =
-    
+    discount_factors = discount_factors.rename({0:'discount_factor'})
+
     output.all_costs_table = pd.concat([output.all_costs_table, discount_factors],axis=0, ignore_index=False)
 
     pd.set_option('display.float_format', '{:.2g}'.format)
@@ -143,41 +185,6 @@ def cost_and_investment_table(base_data,output):
 
 output = cost_and_investment_table(base_data,output)
 plot_costs(output)
-
-
-#---------------------------------------------------------#
-#       Accuracy of Q MAX approximation due to penalty -> should become zero
-#---------------------------------------------------------#
-
-
-max_transp_amount_df = None
-
-temp_df = output.q_max_transp_amount
-temp_df = temp_df.rename(columns={'weight': 'max_value'})
-max_transp_amount_df = pd.merge(output.q_transp_amount,temp_df.drop('variable',axis=1),how='left',on=['mode','fuel','time_period','scenario'])
-max_transp_amount_df = max_transp_amount_df.sort_values(by=['mode','fuel','scenario','time_period']).reset_index()
-max_transp_amount_df['max_value_true'] = 0
-
-for index,row in max_transp_amount_df.iterrows():
-    m = row['mode']
-    f = row['fuel']
-    t = row['time_period']
-    s = row['scenario']
-    max_q = 0
-    subset = max_transp_amount_df[(max_transp_amount_df['mode']==m) & (max_transp_amount_df['fuel']==f) &
-                            (max_transp_amount_df['scenario']==s)]
-    for tau in base_data.T_TIME_PERIODS:
-        if (tau <= t):
-            if len(subset[subset['time_period']==tau])==1:
-            # pick the specific row
-                val = subset[subset['time_period']==tau]['weight'].iloc[0]
-                if (val > max_q):
-                    max_q = val
-    max_transp_amount_df.at[index,'max_value_true'] = max_q
-max_transp_amount_df['diff'] = max_transp_amount_df['max_value']-max_transp_amount_df['max_value_true']
-print('--------------------------------------------------------')
-print('Total deviation from tha actual max transport amount: ',round(sum(max_transp_amount_df['diff']),2))
-print('--------------------------------------------------------')
 
 
 
@@ -250,9 +257,9 @@ def plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type):  #result data = 
     #https://matplotlib.org/stable/gallery/color/named_colors.html
     color_dict = {'Diesel':                 'firebrick', 
                     'Ammonia':              'royalblue', 
-                    'Hydrogen':             'green', 
+                    'Hydrogen':             'deepskyblue', 
                     'Battery electric':     'mediumseagreen',
-                    'Battery train':        'seagreen', 
+                    'Battery train':        'darkolivegreen', 
                     'Electric train (CL)':  'mediumseagreen', 
                     'LNG':                  'blue', 
                     'MGO':                  'darkviolet', 
@@ -304,7 +311,7 @@ def mode_mix_calculations(output,base_data):
         TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
-        print(TranspArb[(TranspArb["time_period"].isin([2020,2025])) & (TranspArb["scenario"]=='HHH') & (TranspArb["mode"]=='Road') ])
+        #print(TranspArb[(TranspArb["time_period"].isin([2020,2025])) & (TranspArb["scenario"]=='HHH') & (TranspArb["mode"]=='Road') ])
 
         TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
         TranspArb['RelTranspArb'] = 100*TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']

@@ -72,8 +72,8 @@ if __name__ == "__main__":
     #base_model.solve_model()
 
     #Scenarios
-    #scenario_names = base_data.scenario_information.scenario_names
-    scenario_names = ['LLL','HHH']
+    scenario_names = base_data.scenario_information.scenario_names
+    #scenario_names = ['LLL','HHH']
 
     #Solve model 
 
@@ -85,9 +85,11 @@ if __name__ == "__main__":
         scenario_creator,
         scenario_creator_kwargs = scenario_creator_kwargs
     )
-    
+
     options = option_settings_ef()
-    solver = pyo.SolverFactory(options["solvername"])
+    solver = pyo.SolverFactory('gurobi')  o#ptions["solvername"]
+    solver.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
+
     results = solver.solve(ef,logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log', tee= True)
     
 

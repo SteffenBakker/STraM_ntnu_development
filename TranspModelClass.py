@@ -225,10 +225,8 @@ class TranspModel:
         return self.model
     
 
-    # def update_tech_constraint(self):
-    #     self.model.del_component(self.model.TechMaturityLimit);
-    #     self.model.del_component(self.model.TechMaturityLimit_index);
-    #     self.model.add_component("TechMaturityLimit",Constraint(self.data.MFTS_CAP, rule=self.TechMaturityLimitRule))    
+    def fix_variables_first_stage(output):
+        pass
 
     def solve_model(self):
 
