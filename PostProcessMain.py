@@ -33,7 +33,10 @@ def plot_costs(output):
         std_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='std']
         std_data = std_data.droplevel(1, axis=1)
         yerrors = std_data.to_numpy()
-        ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = True)  #xlabel, ylabel
+        ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = True,
+                                        xlabel = 'time periods',
+                                        ylabel = 'Costs (MNOK)',
+                                        title = "Emissions",)  
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
         fig = ax.get_figure()
         #fig.savefig('/path/to/figure.pdf')
@@ -143,6 +146,42 @@ plot_costs(output)
 
 
 #---------------------------------------------------------#
+#       Accuracy of Q MAX approximation due to penalty -> should become zero
+#---------------------------------------------------------#
+
+
+max_transp_amount_df = None
+
+temp_df = output.q_max_transp_amount
+temp_df = temp_df.rename(columns={'weight': 'max_value'})
+max_transp_amount_df = pd.merge(output.q_transp_amount,temp_df.drop('variable',axis=1),how='left',on=['mode','fuel','time_period','scenario'])
+max_transp_amount_df = max_transp_amount_df.sort_values(by=['mode','fuel','scenario','time_period']).reset_index()
+max_transp_amount_df['max_value_true'] = 0
+
+for index,row in max_transp_amount_df.iterrows():
+    m = row['mode']
+    f = row['fuel']
+    t = row['time_period']
+    s = row['scenario']
+    max_q = 0
+    subset = max_transp_amount_df[(max_transp_amount_df['mode']==m) & (max_transp_amount_df['fuel']==f) &
+                            (max_transp_amount_df['scenario']==s)]
+    for tau in base_data.T_TIME_PERIODS:
+        if (tau <= t):
+            if len(subset[subset['time_period']==tau])==1:
+            # pick the specific row
+                val = subset[subset['time_period']==tau]['weight'].iloc[0]
+                if (val > max_q):
+                    max_q = val
+    max_transp_amount_df.at[index,'max_value_true'] = max_q
+max_transp_amount_df['diff'] = max_transp_amount_df['max_value']-max_transp_amount_df['max_value_true']
+print('--------------------------------------------------------')
+print('Total deviation from tha actual max transport amount: ',round(sum(max_transp_amount_df['diff']),2))
+print('--------------------------------------------------------')
+
+
+
+#---------------------------------------------------------#
 #       EMISSIONS 
 #---------------------------------------------------------#
 
@@ -162,6 +201,8 @@ def plot_emission_results(output,base_data):
     output.emission_stats = output.total_emissions.groupby('time_period').agg(
         AvgEmission=('weight', np.mean),
         Std=('weight', np.std))
+    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100
+    output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100
     goals = list(base_data.CO2_CAP.values())
     output.emission_stats['Goal'] = goals
     output.emission_stats['StdGoals'] = [0 for g in goals]       
@@ -169,8 +210,13 @@ def plot_emission_results(output,base_data):
 
     #output.emission_stats['Std'] = 0.1*output.emission_stats['AvgEmission']  #it works when there is some deviation!!
     
-    yerrors = output.emission_stats[['Std', 'StdGoals']].to_numpy().T
-    ax = output.emission_stats[['AvgEmission', 'Goal']].plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = False)
+    yerrors = output.emission_stats[['Std_perc', 'StdGoals']].to_numpy().T
+    ax = output.emission_stats[['AvgEmission_perc', 'Goal']].plot(kind='bar', 
+                xlabel = 'time periods',
+                ylabel = 'Relative emissions (%)',
+                title = "Emissions",
+                yerr=yerrors, alpha=0.5, 
+                error_kw=dict(ecolor='k'), stacked = False)
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     fig = ax.get_figure()
     #fig.savefig('/path/to/figure.pdf')

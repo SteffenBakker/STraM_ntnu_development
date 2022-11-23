@@ -140,7 +140,7 @@ class OutputData():
                     for t in base_data.T_TIME_PERIODS:
                         weight = modell.q_transp_amount[(m, f, t)].value
                         if weight > 0:
-                            a_series = pd.Series([variable,m, f, t, weight, scen[0]], index=self.q_max_transp_amount.columns)
+                            a_series = pd.Series([variable,m, f, t, weight, scen[0]], index=self.q_transp_amount.columns)
                             self.q_transp_amount = pd.concat([self.q_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'q_max_transp_amount'
             for m in base_data.M_MODES:

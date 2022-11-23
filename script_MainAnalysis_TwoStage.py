@@ -12,7 +12,8 @@ import os
 from TranspModelClass import TranspModel
 from ExtractModelResults import OutputData
 from Data.Create_Sets_Class import TransportSets
-from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings
+from Data.settings import *
+from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings_ef
 #from postprocessing import extract_output_ef,extract_aggregated_output_ef, extract_output_ph,plot_figures
 
 import pyomo.environ as pyo
@@ -71,24 +72,28 @@ if __name__ == "__main__":
     #base_model.solve_model()
 
     #Scenarios
-    scenario_names = base_data.scenario_information.scenario_names
-    #scenario_names = ['LLL','HHH']
+    #scenario_names = base_data.scenario_information.scenario_names
+    scenario_names = ['LLL','HHH']
 
     #Solve model 
-    scenario_creator_kwargs = {'base_data':base_data}
-    options = option_settings()
-    solver = pyo.SolverFactory(options["solvername"])
-    
+
     start = time.time()
-    
+
+    scenario_creator_kwargs = {'base_data':base_data}
     ef = sputils.create_EF(
         scenario_names,
         scenario_creator,
         scenario_creator_kwargs = scenario_creator_kwargs
     )
-    results = solver.solve(ef, logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log', tee= True)
+    
+    options = option_settings_ef()
+    solver = pyo.SolverFactory(options["solvername"])
+    results = solver.solve(ef,logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log', tee= True)
+    
+
     
     print('EF objective value:', pyo.value(ef.EF_Obj))
+
     stop = time.time()
     print("The time of the run:", stop - start)
 

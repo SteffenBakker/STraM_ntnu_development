@@ -136,7 +136,7 @@ class TranspModel:
 
         # Emission limit
         def EmissionCapRule(model, t):
-            return self.model.total_emissions[t] <= self.data.CO2_CAP[t]*self.model.total_emissions[self.data.T_TIME_PERIODS[0]] + self.model.z_emission[t]
+            return self.model.total_emissions[t] <= self.data.CO2_CAP[t]/100*self.model.total_emissions[self.data.T_TIME_PERIODS[0]] + self.model.z_emission[t]
         self.model.EmissionCap = Constraint(self.data.TS, rule=EmissionCapRule)
         
         #-----------------------------------------------#

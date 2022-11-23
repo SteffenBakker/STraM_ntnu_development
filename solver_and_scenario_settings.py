@@ -9,6 +9,7 @@ import mpisppy.utils.sputils as sputils
 from TranspModelClass import TranspModel
 import mpisppy.scenario_tree as scenario_tree
 import copy
+from Data.settings import *
 
 
 def scenario_creator(scenario_name, **kwargs):
@@ -48,10 +49,18 @@ def scenario_creator(scenario_name, **kwargs):
 def scenario_denouement(rank, scenario_name, scenario):
     pass
 
-def option_settings():
+def option_settings_ef():   
     options = {}
-    options["asynchronousPH"] = False
     options["solvername"] = "gurobi"
+    options["solver_options"] = {'MIPGap':MIPGAP}  # 'TimeLimit':600 (seconds)
+    #["NumericFocus"] = 3  #  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+    
+    return options
+
+def option_settings_ph():   
+    options = {}
+    options["solvername"] = "gurobi"
+    options["asynchronousPH"] = False
     options["PHIterLimit"] = 2
     options["defaultPHrho"] = 1
     options["convthresh"] = 0.0001
@@ -61,7 +70,6 @@ def option_settings():
     options["display_progress"] = True
     options["iter0_solver_options"] = None
     options["iterk_solver_options"] = None
-    
     #options["NumericFocus"] = 3  #  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
     
     return options
