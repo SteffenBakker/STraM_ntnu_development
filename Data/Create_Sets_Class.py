@@ -535,6 +535,7 @@ class TransportSets():
                          self.T_TIME_PERIODS]
 
         self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
+        self.MF = [(m,f) for m in self.M_MODES for f in self.FM_FUEL[m]]
         self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
         
         self.MFTT = [(m,f,t,tau) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS 

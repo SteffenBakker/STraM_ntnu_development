@@ -11,7 +11,7 @@ import pickle
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = 'EEV' # EV , EEV, 'SP
+analyses_type = 'SP' # EV , EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
@@ -35,7 +35,8 @@ def accuracy_of_q_max(output,base_data):
 
     temp_df = output.q_max_transp_amount
     temp_df = temp_df.rename(columns={'weight': 'max_value'})
-    max_transp_amount_df = pd.merge(output.q_transp_amount,temp_df.drop('variable',axis=1),how='left',on=['mode','fuel','time_period','scenario'])
+
+    max_transp_amount_df = pd.merge(output.q_transp_amount,temp_df.drop('variable',axis=1),how='left',on=['mode','fuel','scenario'])
     max_transp_amount_df = max_transp_amount_df.sort_values(by=['mode','fuel','scenario','time_period']).reset_index()
     max_transp_amount_df['max_value_true'] = 0
 
@@ -48,12 +49,12 @@ def accuracy_of_q_max(output,base_data):
         subset = max_transp_amount_df[(max_transp_amount_df['mode']==m) & (max_transp_amount_df['fuel']==f) &
                                 (max_transp_amount_df['scenario']==s)]
         for tau in base_data.T_TIME_PERIODS:
-            if (tau <= t):
-                if len(subset[subset['time_period']==tau])==1:
-                # pick the specific row
-                    val = subset[subset['time_period']==tau]['weight'].iloc[0]
-                    if (val > max_q):
-                        max_q = val
+            #if (tau <= t):
+            if len(subset[subset['time_period']==tau])==1:
+            # pick the specific row
+                val = subset[subset['time_period']==tau]['weight'].iloc[0]
+                if (val > max_q):
+                    max_q = val
         max_transp_amount_df.at[index,'max_value_true'] = max_q
     max_transp_amount_df['diff'] = max_transp_amount_df['max_value']-max_transp_amount_df['max_value_true']
 
@@ -149,8 +150,9 @@ def cost_and_investment_table(base_data,output):
             cost_contribution = EMISSION_VIOLATION_PENALTY*value
             emission_violation_penalty[(t,s)] += cost_contribution
         elif variable == 'q_max_transp_amount':
-            cost_contribution = MAX_TRANSPORT_AMOUNT_PENALTY*value
-            max_transport_amount_penalty[(t,s)] += cost_contribution
+            for t in base_data.T_TIME_PERIODS:
+                cost_contribution = MAX_TRANSPORT_AMOUNT_PENALTY/len(base_data.T_TIME_PERIODS)*value
+                max_transport_amount_penalty[(t,s)] += cost_contribution
 
         output.all_variables.at[index,'cost_contribution'] = cost_contribution
     

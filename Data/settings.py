@@ -20,4 +20,4 @@ EMPTY_VEHICLE_FACTOR = 0.6
 
 EMISSION_VIOLATION_PENALTY = 1*10**5  # THIS WAS 500    #CO2 Cap is at most 4E7, while obj function is now around 7E12, so I believe this penalty should be higher! Maybe 1-1.5E5
 MAX_TRANSPORT_AMOUNT_PENALTY = 1  #TO DO: test the value of this parameter. (0.001 was too low)
-MIPGAP = 0.1
+MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)

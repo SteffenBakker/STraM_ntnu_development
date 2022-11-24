@@ -35,7 +35,7 @@ def scenario_creator(scenario_name, **kwargs):
                                          [model.h_flow[:,:,t] for t in first_stage]+
                                          [model.h_flow_balancing[:,:,t] for t in first_stage]+
                                          [model.q_transp_amount[:,:,t] for t in first_stage]+
-                                         [model.q_max_transp_amount[:,:,t] for t in first_stage]+
+                                         [model.q_max_transp_amount[:,:]]+
                                          [model.y_charge[:, :, :, :, :, t] for t in first_stage]+
                                          [model.epsilon_edge[:,:,:,:,t] for t in first_stage]+
                                          [model.upsilon_upg[:,:,:,:,:,t] for t in first_stage]+ 

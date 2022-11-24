@@ -52,11 +52,11 @@ class TranspModel:
                                         # bounds=emission_bound)  # just a variable to help with output
         
         self.model.q_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
-        self.model.q_max_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
+        self.model.q_max_transp_amount = Var(self.data.MF, within=NonNegativeReals)
 
         max_transp_penalty = MAX_TRANSPORT_AMOUNT_PENALTY
         if self.calculate_max_transp_amount_exact:
-            self.model.chi_max_transp = Var(self.data.MFTT, within = Binary)
+            self.model.chi_max_transp = Var(self.data.MFT, within = Binary)
             max_transp_penalty = 0
 
         "OBJECTIVE"
@@ -80,7 +80,7 @@ class TranspModel:
                 sum(delta*self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE) +
                 sum(delta*self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t)] for (e,f) in self.data.EF_CHARGING) +
                 EMISSION_VIOLATION_PENALTY*self.model.z_emission[t] +
-                max_transp_penalty*sum(self.model.q_max_transp_amount[m,f,t] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) 
+                max_transp_penalty*sum(self.model.q_max_transp_amount[m,f] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) 
                 ))
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)
         
@@ -217,19 +217,19 @@ class TranspModel:
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
 
         #Max TransportArbeid
-        def MaxTransportAmountRule(model,m,f,t,tau):
-            return (self.model.q_max_transp_amount[m,f,t] >= self.model.q_transp_amount[m,f,tau])
-        self.model.MaxTranspAmount = Constraint(self.data.MFTT, rule = MaxTransportAmountRule)
+        def MaxTransportAmountRule(model,m,f,t):
+            return (self.model.q_max_transp_amount[m,f] >= self.model.q_transp_amount[m,f,t])
+        self.model.MaxTranspAmount = Constraint(self.data.MFT, rule = MaxTransportAmountRule)
         
         if self.calculate_max_transp_amount_exact:
-            def MaxTransportAmountRule2(model,m,f,t,tau):
+            def MaxTransportAmountRule2(model,m,f,t):
                 M = np.max(list(self.data.AVG_DISTANCE.values())) * self.data.D_DEMAND_AGGR[t]  #maybe we can use mean as well
-                return (self.model.q_max_transp_amount[m,f,t] <= self.model.q_transp_amount[m,f,tau] + M*(1-self.model.chi_max_transp[m,f,t,tau]))
-            self.model.MaxTranspAmount2 = Constraint(self.data.MFTT, rule = MaxTransportAmountRule2)
+                return (self.model.q_max_transp_amount[m,f] <= self.model.q_transp_amount[m,f,t] + M*(1-self.model.chi_max_transp[m,f,t]))
+            self.model.MaxTranspAmount2 = Constraint(self.data.MFT, rule = MaxTransportAmountRule2)
 
-            def MaxTransportAmountRule3(model,m,f,t):
-                return (sum(self.model.chi_max_transp[m,f,t,tau] for tau in self.data.T_TIME_PERIODS if tau <= t) == 1)
-            self.model.MaxTranspAmount3 = Constraint(self.data.MFT, rule = MaxTransportAmountRule3)
+            def MaxTransportAmountRule3(model,m,f):
+                return (sum(self.model.chi_max_transp[m,f,t] for t in self.data.T_TIME_PERIODS) == 1)
+            self.model.MaxTranspAmount3 = Constraint(self.data.MF, rule = MaxTransportAmountRule3)
             
 
 
@@ -237,7 +237,7 @@ class TranspModel:
         def FleetRenewalRule(model,m,f, t):
             decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
             factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
-            return (decrease <= factor*self.model.q_max_transp_amount[m,f,t])
+            return (decrease <= factor*self.model.q_max_transp_amount[m,f])
         self.model.FleetRenewal = Constraint(self.data.MFT_MIN0, rule = FleetRenewalRule)
         
 
@@ -283,7 +283,7 @@ class TranspModel:
             elif variable == 'q_transp_amount':
                 self.model.q_transp_amount[(m, f, t)].fix(w)
             elif variable == 'q_max_transp_amount':
-                self.model.q_max_transp_amount[(m, f, t)].fix(w)
+                self.model.q_max_transp_amount[(m, f)].fix(w)
 
 
     def solve_model(self):

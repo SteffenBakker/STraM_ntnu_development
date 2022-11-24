@@ -63,7 +63,7 @@ class OutputData():
         self.z_emission_violation = pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
         self.total_emissions =      pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
         self.q_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','time_period','weight','scenario'])
-        self.q_max_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','time_period','weight','scenario'])
+        self.q_max_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','weight','scenario'])
         
         scenario_names_and_models = []
         if expected_value_problem:
@@ -156,11 +156,10 @@ class OutputData():
             variable = 'q_max_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
-                    for t in base_data.T_TIME_PERIODS:
-                        weight = modell.q_max_transp_amount[(m, f, t)].value
-                        if weight > 0:
-                            a_series = pd.Series([variable,m, f, t, weight, scen_name], index=self.q_max_transp_amount.columns)
-                            self.q_max_transp_amount = pd.concat([self.q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
+                    weight = modell.q_max_transp_amount[(m, f)].value
+                    if weight > 0:
+                        a_series = pd.Series([variable,m, f, weight, scen_name], index=self.q_max_transp_amount.columns)
+                        self.q_max_transp_amount = pd.concat([self.q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
 
             self.all_variables = pd.concat([self.x_flow,self.b_flow,self.h_path,self.y_charging,self.nu_node,self.epsilon_edge,self.upsilon_upgrade,
                       self.z_emission_violation,self.total_emissions,self.q_transp_amount,self.q_max_transp_amount],ignore_index=True)
