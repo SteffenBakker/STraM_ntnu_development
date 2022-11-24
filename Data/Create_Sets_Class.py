@@ -363,6 +363,9 @@ class TransportSets():
             self.D_DEMAND[(o,d,p,t)] = round(value/self.scaling_factor,self.precision_digits)
         
         
+        self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS}
+        for (o,d,p,t),value in self.D_DEMAND.items():
+            self.D_DEMAND_AGGR[t] += value
 
 
         # self.A_LINKS = {l: [] for l in self.A_ARCS}

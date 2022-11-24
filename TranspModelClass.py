@@ -7,7 +7,7 @@ import logging
 from Data.settings import *
 from Data.Create_Sets_Class import TransportSets   #FreightTransportModel.Data.Create_Sets_Class
 import os
-os.getcwd()
+import numpy as np
 
 ############# Class ################
 
@@ -22,6 +22,8 @@ class TranspModel:
         self.model = ConcreteModel()
         self.opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         self.data = data
+
+        self.calculate_max_transp_amount_exact = True
 
     def construct_model(self):
         
@@ -52,6 +54,11 @@ class TranspModel:
         self.model.q_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
         self.model.q_max_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
 
+        max_transp_penalty = MAX_TRANSPORT_AMOUNT_PENALTY
+        if self.calculate_max_transp_amount_exact:
+            self.model.chi_max_transp = Var(self.data.MFTT, within = Binary)
+            max_transp_penalty = 0
+
         "OBJECTIVE"
         #TO DO: check how the CO2 kicks in? Could be baked into C_TRANSP_COST (what is the question here?)
         def StageCostsVar(model, t):  
@@ -73,7 +80,7 @@ class TranspModel:
                 sum(delta*self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE) +
                 sum(delta*self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t)] for (e,f) in self.data.EF_CHARGING) +
                 EMISSION_VIOLATION_PENALTY*self.model.z_emission[t] +
-                MAX_TRANSPORT_AMOUNT_PENALTY*sum(self.model.q_max_transp_amount[m,f,t] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) 
+                max_transp_penalty*sum(self.model.q_max_transp_amount[m,f,t] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) 
                 ))
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)
         
@@ -214,6 +221,18 @@ class TranspModel:
             return (self.model.q_max_transp_amount[m,f,t] >= self.model.q_transp_amount[m,f,tau])
         self.model.MaxTranspAmount = Constraint(self.data.MFTT, rule = MaxTransportAmountRule)
         
+        if self.calculate_max_transp_amount_exact:
+            def MaxTransportAmountRule2(model,m,f,t,tau):
+                M = np.max(list(self.data.AVG_DISTANCE.values())) * self.data.D_DEMAND_AGGR[t]  #maybe we can use mean as well
+                return (self.model.q_max_transp_amount[m,f,t] <= self.model.q_transp_amount[m,f,tau] + M*self.model.chi_max_transp[m,f,t,tau])
+            self.model.MaxTranspAmount2 = Constraint(self.data.MFTT, rule = MaxTransportAmountRule2)
+
+            def MaxTransportAmountRule3(model,m,f,t):
+                return (sum(self.model.chi_max_transp[m,f,t,tau] for tau in self.data.T_TIME_PERIODS if tau <= t) == 1)
+            self.model.MaxTranspAmount3 = Constraint(self.data.MFT, rule = MaxTransportAmountRule3)
+            
+
+
         #Fleet Renewal
         def FleetRenewalRule(model,m,f, t):
             decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
