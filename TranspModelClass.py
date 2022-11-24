@@ -23,7 +23,7 @@ class TranspModel:
         self.opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         self.data = data
 
-        self.calculate_max_transp_amount_exact = True
+        self.calculate_max_transp_amount_exact = False
 
     def construct_model(self):
         
