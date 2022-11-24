@@ -224,7 +224,7 @@ class TranspModel:
         if self.calculate_max_transp_amount_exact:
             def MaxTransportAmountRule2(model,m,f,t,tau):
                 M = np.max(list(self.data.AVG_DISTANCE.values())) * self.data.D_DEMAND_AGGR[t]  #maybe we can use mean as well
-                return (self.model.q_max_transp_amount[m,f,t] <= self.model.q_transp_amount[m,f,tau] + M*self.model.chi_max_transp[m,f,t,tau])
+                return (self.model.q_max_transp_amount[m,f,t] <= self.model.q_transp_amount[m,f,tau] + M*(1-self.model.chi_max_transp[m,f,t,tau]))
             self.model.MaxTranspAmount2 = Constraint(self.data.MFTT, rule = MaxTransportAmountRule2)
 
             def MaxTransportAmountRule3(model,m,f,t):
