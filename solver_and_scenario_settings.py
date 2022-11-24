@@ -10,20 +10,25 @@ from TranspModelClass import TranspModel
 import mpisppy.scenario_tree as scenario_tree
 import copy
 from Data.settings import *
-
+import pickle
 
 def scenario_creator(scenario_name, **kwargs):
     
     base_data = kwargs.get('base_data')
-    
+    fix_first_stage = kwargs.get('fix_first_stage')
+
     base_data.update_scenario_dependent_parameters(scenario_name)
     
     #deepcopy is slower than repetitively constructing the models.
     model_instance = TranspModel(data=base_data)
     model_instance.construct_model()
+    if fix_first_stage:
+        with open(r'Data\output_data_EV', 'rb') as output_file:
+            output_evp = pickle.load(output_file)
+        model_instance.fix_variables_first_stage(output_evp)
     model = model_instance.model
     
-    first_stage = [2020, 2025]
+    first_stage = base_data.T_TIME_FIRST_STAGE 
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage),
                                          [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+
                                          [model.b_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
@@ -40,8 +45,8 @@ def scenario_creator(scenario_name, **kwargs):
                                          )
 
     ###### set scenario probabilties if they are not assumed equal######
-
-    model._mpisppy_probability = 0.5 #prob(scenario_nr) #TO DO
+    scenario_nr = base_data.scenario_information.scen_name_to_nr[scenario_name]
+    model._mpisppy_probability = base_data.scenario_information.probabilities[scenario_nr]
 
     return model
 

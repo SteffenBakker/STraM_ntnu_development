@@ -225,8 +225,47 @@ class TranspModel:
         return self.model
     
 
-    def fix_variables_first_stage(output):
-        pass
+    def fix_variables_first_stage(self,output):
+        
+        for index,row in output.all_variables[output.all_variables['time_period'].isin(self.data.T_TIME_FIRST_STAGE)].iterrows():
+            variable = row['variable']
+            i = row['from']
+            j = row['to']
+            m = row['mode']
+            r = row['route']
+            a = (i,j,m,r)
+            e = (i,j,m,r)
+            f = row['fuel']
+            p = row['product']
+            t = row['time_period']
+            w = row['weight']
+            #s = row['scenario'] #not used
+            v = row['vehicle_type']
+            k = row['path']
+            c = row['terminal_type']
+            if variable == 'x_flow':
+                self.model.x_flow[(a,f,p,t)].fix(w)
+            elif variable == 'b_flow':
+                self.model.b_flow[(a,f,v,t)].fix(w)
+            elif variable == 'h_path':
+                self.model.h_flow[(k,p,t)].fix(w)
+            elif variable == 'epsilon_edge':
+                self.model.epsilon_edge[(e,t)].fix(w)
+            elif variable == 'upsilon_upg':
+                self.model.upsilon_upg[(i,j,m,r,f,p,t)].fix(w)
+            elif variable == 'nu_node':
+                self.model.nu_node[(i, c, m, t)].fix(w)
+            elif variable == 'y_charging':
+                self.model.y_charge[(i,j,m,r,f,t)].fix(w)
+            elif variable == 'z_emission':
+                self.model.z_emission[t].fix(w)
+            elif variable == 'total_emissions':
+                self.model.total_emissions[t].fix(w)
+            elif variable == 'q_transp_amount':
+                self.model.q_transp_amount[(m, f, t)].fix(w)
+            elif variable == 'q_max_transp_amount':
+                self.model.q_max_transp_amount[(m, f, t)].fix(w)
+
 
     def solve_model(self):
 

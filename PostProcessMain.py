@@ -8,17 +8,24 @@ import pandas as pd
 import pickle
 
 #---------------------------------------------------------#
+#       User Settings
+#---------------------------------------------------------#
+
+analyses_type = 'SP' # EV , EEV, 'SP
+
+#---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
 
-with open(r'Data\output_data', 'rb') as output_file:
-        output = pickle.load(output_file)
+
+with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
+    output = pickle.load(output_file)
 
 with open(r'Data\base_data', 'rb') as data_file:
-        base_data = pickle.load(data_file)
+    base_data = pickle.load(data_file)
 
 
-
+output.ob_function_value
 #---------------------------------------------------------#
 #       Accuracy of Q MAX approximation due to penalty -> should become zero
 #---------------------------------------------------------#
@@ -168,7 +175,8 @@ def cost_and_investment_table(base_data,output):
         std = output.all_costs_table.iloc[:,columns ].std(axis=1)
         output.all_costs_table[(t,'mean')] = mean
         output.all_costs_table[(t,'std')] = std
-    
+    output.all_costs_table = output.all_costs_table.fillna(0) #in case of a single scenario we get NA's
+
     #only select mean and std data (go away from scenarios)
     columns = ((output.all_costs_table.columns.get_level_values(1)=='mean') | (output.all_costs_table.columns.get_level_values(1)=='std'))
     output.all_costs_table = output.all_costs_table.iloc[:,columns ].sort_index(axis=1,level=0)
@@ -208,6 +216,8 @@ def plot_emission_results(output,base_data):
     output.emission_stats = output.total_emissions.groupby('time_period').agg(
         AvgEmission=('weight', np.mean),
         Std=('weight', np.std))
+    output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
+
     output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100
     output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100
     goals = list(base_data.CO2_CAP.values())
@@ -311,7 +321,6 @@ def mode_mix_calculations(output,base_data):
         TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
-        #print(TranspArb[(TranspArb["time_period"].isin([2020,2025])) & (TranspArb["scenario"]=='HHH') & (TranspArb["mode"]=='Road') ])
 
         TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
         TranspArb['RelTranspArb'] = 100*TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
@@ -322,6 +331,7 @@ def mode_mix_calculations(output,base_data):
         TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
 
         TranspArbAvgScen = TranspArb[['mode','fuel','time_period','scenario','RelTranspArb','RelTranspArb_std']].groupby(['mode','fuel','time_period'], as_index=False).agg({'RelTranspArb':'mean','RelTranspArb_std':'std'})
+        TranspArbAvgScen = TranspArbAvgScen.fillna(0) #in case of a single scenario we get NA's
 
         plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type)
 

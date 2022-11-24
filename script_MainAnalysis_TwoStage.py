@@ -30,18 +30,20 @@ import cProfile
 import pstats
 
 
-
 #################################################
 #                   user input                  #
 #################################################
 
-
+profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
-read_data_from_scratch = True #Use cached data? Exctracting data is a bit slow in debug mode
-extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
 instance_run = 'base'     #change instance_run to choose which instance you want to run
 
-profiling = False
+read_data_from_scratch = False #Use cached data? Exctracting data is a bit slow in debug mode
+extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
+
+analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+sheet_name_scenarios = 'three_scenarios' #scenarios_base, three_scenarios
+    
 
 #################################################
 #                   main code                   #
@@ -50,61 +52,77 @@ profiling = False
 
 if __name__ == "__main__":
     
+
+    #     --------- DATA  ---------   #
     
+
+    EV_problem = False
+    if analysis_type == 'EV':
+        EV_problem = True
+    EEV_problem = False
+    if analysis_type == 'EEV':
+        EEV_problem = True
+
     if not os.path.exists(r'Data/Instance_results_write_to_here/Instance'+instance_run):
         os.makedirs(r'Data/Instance_results_write_to_here/Instance'+instance_run)
         
     if read_data_from_scratch:
-        base_data = TransportSets() #needs to be initialized with some scenario.
+        start = time.time()
+        base_data = TransportSets(sheet_name_scenarios) 
         with open(r'Data\base_data', 'wb') as data_file: 
             pickle.dump(base_data, data_file)
+        print("Time used reading the base data:", time.time() - start)
     else:
         with open(r'Data\base_data', 'rb') as data_file:
             base_data = pickle.load(data_file)
- 
-    if profiling:
-        profiler = cProfile.Profile()
-        profiler.enable()
 
-    #Model   (consider removing the base_model, not used)
-    #base_model = TranspModel(data=base_data)
-    #base_model.construct_model()
-    #base_model.solve_model()
 
-    #Scenarios
-    scenario_names = base_data.scenario_information.scenario_names
-    #scenario_names = ['LLL','HHH']
+    #   --------- SCENARIOS ---------  #
 
-    #Solve model 
+
+    scenario_names = base_data.scenario_information.scenario_names    
+    if analysis_type == 'EV':
+        scenario_names = ['MMM'] 
+
+
+    #  --------- CONSTRUCT MODEL ---------     #
+
 
     start = time.time()
-
-    scenario_creator_kwargs = {'base_data':base_data}
+    scenario_creator_kwargs = {'base_data':base_data, 'fix_first_stage':EEV_problem}
     ef = sputils.create_EF(
         scenario_names,
         scenario_creator,
-        scenario_creator_kwargs = scenario_creator_kwargs
-    )
+        scenario_creator_kwargs = scenario_creator_kwargs,
+        nonant_for_fixed_vars = True #  MAYBE FALSE FOR VSS? (bool--optional) – If True, enforces non-anticipativity constraints for all variables, including those which have been fixed. Default is True.
+    ) 
+    print("Time used constructing the model:", time.time() - start)
 
-    options = option_settings_ef()
-    solver = pyo.SolverFactory('gurobi')  o#ptions["solvername"]
+
+    #  ---------  SOLVE MODEL  ---------    #
+
+
+    start = time.time()
+    #options = option_settings_ef()
+    solver = pyo.SolverFactory('gurobi')  #options["solvername"]
     solver.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
-
     results = solver.solve(ef,logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log', tee= True)
-    
+    print("Time used solving the model:", time.time() - start)
 
-    
-    print('EF objective value:', pyo.value(ef.EF_Obj))
 
-    stop = time.time()
-    print("The time of the run:", stop - start)
+    #  --------- SAVE OUTPUT ---------    #
 
-    #scenarios = sputils.ef_scenarios(ef)
+
+    file_string = 'output_data_' + analysis_type
     if extract_data_postprocessing:        
-        output = OutputData(ef,base_data,instance_run)
-        with open(r'Data\output_data', 'wb') as output_file: 
+        output = OutputData(ef,base_data,instance_run,EV_problem)
+        with open(r'Data\\' + file_string, 'wb') as output_file: 
             pickle.dump(output, output_file)
-        
-        #output.emission_results(base_data)
-        #plot_figures(base_data,dataset_x_flow,scenarios,instance_run,solution_method)
-        #output.cost_and_investment_table(base_data)
+
+
+
+
+
+    # if profiling:
+    #     profiler = cProfile.Profile()
+    #     profiler.enable()

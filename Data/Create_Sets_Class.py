@@ -29,7 +29,7 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 #Class containing information about all scenarios
 #Information in this class can be used to activate a scenario in a TransportSets object, meaning that the corresponding parameter values are changed
 class ScenarioInformation():
-    def __init__(self, prefix): 
+    def __init__(self, prefix,sheet_name='scenarios_base'): 
 
         self.prefix = prefix #get prefix from calling object
         self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
@@ -47,7 +47,7 @@ class ScenarioInformation():
                 self.fuel_groups[row["Fuel group"]] = self.fuel_groups[row["Fuel group"]] + [(row["Mode"], row["Fuel"])]  #append entry in dict
 
         #read and process scenario data
-        scenario_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name='scenarios')
+        scenario_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name=sheet_name)
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
@@ -87,8 +87,7 @@ test_scenario_information = ScenarioInformation('Data/')
 #Activating a scenario means that all relevant parameters are changed to their scenario values
 class TransportSets():
 
-    def __init__(self):# or (self)
-        #scenario='HHH', carbon_scenario=1, emission_reduction=75
+    def __init__(self,sheet_name_scenarios):# or (self)
         self.run_file = "main"  # "sets" or "main"
         self.prefix = '' 
         if self.run_file == "main":
@@ -101,7 +100,7 @@ class TransportSets():
 
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
-        self.scenario_information = ScenarioInformation(self.prefix) #TODO: check performance of this
+        self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios) #TODO: check performance of this
 
     def construct_pyomo_data(self):
 
@@ -167,6 +166,7 @@ class TransportSets():
         self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
         
         self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]
+        self.T_TIME_FIRST_STAGE = [2020,2025]
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}        
                 
         self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
