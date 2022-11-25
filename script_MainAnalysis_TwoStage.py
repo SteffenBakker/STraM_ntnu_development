@@ -42,7 +42,7 @@ read_data_from_scratch = True #Use cached data? Exctracting data is a bit slow i
 extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
 
 analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'three_scenarios' #scenarios_base, three_scenarios
+sheet_name_scenarios = 'scenarios_base' #scenarios_base, three_scenarios
     
 
 #################################################

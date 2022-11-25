@@ -134,7 +134,7 @@ class TranspModel:
                 self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t] for p in self.data.P_PRODUCTS
                 for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
                 sum(
-                0 * self.model.b_flow[i,j,m,r,f, v, t] for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]
+                self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t] for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]
                                                         for v in self.data.VEHICLE_TYPES_M[m]))
                 )
                 # TO DO: add emissions for empty trips (set at zero currently)
