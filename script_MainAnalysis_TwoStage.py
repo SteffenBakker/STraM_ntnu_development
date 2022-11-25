@@ -38,7 +38,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 instance_run = 'base'     #change instance_run to choose which instance you want to run
 
-read_data_from_scratch = False #Use cached data? Exctracting data is a bit slow in debug mode
+read_data_from_scratch = True #Use cached data? Exctracting data is a bit slow in debug mode
 extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
 
 analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program

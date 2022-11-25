@@ -216,6 +216,12 @@ class TranspModel:
             return (self.model.q_transp_amount[(m,f,t)] <= self.data.R_TECH_READINESS_MATURITY[(m,f,t)]*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
 
+        #Initialize the transport amounts (put an upper bound at first)
+        def InitTranspAmountRule(model, m, f, t):
+            return (self.model.q_transp_amount[(m,f,t)] <= self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
+        self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE, rule = InitTranspAmountRule)
+        
+
         #Max TransportArbeid
         def MaxTransportAmountRule(model,m,f,t):
             return (self.model.q_max_transp_amount[m,f] >= self.model.q_transp_amount[m,f,t])

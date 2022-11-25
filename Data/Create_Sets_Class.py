@@ -766,6 +766,15 @@ class TransportSets():
             for year in self.T_TIME_PERIODS:
                 self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'],year)] = row[str(year)]
 
+        #Initializing transport work share in base year
+        self.init_transport_share = pd.read_excel(self.prefix+r'init_mode_fuel_mix.xlsx',sheet_name="InitMix")
+        self.Q_SHARE_INIT_MAX = {}
+        self.MFT_INIT_TRANSP_SHARE = []
+        for index, row in self.init_transport_share.iterrows():
+            (m,f,t) = (row['Mode'], row['Fuel'],row['Year'])
+            self.Q_SHARE_INIT_MAX[(m,f,t)] = row['Max_transp_share']
+            self.MFT_INIT_TRANSP_SHARE.append((m,f,t))
+
         #lifetime / lifespan
         self.lifespan_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='lifetimes')
         self.LIFETIME = {}
