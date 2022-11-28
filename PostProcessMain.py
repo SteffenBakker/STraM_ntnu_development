@@ -85,7 +85,7 @@ def plot_costs(output):
         ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), stacked = True,
                                         xlabel = 'time periods',
                                         ylabel = 'Costs (MNOK)',
-                                        title = "Emissions",)  
+                                        title = "Costs",)  
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
         fig = ax.get_figure()
         #fig.savefig('/path/to/figure.pdf')
@@ -201,6 +201,32 @@ plot_costs(output)
 #---------------------------------------------------------#
 #       EMISSIONS 
 #---------------------------------------------------------#
+
+def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
+    print('')
+    if domestic:
+        x_flow = x_flow[(x_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
+        b_flow = b_flow[(b_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
+        print('domestic emissions (millioner tonn CO2 equivalents)')
+    else:
+        print('all emissions (millioner tonn CO2 equivalents)')
+    print('')
+    emissions_direct = 0
+    emission_empty = 0
+    t0 = base_data.T_TIME_PERIODS[0]
+    for index,row in x_flow[x_flow["time_period"]==t0].iterrows():
+        (i,j,m,r,f,p,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['weight'])
+        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value
+    for index,row in b_flow[b_flow["time_period"]==t0].iterrows():
+        (i,j,m,r,f,v,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['weight'])
+        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value
+    print(round(emissions_direct*10**(-6),2))
+    print(round(emission_empty*10**(-6),2))
+    print(round((emissions_direct+emission_empty)*10**(-6),2))
+
+for domestic in [True,False]:
+    calculate_emissions_base_year(output.x_flow,output.b_flow,base_data,domestic)
+
 
 def plot_emission_results(output,base_data):
 

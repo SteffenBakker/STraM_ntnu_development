@@ -113,7 +113,7 @@ if __name__ == "__main__":
     #  --------- SAVE OUTPUT ---------    #
 
 
-    file_string = 'output_data_' + analysis_type
+    file_string = 'output_data_' + analysis_type + '2'
     if extract_data_postprocessing:        
         output = OutputData(ef,base_data,instance_run,EV_problem)
         with open(r'Data\\' + file_string, 'wb') as output_file: 
