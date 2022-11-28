@@ -435,8 +435,13 @@ class TransportSets():
             if l[0] not in self.N_NODES_NORWAY or l[1] not in self.N_NODES_NORWAY:
                 self.AVG_DISTANCE[l] = self.AVG_DISTANCE[l] / 2        #We have to account for half the costs of international transport
                 self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] / 2
+            if (l[0] == "Verden") and (l[1] == "Oslo") or (l[1] == "Verden") and (l[0] == "Oslo"):
+                self.AVG_DISTANCE[l] = 0
+
         for key, value in self.AVG_DISTANCE.items():  
             self.AVG_DISTANCE[key] = round(value,1)
+
+
 
 
         #multi-mode paths and unimodal paths
