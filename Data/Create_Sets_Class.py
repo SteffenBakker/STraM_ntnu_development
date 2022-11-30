@@ -320,6 +320,7 @@ class TransportSets():
             to_node = row['to_fylke_zone']
             product = row['commodity_aggr']
             if from_node !=  to_node and from_node in self.N_NODES and to_node in self.N_NODES:
+                #if from_node not in ['Europa', 'Verden','Kontinentalsokkelen']: #TO DO, change back: temporary solution
                 D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
                 
         demands = pd.Series(D_DEMAND_ALL.values())         
@@ -435,8 +436,8 @@ class TransportSets():
             if l[0] not in self.N_NODES_NORWAY or l[1] not in self.N_NODES_NORWAY:
                 self.AVG_DISTANCE[l] = self.AVG_DISTANCE[l] / 2        #We have to account for half the costs of international transport
                 self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] / 2
-            if (l[0] == "Verden") and (l[1] == "Oslo") or (l[1] == "Verden") and (l[0] == "Oslo"):
-                self.AVG_DISTANCE[l] = 0
+            #if (l[0] == "Verden") and (l[1] == "Oslo") or (l[1] == "Verden") and (l[0] == "Oslo"):
+            #    self.AVG_DISTANCE[l] = 0
 
         for key, value in self.AVG_DISTANCE.items():  
             self.AVG_DISTANCE[key] = round(value,1)

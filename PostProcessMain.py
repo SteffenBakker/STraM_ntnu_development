@@ -11,7 +11,7 @@ import pickle
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = 'SP' # EV , EEV, 'SP
+analyses_type = 'SP2' # EV , EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
@@ -127,8 +127,9 @@ def cost_and_investment_table(base_data,output):
                                                                     for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
             transport_costs[(t,s)] += cost_contribution
         if variable == 'b_flow':
-            cost_contribution = sum(base_data.D_DISCOUNT_RATE**n*EMPTY_VEHICLE_FACTOR*(base_data.C_TRANSP_COST[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
-                                                                    base_data.C_CO2[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)])*value  
+            cost_contribution = sum(EMPTY_VEHICLE_FACTOR*base_data.D_DISCOUNT_RATE**n*(base_data.C_TRANSP_COST[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
+                                                                    0 #base_data.C_CO2[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)]
+                                                                    )*value  
                                                                     for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
             transport_costs_empty[(t,s)] += cost_contribution
         elif variable == 'h_path':
@@ -220,9 +221,9 @@ def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
     for index,row in b_flow[b_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,v,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['weight'])
         emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value
-    print(round(emissions_direct*10**(-6),2))
-    print(round(emission_empty*10**(-6),2))
-    print(round((emissions_direct+emission_empty)*10**(-6),2))
+    print('direct: ',round(emissions_direct*10**(-6),2))
+    print('indirect: ',round(emission_empty*10**(-6),2))
+    print('both: ',round((emissions_direct+emission_empty)*10**(-6),2))
 
 for domestic in [True,False]:
     calculate_emissions_base_year(output.x_flow,output.b_flow,base_data,domestic)
@@ -338,11 +339,11 @@ def mode_mix_calculations(output,base_data):
 
 
 
-    for i in range(2):
-        if i == 0:
-            analysis_type = 'Domestic'
-            ss_x_flow = output.x_flow[(output.x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (output.x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
-        elif i == 1:
+    for i in [1]:  #we only do domestic now
+        #if i == 0:
+        #    analysis_type = 'Domestic'
+        #    ss_x_flow = output.x_flow[(output.x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (output.x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
+        if i == 1:
             analysis_type = 'All transport'
             ss_x_flow = output.x_flow
 
