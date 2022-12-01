@@ -37,8 +37,8 @@ class TranspModel:
 
         self.model.x_flow = Var(self.data.AFPT, within=NonNegativeReals)
         self.model.b_flow = Var(self.data.AFVT, within=NonNegativeReals)
-        self.model.h_flow = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
-        self.model.h_flow_balancing = Var(self.data.KVT, within=NonNegativeReals)# flow on paths K,p
+        self.model.h_path = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
+        self.model.h_path_balancing = Var(self.data.KVT, within=NonNegativeReals)# flow on paths K,p
 
         self.model.StageCosts = Var(self.data.T_TIME_PERIODS, within = NonNegativeReals)
         
@@ -70,7 +70,7 @@ class TranspModel:
                                     sum( EMPTY_VEHICLE_FACTOR*(self.data.C_TRANSP_COST[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
                                           self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t)] 
                                     for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ))
-            yearly_transfer_cost = sum(self.data.C_TRANSFER[(k,p)]*self.model.h_flow[k,p,t] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)
+            yearly_transfer_cost = sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)
             delta = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0]
             return(self.model.StageCosts[t] == (
                 sum(self.data.D_DISCOUNT_RATE**n*(yearly_transp_cost+yearly_transfer_cost) for n in self.data.Y_YEARS[t]) + 
@@ -94,7 +94,7 @@ class TranspModel:
         # DEMAND
                 
         def FlowRule(model, o, d, p, t):
-            return sum(self.model.h_flow[(k, p, t)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
+            return sum(self.model.h_path[(k, p, t)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
                 (o, d, p, t)]
         # THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.Flow = Constraint(self.data.ODPTS, rule=FlowRule)
@@ -105,13 +105,13 @@ class TranspModel:
         def PathArcRule(model, i, j, m, r, p, t):
             a= (i,j,m,r)
             return sum(self.model.x_flow[a, f, p, t] for f in self.data.FM_FUEL[m]) == sum(
-                self.model.h_flow[k, p, t] for k in self.data.KA_PATHS[a] )
+                self.model.h_path[k, p, t] for k in self.data.KA_PATHS[a] )
         self.model.PathArcRel = Constraint(self.data.APT, rule=PathArcRule)
 
         def PathArcRuleBalancing(model, i, j, m, r, v, t):
             a= (i,j,m,r)
             return sum(self.model.b_flow[a, f, v, t] for f in self.data.FM_FUEL[m]) == sum(
-                self.model.h_flow_balancing[k, v, t] for k in self.data.KA_PATHS_UNIMODAL[a] )
+                self.model.h_path_balancing[k, v, t] for k in self.data.KA_PATHS_UNIMODAL[a] )
         self.model.PathArcRelBalance = Constraint(self.data.AVT, rule=PathArcRuleBalancing)
 
         # FLEET BALANCING
@@ -163,9 +163,9 @@ class TranspModel:
         
         #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
         def TerminalCapRule(model, i, c, m,t):
-            return(sum(self.model.h_flow[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[c]) + 
-                   sum(self.model.h_flow[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[c]) +
-                   sum(self.model.h_flow[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[c]) <= 
+            return(sum(self.model.h_path[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[c]) + 
+                   sum(self.model.h_path[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[c]) +
+                   sum(self.model.h_path[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[c]) <= 
                    self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.nu_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= t))
         self.model.TerminalCap = Constraint(self.data.NCMT, rule = TerminalCapRule)
         
@@ -262,7 +262,7 @@ class TranspModel:
             elif variable == 'b_flow':
                 self.model.b_flow[(a,f,v,t)].fix(w)
             elif variable == 'h_path':
-                self.model.h_flow[(k,p,t)].fix(w)
+                self.model.h_path[(k,p,t)].fix(w)
             elif variable == 'epsilon_edge':
                 self.model.epsilon_edge[(e,t)].fix(w)
             elif variable == 'upsilon_upg':

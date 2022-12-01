@@ -99,7 +99,7 @@ class OutputData():
                 #k = self.K_PATH_DICT[kk]
                 for t in base_data.T_TIME_PERIODS:
                     for p in base_data.P_PRODUCTS:
-                        weight = modell.h_flow[(kk, p, t)].value
+                        weight = modell.h_path[(kk, p, t)].value
                         if weight > 0:
                             a_series = pd.Series([variable,kk, p, t, weight, scen_name], index=self.h_path.columns)
                             self.h_path = pd.concat([self.h_path,a_series.to_frame().T],axis=0, ignore_index=True)

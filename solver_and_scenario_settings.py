@@ -34,8 +34,8 @@ def scenario_creator(scenario_name, **kwargs):
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage),
                                          [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+
                                          [model.b_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
-                                         [model.h_flow[:,:,t] for t in first_stage]+
-                                         [model.h_flow_balancing[:,:,t] for t in first_stage]+
+                                         [model.h_path[:,:,t] for t in first_stage]+
+                                         [model.h_path_balancing[:,:,t] for t in first_stage]+
                                          [model.q_transp_amount[:,:,t] for t in first_stage]+
                                          [model.q_max_transp_amount[:,:]]+
                                          [model.y_charge[:, :, :, :, :, t] for t in first_stage]+

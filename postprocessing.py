@@ -145,7 +145,7 @@ def extract_aggregated_output_ef(ef,data,instance_run):
             #k = self.K_PATH_DICT[kk]
             for t in data.T_TIME_PERIODS:
                 for p in data.P_PRODUCTS:
-                    weight = modell.h_flow[(kk, p, t)].value
+                    weight = modell.h_path[(kk, p, t)].value
                     if weight > 0:
                         a_series = pd.Series([kk, p, t, weight, scen[0]], index=dataset_h_paths.columns)
                         dataset_h_paths = dataset_h_paths.append(a_series, ignore_index=True)
@@ -226,7 +226,7 @@ def extract_output_ef(ef,data,instance_run):
             #k = self.K_PATH_DICT[kk]
             for t in data.T_TIME_PERIODS:
                 for p in data.P_PRODUCTS:
-                    weight = modell.h_flow[(kk, p, t)].value
+                    weight = modell.h_path[(kk, p, t)].value
                     if weight > 0:
                         a_series = pd.Series([kk, p, t, weight, e[0]], index=dataset_paths.columns)
                         dataset_paths = dataset_paths.append(a_series, ignore_index=True)
