@@ -278,7 +278,7 @@ plot_emission_results(output,base_data)
 #       MODE MIX
 #---------------------------------------------------------#
 
-def plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type):  #result data = TranspArbAvgScen
+def plot_mode_mixes(TranspArbAvgScen, base_data,absolute_transp_work=True, analysis_type="All transport"):  #result data = TranspArbAvgScen
     # color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
     # color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
     # color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
@@ -311,7 +311,12 @@ def plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type):  #result data = 
     labels = [str(t) for t in  base_data.T_TIME_PERIODS]
     width = 0.35       # the width of the bars: can also be len(x) sequence
 
-    
+    base_string = 'TranspArb'
+    ylabel = 'Transport work (GTonnes-kilometer)'
+    if not absolute_transp_work:
+        base_string = 'Rel'+base_string
+        ylabel = 'Relative transport work (%)'
+
     for m in ["Road", "Rail", "Sea"]:
 
         fig, ax = plt.subplots()
@@ -319,10 +324,10 @@ def plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type):  #result data = 
         bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
         for f in base_data.FM_FUEL[m]:
             subset = TranspArbAvgScen[(TranspArbAvgScen['mode']==m)&(TranspArbAvgScen['fuel']==f)]
-            ax.bar(labels, subset['RelTranspArb'].tolist(), width, yerr=subset['RelTranspArb_std'].tolist(), 
+            ax.bar(labels, subset[base_string].tolist(), width, yerr=subset[base_string+'_std'].tolist(), 
                         bottom = bottom,label=f,color=color_dict[f])
-            bottom = [subset['RelTranspArb'].tolist()[i]+bottom[i] for i in range(len(bottom))]
-        ax.set_ylabel('Transport work share (%)')
+            bottom = [subset[base_string].tolist()[i]+bottom[i] for i in range(len(bottom))]
+        ax.set_ylabel(ylabel)
         ax.set_title(m + ' - ' + analysis_type)
         ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
 
@@ -335,34 +340,36 @@ def mode_mix_calculations(output,base_data):
     for index, row in output.x_flow.iterrows():
             output.x_flow.at[index,'Distance'] = base_data.AVG_DISTANCE[(row['from'],row['to'],row['mode'],row['route'])]
 
-    output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] # in Tonnes KM
+    output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] /10**9*SCALING_FACTOR # in MTonnes KM
 
+    #for i in [1]:  #we only do one type, discuss what foreign transport needs to be excluded
+    i = 1
+    #if i == 0:
+    #    analysis_type = 'Domestic'
+    #    ss_x_flow = output.x_flow[(output.x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (output.x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
+    #if i == 1:
+    analysis_type = 'All transport'
+    ss_x_flow = output.x_flow
 
+    TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
+    TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
+    TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
+    TranspArb = TranspArb.rename(columns={"TransportArbeid": "TranspArb"})
 
-    for i in [1]:  #we only do domestic now
-        #if i == 0:
-        #    analysis_type = 'Domestic'
-        #    ss_x_flow = output.x_flow[(output.x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (output.x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
-        if i == 1:
-            analysis_type = 'All transport'
-            ss_x_flow = output.x_flow
+    TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
+    TranspArb['RelTranspArb'] = 100*TranspArb['TranspArb'] / TranspArb['TransportArbeidTotal']
+    
+    TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
+    TranspArb['TranspArb_std'] = TranspArb['TranspArb']
+    MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in output.scenarios]
+    all_rows = pd.DataFrame(MFTS, columns = ['mode', 'fuel', 'time_period','scenario'])
+    TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
 
-        TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
-        TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
-        TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
+    TranspArbAvgScen = TranspArb[['mode','fuel','time_period','scenario','TranspArb','TranspArb_std','RelTranspArb','RelTranspArb_std']].groupby(
+        ['mode','fuel','time_period'], as_index=False).agg({'TranspArb':'mean','TranspArb_std':'std','RelTranspArb':'mean','RelTranspArb_std':'std'})
+    TranspArbAvgScen = TranspArbAvgScen.fillna(0) #in case of a single scenario we get NA's
 
-        TranspArb = pd.merge(TranspArb,TotalTranspArb,how='left',on=['time_period','scenario'])
-        TranspArb['RelTranspArb'] = 100*TranspArb['TransportArbeid'] / TranspArb['TransportArbeidTotal']
-        
-        TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
-        MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in output.scenarios]
-        all_rows = pd.DataFrame(MFTS, columns = ['mode', 'fuel', 'time_period','scenario'])
-        TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
-
-        TranspArbAvgScen = TranspArb[['mode','fuel','time_period','scenario','RelTranspArb','RelTranspArb_std']].groupby(['mode','fuel','time_period'], as_index=False).agg({'RelTranspArb':'mean','RelTranspArb_std':'std'})
-        TranspArbAvgScen = TranspArbAvgScen.fillna(0) #in case of a single scenario we get NA's
-
-        plot_mode_mixes(TranspArbAvgScen,base_data, analysis_type)
+    plot_mode_mixes(TranspArbAvgScen,base_data,absolute_transp_work=True,analysis_type=analysis_type)
 
     return output
 
