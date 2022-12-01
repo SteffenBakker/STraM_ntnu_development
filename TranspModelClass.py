@@ -45,8 +45,9 @@ class TranspModel:
         self.model.epsilon_edge = Var(self.data.ET_RAIL, within = Binary) #within = Binary
         self.model.upsilon_upg = Var(self.data.UT_UPG, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
         self.model.nu_node = Var(self.data.NCMT, within = Binary) #step-wise investment in terminals
-        
         self.model.y_charge = Var(self.data.EFT_CHARGE, within=NonNegativeReals)
+        self.no_investments_first_time_period()
+
         self.model.z_emission = Var(self.data.TS, within = NonNegativeReals)
 
         self.model.total_emissions = Var(self.data.TS, within=NonNegativeReals) #instead of T_PERIODS!
@@ -156,21 +157,23 @@ class TranspModel:
         #Num expansions
         def ExpansionLimitRule(model,i,j,m,r):
             e = (i,j,m,r)
-            return (sum(self.model.epsilon_edge[(e,t)] for t in self.data.T_TIME_PERIODS) <= 1)
-        self.model.ExpansionCap = Constraint(self.data.E_EDGES_RAIL, rule = ExpansionLimitRule)
+            return (sum(self.model.epsilon_edge[(e,t)] for t in self.data.T_TIME_PERIODS_NOT_NOW) <= 1)
+        if len(self.data.T_TIME_PERIODS)>1:
+            self.model.ExpansionCap = Constraint(self.data.E_EDGES_RAIL, rule = ExpansionLimitRule)
         
         #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
         def TerminalCapRule(model, i, c, m,t):
             return(sum(self.model.h_flow[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[c]) + 
                    sum(self.model.h_flow[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[c]) +
                    sum(self.model.h_flow[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[c]) <= 
-                   self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.nu_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS if tau <= t))
+                   self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.nu_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= t))
         self.model.TerminalCap = Constraint(self.data.NCMT, rule = TerminalCapRule)
         
         #Num expansions of terminal NEW -- how many times you can perform a step-wise increase of the capacity
         def TerminalCapExpRule(model, i, c,m):
-            return(sum(self.model.nu_node[i,c,m,t] for t in self.data.T_TIME_PERIODS) <= 1) # THIS WAS AT 4 .... self.data.INV_NODE[i,m,c])
-        self.model.TerminalCapExp = Constraint(self.data.NCM, rule = TerminalCapExpRule)
+            return(sum(self.model.nu_node[i,c,m,t] for t in self.data.T_TIME_PERIODS_NOT_NOW) <= 1) # THIS WAS AT 4 .... self.data.INV_NODE[i,m,c])
+        if len(self.data.T_TIME_PERIODS)>1:
+            self.model.TerminalCapExp = Constraint(self.data.NCM, rule = TerminalCapExpRule)
 
         #Charging / Filling
         def ChargingCapArcRule(model, i, j, m, r,f, t):
@@ -178,7 +181,7 @@ class TranspModel:
             return (sum(self.model.x_flow[a,f,p, t] for p in self.data.P_PRODUCTS
                        for a in self.data.AE_ARCS[e]) + sum(self.model.b_flow[a,f,v, t] for a in self.data.AE_ARCS[e] 
                         for v in self.data.VEHICLE_TYPES_M[m]) <= self.data.Q_CHARGE_BASE[(e,f)] +
-                   sum(self.model.y_charge[(e,f,tau)] for tau in self.data.T_TIME_PERIODS if tau <= t))
+                   sum(self.model.y_charge[(e,f,tau)] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= t))
         self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE, rule=ChargingCapArcRule)
         #AIM also looked into charging infrastructure in NODES
 
@@ -186,7 +189,7 @@ class TranspModel:
         def InvestmentInfraRule(model,i,j,m,r,f,t):
             e = (i,j,m,r)
             return (sum(self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS for a in self.data.AE_ARCS[e])
-                    <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau] for tau in self.data.T_TIME_PERIODS if tau <= t))
+                    <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= t))
         self.model.InvestmentInfra = Constraint(self.data.UT_UPG, rule = InvestmentInfraRule)
     
         #-----------------------------------------------#
@@ -277,10 +280,36 @@ class TranspModel:
             elif variable == 'q_max_transp_amount':
                 self.model.q_max_transp_amount[(m, f)].fix(w)
 
+    def no_investments_first_time_period(self):
+        for (i,j,m,r,f,t) in self.model.y_charge:
+           if t==self.data.T_TIME_PERIODS[0]:
+                self.model.y_charge[(i,j,m,r,f,t)].fix(0)
+        
+        for (i,j,m,r,t) in self.model.epsilon_edge:
+           if t==self.data.T_TIME_PERIODS[0]:
+                self.model.epsilon_edge[(i,j,m,r,t)].fix(0)
+
+        for (i,j,m,r,f,t) in self.model.upsilon_upg:
+           if t==self.data.T_TIME_PERIODS[0]:
+                self.model.upsilon_upg[(i,j,m,r,f,t)].fix(0)
+
+        for (n,c,m,t) in self.model.nu_node:
+           if t==self.data.T_TIME_PERIODS[0]:
+                self.model.nu_node[(n,c,m,t)].fix(0)
+
     def fix_variables_first_time_period(self,solved_init_model):
 
-        # for j in solved_init_model.model.x_flow:
-        #    self.model.x_flow[j].fix(solved_init_model.model.x_flow[j].value)
+        for j in solved_init_model.model.q_transp_amount:
+           self.model.q_transp_amount[j].fix(solved_init_model.model.q_transp_amount[j].value)
+
+        for j in solved_init_model.model.b_flow:
+           self.model.b_flow[j].fix(solved_init_model.model.b_flow[j].value)
+
+        for j in solved_init_model.model.x_flow:
+           self.model.x_flow[j].fix(solved_init_model.model.x_flow[j].value)
+
+        for j in solved_init_model.model.h_path:
+           self.model.h_path[j].fix(solved_init_model.model.h_path[j].value)
 
         for j in solved_init_model.model.total_emissions:
            self.model.total_emissions[j].fix(solved_init_model.model.total_emissions[j].value)

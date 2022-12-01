@@ -170,6 +170,7 @@ class TransportSets():
         self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
         
         self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]
+        self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
         self.T_TIME_FIRST_STAGE = [2020,2025]
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
         
@@ -760,6 +761,9 @@ class TransportSets():
             self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
 
     def combined_sets(self):
+
+        
+
 
         #------------------------
         "Combined sets - time independent"
