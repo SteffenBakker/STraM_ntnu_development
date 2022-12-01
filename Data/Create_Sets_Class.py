@@ -87,16 +87,20 @@ test_scenario_information = ScenarioInformation('Data/')
 #Activating a scenario means that all relevant parameters are changed to their scenario values
 class TransportSets():
 
-    def __init__(self,sheet_name_scenarios):# or (self)
+    def __init__(self,init_data=False,sheet_name_scenarios='scenarios_base'):# or (self)
         self.run_file = "main"  # "sets" or "main"
         self.prefix = '' 
         if self.run_file == "main":
             self.prefix = r'Data/'
         elif self.run_file =="sets":
             self.prefix = '' 
+        self.init_data = init_data
 
         #read/construct data                
         self.construct_pyomo_data()
+        if init_data:
+            self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
+        self.combined_sets()
 
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
@@ -167,11 +171,15 @@ class TransportSets():
         
         self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]
         self.T_TIME_FIRST_STAGE = [2020,2025]
-        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}        
+        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
+        
+        self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
+        self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
                 
         self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
         t0 = self.T_TIME_PERIODS[0]
         num_periods = len(self.T_TIME_PERIODS)
+        
         for i in range(num_periods):
             t = self.T_TIME_PERIODS[i]
             if i < num_periods-1:
@@ -190,7 +198,6 @@ class TransportSets():
                    "Timber": ['Timber'],
                    "All": self.P_PRODUCTS}
 
-        
         self.E_EDGES = []
         self.E_EDGES_RAIL = []
         self.E_EDGES_UPG = []
@@ -356,7 +363,7 @@ class TransportSets():
                 self.OD_PAIRS_ALL.add((o, d))
                 self.ODP.append((o, d, p))
         self.OD_PAIRS_ALL = list(self.OD_PAIRS_ALL)
-        self.ODPTS = [odp + (t,) for odp in self.ODP for t in self.T_TIME_PERIODS]
+        
 
         #demand
         self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS for (o,d,p) in self.ODP}        
@@ -369,6 +376,7 @@ class TransportSets():
             self.D_DEMAND_AGGR[t] += value
 
 
+        # To do_ What was happening here?
         # self.A_LINKS = {l: [] for l in self.A_ARCS}
         # for (i,j,m,r) in self.A_ARCS:
         #     for f in self.FM_FUEL[m]:
@@ -442,9 +450,6 @@ class TransportSets():
         for key, value in self.AVG_DISTANCE.items():  
             self.AVG_DISTANCE[key] = round(value,1)
 
-
-
-
         #multi-mode paths and unimodal paths
         self.MULTI_MODE_PATHS = []
         for kk in self.K_PATHS:
@@ -517,41 +522,6 @@ class TransportSets():
             self.ANM_ARCS_OUT[(i,m)].append(a)
 
 
-        "Combined sets"
-        
-        self.TS = [(t) for t in self.T_TIME_PERIODS]
-        self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
-        self.AVT = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS] 
-        self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
-                         self.T_TIME_PERIODS]
-        self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
-                         self.T_TIME_PERIODS]  
-        self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
-        self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
-
-        self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
-        self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
-        
-        self.NCM = [(i,c,m) for (i,m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m]]
-        self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
-        self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
-                                    for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
-
-        self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
-                         self.T_TIME_PERIODS]
-
-        self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
-        self.MF = [(m,f) for m in self.M_MODES for f in self.FM_FUEL[m]]
-        self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
-        
-        self.MFTT = [(m,f,t,tau) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS 
-                            for tau in self.T_TIME_PERIODS if tau <= t]
-
-        self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] 
-                                    for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
-        
-        self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
-
 
         #------------------------
         "Parameters"
@@ -599,7 +569,7 @@ class TransportSets():
                 self.C_TRANSFER[(kk,p)] = round(cost,1)
             
         CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
-        self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
+        self.CO2_fee = {t: 10000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for index, row in CO2_fee_data.iterrows():
             self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
             
@@ -640,16 +610,18 @@ class TransportSets():
 
         
         #find the "cheapest" product group per vehicle type. 
-        self.cheapest_product_per_vehicle = {(m,f,t,v):None for (m,f,t) in self.MFT for v in self.VEHICLE_TYPES_M[m]}
-        for (m,f,t) in self.MFT:
-            for v in self.VEHICLE_TYPES_M[m]:
-                cheapest_product = None
-                lowest_cost = 200000000
-                for p in self.PV_PRODUCTS[v]:
-                    if self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] < lowest_cost:
-                        lowest_cost = self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)]
-                        cheapest_product = p
-                self.cheapest_product_per_vehicle[(m,f,t,v)] = p
+        self.cheapest_product_per_vehicle = {(m,f,t,v):None for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS for v in self.VEHICLE_TYPES_M[m]}
+        for m in self.M_MODES: 
+            for f in self.FM_FUEL[m]: 
+                for t in self.T_TIME_PERIODS:
+                    for v in self.VEHICLE_TYPES_M[m]:
+                        cheapest_product = None
+                        lowest_cost = 200000000
+                        for p in self.PV_PRODUCTS[v]:
+                            if self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] < lowest_cost:
+                                lowest_cost = self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)]
+                                cheapest_product = p
+                        self.cheapest_product_per_vehicle[(m,f,t,v)] = p
 
         #################
         #  INVESTMENTS  #
@@ -744,7 +716,7 @@ class TransportSets():
                 for (m, f) in self.CHARGING_TECH:
                     if e[2] == m:
                         self.EF_CHARGING.append((e,f))
-        self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS]
+        
         
 
         # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
@@ -787,7 +759,51 @@ class TransportSets():
         for index, row in self.lifespan_data.iterrows():
             self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
 
-                
+    def combined_sets(self):
+
+        #------------------------
+        "Combined sets - time independent"
+        #------------------------
+
+        self.NCM = [(i,c,m) for (i,m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m]]
+        self.MF = [(m,f) for m in self.M_MODES for f in self.FM_FUEL[m]]
+
+        "Combined sets - time dependent"
+
+        self.TS = [(t) for t in self.T_TIME_PERIODS]
+        self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
+        self.AVT = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS] 
+        self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
+                         self.T_TIME_PERIODS]
+        self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
+                         self.T_TIME_PERIODS]  
+        self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
+        self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
+        self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
+        self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
+        self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS]
+        self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
+        self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
+                                    for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
+        self.ODPTS = [odp + (t,) for odp in self.ODP for t in self.T_TIME_PERIODS]
+        self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
+                         self.T_TIME_PERIODS]
+        self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
+        self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
+        
+        self.MFTT = [(m,f,t,tau) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS 
+                            for tau in self.T_TIME_PERIODS if tau <= t]
+        self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] 
+                                    for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+        self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
+
+    def update_time_periods(self, init_data):
+        if init_data==False:
+            self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL
+        else:
+            self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
+        self.combined_sets()
+
     #Function that updates all information that depends on the current scenario number
     #Currently: update transport costs based on fuel group scenarios
     def update_scenario_dependent_parameters(self,scenario_name):

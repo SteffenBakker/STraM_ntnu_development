@@ -36,10 +36,6 @@ import pstats
 
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
-instance_run = 'base'     #change instance_run to choose which instance you want to run
-
-read_data_from_scratch = True #Use cached data? Exctracting data is a bit slow in debug mode
-extract_data_postprocessing = True #postprocessing is quite slow. No need to do when testing the model. 
 
 analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios' #scenarios_base, three_scenarios
@@ -55,6 +51,7 @@ if __name__ == "__main__":
 
     #     --------- DATA  ---------   #
     
+    instance_run = 'base'
 
     EV_problem = False
     if analysis_type == 'EV':
@@ -63,18 +60,25 @@ if __name__ == "__main__":
     if analysis_type == 'EEV':
         EEV_problem = True
 
-    if not os.path.exists(r'Data/Instance_results_write_to_here/Instance'+instance_run):
-        os.makedirs(r'Data/Instance_results_write_to_here/Instance'+instance_run)
+    #if not os.path.exists(r'Data/Instance_results_write_to_here/Instance'+instance_run):
+    #    os.makedirs(r'Data/Instance_results_write_to_here/Instance'+instance_run)
         
-    if read_data_from_scratch:
-        start = time.time()
-        base_data = TransportSets(sheet_name_scenarios) 
-        with open(r'Data\base_data', 'wb') as data_file: 
-            pickle.dump(base_data, data_file)
-        print("Time used reading the base data:", time.time() - start)
-    else:
-        with open(r'Data\base_data', 'rb') as data_file:
-            base_data = pickle.load(data_file)
+    
+    start = time.time()
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=True)
+    print("Time used reading the base data:", time.time() - start)
+
+    init_model = TranspModel(data=base_data)
+    init_model.construct_model()
+    init_model.solve_model()
+
+    base_data.update_time_periods(init_data=False)
+    with open(r'Data\base_data', 'wb') as data_file: 
+        pickle.dump(base_data, data_file)
+    
+    
+    #with open(r'Data\base_data', 'rb') as data_file:
+    #    base_data = pickle.load(data_file)
 
 
     #   --------- SCENARIOS ---------  #
@@ -89,7 +93,7 @@ if __name__ == "__main__":
 
 
     start = time.time()
-    scenario_creator_kwargs = {'base_data':base_data, 'fix_first_stage':EEV_problem}
+    scenario_creator_kwargs = {'base_data':base_data, 'fix_first_stage':EEV_problem, 'init_model_results':init_model}
     ef = sputils.create_EF(
         scenario_names,
         scenario_creator,
@@ -113,11 +117,10 @@ if __name__ == "__main__":
     #  --------- SAVE OUTPUT ---------    #
 
 
-    file_string = 'output_data_' + analysis_type + '2'
-    if extract_data_postprocessing:        
-        output = OutputData(ef,base_data,instance_run,EV_problem)
-        with open(r'Data\\' + file_string, 'wb') as output_file: 
-            pickle.dump(output, output_file)
+    file_string = 'output_data_' + analysis_type 
+    output = OutputData(ef,base_data,instance_run,EV_problem)
+    with open(r'Data\\' + file_string, 'wb') as output_file: 
+        pickle.dump(output, output_file)
 
 
 

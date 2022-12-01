@@ -2,6 +2,7 @@
 import pyomo.opt   # we need SolverFactory,SolverStatus,TerminationCondition
 import pyomo.opt.base as mobase
 from pyomo.environ import *
+import pyomo.environ as pyo
 from pyomo.util.infeasible import log_infeasible_constraints
 import logging
 from Data.settings import *
@@ -60,17 +61,14 @@ class TranspModel:
             max_transp_penalty = 0
 
         "OBJECTIVE"
-        #TO DO: check how the CO2 kicks in? Could be baked into C_TRANSP_COST (what is the question here?)
+
         def StageCostsVar(model, t):  
             # SOME QUICK TESTING SHOWED THAT SUM_PRODUCT IS QUITE A BIT SLOWER THAN SIMPLY TAKING THE SUM...
-            yearly_transp_cost = (  sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t)]+self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t)] 
-                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) # +
-                                    #sum( EMPTY_VEHICLE_FACTOR*(self.data.C_TRANSP_COST[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
-                                    #      0 # self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]
-                                    #      ) * self.model.b_flow[(i,j,m,r,f,v,t)] 
-                                    #      for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] )
-                                    #TO DO: take the minimum of transport costs and carbon costs across the product groups and multiply with 0.8 or so
-                                )
+            yearly_transp_cost = (sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t)]+self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t)] 
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) +
+                                    sum( EMPTY_VEHICLE_FACTOR*(self.data.C_TRANSP_COST[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
+                                          self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t)] 
+                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ))
             yearly_transfer_cost = sum(self.data.C_TRANSFER[(k,p)]*self.model.h_flow[k,p,t] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)
             delta = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0]
             return(self.model.StageCosts[t] == (
@@ -123,7 +121,6 @@ class TranspModel:
             empty_trips = (sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_OUT[(n,m)]) -
                         sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_IN[(n,m)]))            
             return (disbalance_in_node == empty_trips)
-        # THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.FleetBalance = Constraint(self.data.NMFVT, rule=FleetBalance)
 
         #-----------------------------------------------#
@@ -133,9 +130,9 @@ class TranspModel:
             return (
                 self.model.total_emissions[t] == sum(
                 self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t] for p in self.data.P_PRODUCTS
-                for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) #+ 
-                #sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t] 
-                #    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
+                for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
+                sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t] 
+                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
                 )
         
         self.model.Emissions = Constraint(self.data.TS, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
@@ -146,16 +143,6 @@ class TranspModel:
         self.model.EmissionCap = Constraint(self.data.TS, rule=EmissionCapRule)
         
         #-----------------------------------------------#
-
-        # CAPACITY constraints (compared to 2018) - TEMPORARY
-        # the model quickly becomes infeasible when putting such constraints on the model. Should be tailor-made!
-
-        # def CapacityConstraints(model, i,j,m,p,t):
-        #    a = (i,j,m)
-        #    return self.model.x_flow[a,p,t] <= self.data.buildchain2018[(i,j,m,p)]*2
-        # self.model.CapacityConstr = Constraint(self.data.APT,rule=CapacityConstraints)
-
-        
         
         #CAPACITY
         def CapacitatedFlowRule(model,i,j,m,r,ii,jj,mm,rr,t):
@@ -290,6 +277,27 @@ class TranspModel:
             elif variable == 'q_max_transp_amount':
                 self.model.q_max_transp_amount[(m, f)].fix(w)
 
+    def fix_variables_first_time_period(self,solved_init_model):
+
+        # for j in solved_init_model.model.x_flow:
+        #    self.model.x_flow[j].fix(solved_init_model.model.x_flow[j].value)
+
+        for j in solved_init_model.model.total_emissions:
+           self.model.total_emissions[j].fix(solved_init_model.model.total_emissions[j].value)
+        # etc
+
+        # OR add additional constraint:
+        #def EmissionCapRule2(model, t):
+        #    return self.model.total_emissions[t] <= solved_init_model.model.total_emissions[j].value
+        #self.model.EmissionCap2 = Constraint(self.data.TS, rule=EmissionCapRule2)
+
+        # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
+        #     #print("Variable",v)  
+        #     for index in v:
+        #         if v[index].value is not None:
+        #             #print ("   ",index, pyo.value(v[index]))
+        #             var_big_model = getattr(self.model,str(v))
+        #             var_big_model[index].fix(v[index].value)  
 
     def solve_model(self):
 
