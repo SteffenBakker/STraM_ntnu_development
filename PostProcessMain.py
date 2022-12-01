@@ -11,7 +11,7 @@ import pickle
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = 'SP' # EV , EEV, 'SP
+analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
@@ -64,18 +64,19 @@ result_q_max = accuracy_of_q_max(output,base_data)
 print('--------------------------------------------------------')
 print('Total deviation from tha actual max transport amount: ' + str(result_q_max))
 print('--------------------------------------------------------')
-
+if result_q_max>1:
+    raise Exception('Total deviation from tha actual max transport amount: ' + str(result_q_max))
 
 
 #---------------------------------------------------------#
 #       COSTS
 #---------------------------------------------------------#
 def plot_costs(output):
-    for i in range(2):
+    for i in [1]:
         if i == 0:
-            indices = [i for i in output.all_costs_table.index if i not in [0]]
+            indices = [i for i in output.all_costs_table.index if i not in ['discount_factor']]
         elif i ==1:
-            indices = [i for i in output.all_costs_table.index if i not in [0,'emission','max_transp_amount_penalty']]
+            indices = [i for i in output.all_costs_table.index if i not in ['discount_factor','emission','max_transp_amount_penalty']]
         all_costs_table2 = output.all_costs_table.loc[indices]
         mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
         mean_data = mean_data.droplevel(1, axis=1)
@@ -128,7 +129,7 @@ def cost_and_investment_table(base_data,output):
             transport_costs[(t,s)] += cost_contribution
         if variable == 'b_flow':
             cost_contribution = sum(EMPTY_VEHICLE_FACTOR*base_data.D_DISCOUNT_RATE**n*(base_data.C_TRANSP_COST[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
-                                                                    0 #base_data.C_CO2[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)]
+                                                                    base_data.C_CO2[(i,j,m,r,f,base_data.cheapest_product_per_vehicle[(m,f,t,v)],t)]
                                                                     )*value  
                                                                     for n in [nn-base_data.Y_YEARS[t][0] for nn in base_data.Y_YEARS[t]])
             transport_costs_empty[(t,s)] += cost_contribution

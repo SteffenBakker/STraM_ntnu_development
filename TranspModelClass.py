@@ -300,19 +300,31 @@ class TranspModel:
     def fix_variables_first_time_period(self,solved_init_model):
 
         for j in solved_init_model.model.q_transp_amount:
-           self.model.q_transp_amount[j].fix(solved_init_model.model.q_transp_amount[j].value)
+            val = solved_init_model.model.q_transp_amount[j].value
+            if val >= 0:
+                self.model.q_transp_amount[j].fix()
 
         for j in solved_init_model.model.b_flow:
-           self.model.b_flow[j].fix(solved_init_model.model.b_flow[j].value)
+            val = solved_init_model.model.b_flow[j].value
+            if val >= 0:
+                self.model.b_flow[j].fix(val)
 
         for j in solved_init_model.model.x_flow:
-           self.model.x_flow[j].fix(solved_init_model.model.x_flow[j].value)
-
+            val = solved_init_model.model.x_flow[j].value
+            if val >= 0:
+                self.model.x_flow[j].fix(val)
+        
         for j in solved_init_model.model.h_path:
-           self.model.h_path[j].fix(solved_init_model.model.h_path[j].value)
+            val = solved_init_model.model.h_path[j].value
+            if val >= 0:
+                self.model.h_path[j].fix(val)
 
         for j in solved_init_model.model.total_emissions:
-           self.model.total_emissions[j].fix(solved_init_model.model.total_emissions[j].value)
+            val = solved_init_model.model.total_emissions[j].value
+            if val >= 0:
+                self.model.total_emissions[j].fix(val)
+
+
         # etc
 
         # OR add additional constraint:
