@@ -10,7 +10,7 @@ import os
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 from TranspModelClass import TranspModel
-from ExtractModelResults import OutputData
+from ExtractModelResults import OutputData, extract_model_results
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
 from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings_ef
@@ -38,7 +38,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'three_scenarios' #scenarios_base, three_scenarios
+sheet_name_scenarios = 'three_scenarios_new' #scenarios_base, three_scenarios,three_scenarios_new
     
 
 #################################################

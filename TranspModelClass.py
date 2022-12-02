@@ -56,36 +56,90 @@ class TranspModel:
         self.model.q_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
         self.model.q_max_transp_amount = Var(self.data.MF, within=NonNegativeReals)
 
-        max_transp_penalty = MAX_TRANSPORT_AMOUNT_PENALTY
+        MAX_TRANSP_PENALTY = MAX_TRANSPORT_AMOUNT_PENALTY
         if self.calculate_max_transp_amount_exact:
             self.model.chi_max_transp = Var(self.data.MFT, within = Binary)
-            max_transp_penalty = 0
+            MAX_TRANSP_PENALTY = 0
+
+        #COST_VARIABLES
+
+        self.model.TranspOpexCost = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def TranspOpexCost(model, t):
+            return (self.model.TranspOpexCost[t] == sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t)] 
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) )
+        self.model.TranspOpexCostConstr = Constraint(self.data.T_TIME_PERIODS, rule=TranspOpexCost)
+        
+        self.model.TranspCO2Cost = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def TranspCO2Cost(model, t):
+            return (self.model.TranspCO2Cost[t] == sum((self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t)] 
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) )
+        self.model.TranspCO2CostConstr = Constraint(self.data.T_TIME_PERIODS, rule=TranspCO2Cost)
+        
+        self.model.TranspOpexCostB = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def TranspOpexCostB(model, t):
+            return (self.model.TranspOpexCostB[t] == sum( EMPTY_VEHICLE_FACTOR*(self.data.C_TRANSP_COST[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t)] 
+                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] )  )
+        self.model.TranspOpexCostBConstr = Constraint(self.data.T_TIME_PERIODS, rule=TranspOpexCostB)
+        
+        self.model.TranspCO2CostB = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def TranspCO2CostB(model, t):
+            return (self.model.TranspCO2CostB[t] == sum( EMPTY_VEHICLE_FACTOR*(self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t)] 
+                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] )  )
+        self.model.TranspCO2CostBConstr = Constraint(self.data.T_TIME_PERIODS, rule=TranspCO2CostB)
+        
+        self.model.TransfCost = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def TransfCost(model, t):
+            return (self.model.TransfCost[t] == sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS) )
+        self.model.TransfCostConstr = Constraint(self.data.T_TIME_PERIODS, rule=TransfCost)
+        
+        self.model.EdgeCost = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def EdgeCost(model, t):
+            return (self.model.EdgeCost[t] == sum(self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t)] for e in self.data.E_EDGES_RAIL) )
+        self.model.EdgeCostConstr = Constraint(self.data.T_TIME_PERIODS, rule=EdgeCost)
+        
+        self.model.NodeCost = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def NodeCost(model, t):
+            return (self.model.NodeCost[t] == sum(self.data.C_NODE[(i,c,m)]*self.model.nu_node[(i,c,m,t)] for (i, m) in self.data.NM_LIST_CAP for c in self.data.TERMINAL_TYPE[m]) )
+        self.model.NodeCostConstr = Constraint(self.data.T_TIME_PERIODS, rule=NodeCost)
+        
+        self.model.UpgCost = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def UpgCost(model, t):
+            return (self.model.UpgCost[t] == sum(self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE))
+        self.model.UpgCostConstr = Constraint(self.data.T_TIME_PERIODS, rule=UpgCost)
+        
+        self.model.ChargeCost = Var(self.data.T_TIME_PERIODS, within=NonNegativeReals)
+        def ChargeCost(model, t):
+            return (self.model.ChargeCost[t] == sum(self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t)] for (e,f) in self.data.EF_CHARGING) )
+        self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS, rule=ChargeCost)
+        
+        self.model.MaxTranspPenaltyCost = Var(within=NonNegativeReals)
+        def MaxTranspPenaltyCost(model):
+            return (self.model.MaxTranspPenaltyCost == MAX_TRANSP_PENALTY*sum(self.model.q_max_transp_amount[m,f] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) )
+        self.model.MaxTranspPenaltyCostConstr = Constraint(rule=MaxTranspPenaltyCost)
+
 
         "OBJECTIVE"
+        #-------------------------
 
         def StageCostsVar(model, t):  
             # SOME QUICK TESTING SHOWED THAT SUM_PRODUCT IS QUITE A BIT SLOWER THAN SIMPLY TAKING THE SUM...
-            yearly_transp_cost = (sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t)]+self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t)] 
-                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) +
-                                    sum( EMPTY_VEHICLE_FACTOR*(self.data.C_TRANSP_COST[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]+
-                                          self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t)] 
-                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ))
-            yearly_transfer_cost = sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)
+            yearly_transp_cost = (self.model.TranspOpexCost[t] + self.model.TranspCO2Cost[t] + self.model.TranspOpexCostB[t] + self.model.TranspCO2CostB[t]) 
+            
+            #sum(base_data.D_DISCOUNT_RATE**n for n in list(range(10)))
+            if t == self.data.T_TIME_PERIODS[-1]:
+                factor = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE))      #was 2.77, becomes 9
+            else:
+                factor = sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t])
+            opex_costs = factor*(yearly_transp_cost+self.model.TransfCost[t]) 
+            
             delta = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0]
-            return(self.model.StageCosts[t] == (
-                sum(self.data.D_DISCOUNT_RATE**n*(yearly_transp_cost+yearly_transfer_cost) for n in self.data.Y_YEARS[t]) + 
-                sum(delta*self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t)] for e in self.data.E_EDGES_RAIL) +
-                sum(delta*self.data.C_NODE[(i,c,m)]*self.model.nu_node[(i,c,m,t)] for (i, m) in self.data.NM_LIST_CAP for c in self.data.TERMINAL_TYPE[m] ) +
-                # maybe N_NODES_CAP_NORWAY is needed?
-                sum(delta*self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t)] for (e,f) in self.data.U_UPGRADE) +
-                sum(delta*self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t)] for (e,f) in self.data.EF_CHARGING) +
-                EMISSION_VIOLATION_PENALTY*self.model.z_emission[t] +
-                max_transp_penalty*sum(self.model.q_max_transp_amount[m,f] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) 
-                ))
+            investment_costs = self.model.EdgeCost[t] + self.model.NodeCost[t] + self.model.UpgCost[t] + self.model.ChargeCost[t] 
+            
+            return (self.model.StageCosts[t] == (opex_costs + delta*investment_costs + EMISSION_VIOLATION_PENALTY*self.model.z_emission[t]))
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)
         
         def objfun(model):
-            obj_value = sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS) 
+            obj_value = sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS) +  self.model.MaxTranspPenaltyCost
             return obj_value
         self.model.Obj = Objective(rule=objfun, sense=minimize)
 
@@ -235,6 +289,14 @@ class TranspModel:
             return (decrease <= factor*self.model.q_max_transp_amount[m,f])
         self.model.FleetRenewal = Constraint(self.data.MFT_MIN0, rule = FleetRenewalRule)
         
+
+        if ALLOW_NO_INVESTMENTS:
+            for (i,j,m,r,tau) in self.data.ET_RAIL:
+                self.model.epsilon_edge[i,j,m,r, tau].fix(0)
+            for (e,f,t) in self.data.UT_UPG:
+                self.model.upsilon_upg[(e,f,t)].fix(0)
+            for (n,c,m,t) in self.data.NCMT:
+                self.model.nu_node[((n,c,m,t))].fix(0)
 
         return self.model
     

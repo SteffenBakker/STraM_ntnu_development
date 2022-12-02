@@ -11,7 +11,7 @@ import pickle
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
+analyses_type = 'SP' # EV , EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
@@ -65,6 +65,7 @@ print('--------------------------------------------------------')
 print('Total deviation from tha actual max transport amount: ' + str(result_q_max))
 print('--------------------------------------------------------')
 if result_q_max>1:
+    #pass
     raise Exception('Total deviation from tha actual max transport amount: ' + str(result_q_max))
 
 
@@ -408,9 +409,24 @@ print('total demand in MTonnes')
 print(demand_overview)
 
 
-
-
 DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
 pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
 for i in range(3):
     print(len(DEMAND_PER_YEAR[i]))
+
+#conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
+
+
+#---------------------------------------------------------#
+#       NO variation in 2050 (and 2030)
+#---------------------------------------------------------#
+
+
+base_data.scenario_information.mode_fuel_cost_factor
+
+output.q_transp_amount[output.q_transp_amount['time_period']==2030].sort_values(by=['mode','fuel']).reset_index()
+
+# use to check
+#q_transp_amount	Sea	HFO	2030	1e+06	HLL
+#25	95	q_transp_amount	Sea	HFO	2030	1e+06	LHL
+#26	143	q_transp_amount	Sea	HFO	2030	1e+06	LLH

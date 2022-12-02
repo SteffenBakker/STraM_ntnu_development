@@ -16,12 +16,13 @@ RISK_FREE_RATE = 0.038 # social discount rate, ref Ruben (Old:  https://tradinge
 MAX_TRUCK_CAP = 30
 EMPTY_VEHICLE_FACTOR = 0.6
 
-INTERPOLATE_DEMAND_DATA_2040 = False
+INTERPOLATE_DEMAND_DATA_2040 = True
 
 #Model settings
 
+ALLOW_NO_INVESTMENTS = True
 EMISSION_VIOLATION_PENALTY = 1*10**5  # TO DO: depend on scaling factor
 #THIS WAS 500    #CO2 Cap is at most 4E7, while obj function is now around 7E12, so I believe this penalty should be higher! Maybe 1-1.5E5
-MAX_TRANSPORT_AMOUNT_PENALTY = 10  #TO DO: more testing needed
-MAX_TRANSPORT_AMOUNT_PENALTY = MAX_TRANSPORT_AMOUNT_PENALTY*10**5/EMISSION_VIOLATION_PENALTY
+MAX_TRANSPORT_AMOUNT_PENALTY = 50  #TO DO: more testing needed
+MAX_TRANSPORT_AMOUNT_PENALTY = MAX_TRANSPORT_AMOUNT_PENALTY*10**6/EMISSION_VIOLATION_PENALTY
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
