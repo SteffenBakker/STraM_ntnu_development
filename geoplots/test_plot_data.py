@@ -16,10 +16,42 @@ with open(r'Data\base_data', 'rb') as data_file:
 ################   NEW CODE BELOW  ##########################################################
 
 
+#########################
+# 0. PROCESS FLOW DATA
+#########################
+
+#Desired input: dataframe with:
+    #from, to, flow (aka weight)                            LATER: add different modes
+
+df_flow = pd.DataFrame()
+arcs = []
+flows = []
+
+for index, row in output.x_flow.iterrows():
+    if row["scenario"] == "MMM" and row["time_period"] == 2050:
+        cur_arc = (row["from"], row["to"])
+        if cur_arc not in arcs: #new arc
+            arcs.append(cur_arc) 
+            flows.append(0.0)
+        cur_arc_ind = arcs.index(cur_arc)
+        flows[cur_arc_ind] += row["weight"]
+
+#put everything in a dataframe
+df_flow["arc"] = arcs
+df_flow["orig"] = [""]*len(arcs)
+df_flow["dest"] = [""]*len(arcs)
+df_flow["flow"] = flows
+for i in range(len(df_flow)):
+    df_flow.orig[i] = str(df_flow.arc[i][0])
+    df_flow.dest[i] = str(df_flow.arc[i][1])
+
+
 ##################
 # 1. CREATE MAP
 ##################
 
+
+####################################
 # a. Extract nodes and coordinates
 
 #extract nodes from base_data
@@ -55,6 +87,8 @@ node_colors[-3] = "yellow" #Kontinentalsokkelen   ok
 node_colors[-4] = "blue"   #Nord-Sverige          ok
 node_colors[-5] = "grey"   #Sør-Sverige           ok
 
+
+####################
 # b. Build a map
 
 from mpl_toolkits.basemap import Basemap #for creating the background map
@@ -71,59 +105,44 @@ map.drawcountries(linewidth=0.3)
 node_x, node_y = map(lons, lats)
 map.scatter(node_x, node_y, color=node_colors, zorder=100)
 
-# c. Process flow data
 
-#Desired input: dataframe with:
-    #from, to, flow (aka weight)
-
-df_flow = pd.DataFrame()
-arcs = []
-flows = []
-
-for index, row in output.x_flow.iterrows():
-    if row["scenario"] == "MMM" and row["time_period"] == 2050:
-        cur_arc = (row["from"], row["to"])
-        if cur_arc not in arcs: #new arc
-            arcs.append(cur_arc) 
-            flows.append(0.0)
-        cur_arc_ind = arcs.index(cur_arc)
-        flows[cur_arc_ind] += row["weight"]
-
-#put everything in a dataframe
-df_flow["arc"] = arcs
-df_flow["orig"] = [""]*len(arcs)
-df_flow["dest"] = [""]*len(arcs)
-df_flow["flow"] = flows
-for i in range(len(df_flow)):
-    df_flow.orig[i] = str(df_flow.arc[i][0])
-    df_flow.dest[i] = str(df_flow.arc[i][1])
-
-
-# d. Plot flow in the map
+##########################
+# c. Plot flow in the map
 
 import matplotlib.patches as patches
 
 #arrow settings
 style = "Simple, tail_width=0.5, head_width=4, head_length=8"
-kw = dict(arrowstyle=style, color="k")
+#kw = dict(arrowstyle=style, color="k")
 
 for index, row in df_flow.iterrows():
     cur_orig = row["orig"]
     cur_dest = row["dest"]
     cur_orig_index = N_NODES.index(cur_orig)
     cur_dest_index = N_NODES.index(cur_dest)
+    cur_color = 'k'
+    overseas = False
+    if cur_orig in ["Kontinentalsokkelen", "Europa", "Verden"] or cur_dest in ["Kontinentalsokkelen", "Europa", "Verden"]:
+        overseas = True
+        cur_color = 'red'
     new_arc = patches.FancyArrowPatch(
         (node_x[cur_orig_index], node_y[cur_orig_index]), 
         (node_x[cur_dest_index], node_y[cur_dest_index]), 
-        connectionstyle="arc3,rad=.2",
-        **kw
+        connectionstyle="arc3,rad=.05",
+        arrowstyle=style,
+        color=cur_color
         )
-    plt.gca().add_patch(new_arc)
+    if not overseas:
+        plt.gca().add_patch(new_arc)
+    
 
 
+###############################
 # d. Show and save the figure
-plt.gcf().set_size_inches(8.5,10.5, forward=True)
 
+#increase size
+plt.gcf().set_size_inches(8.5,10.5, forward=True)
+#show figure
 plt.show()
 
 

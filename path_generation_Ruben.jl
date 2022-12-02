@@ -8,20 +8,27 @@ using DataFrames
 
 
 df_dist_sea = DataFrame(XLSX.readtable("Data/distances.xlsx", "Sea")...)[:,1:3]
-df_dist_rail = DataFrame(XLSX.readtable("Data/distances.xlsx", "Rail")...)[1:16,1:3] #HARDCODED: delete final column
+#df_dist_rail = DataFrame(XLSX.readtable("Data/distances.xlsx", "Rail")...)[1:16,1:3] #HARDCODED: delete final column #OLD
+df_dist_rail = DataFrame(XLSX.readtable("Data/distances.xlsx", "Rail")...)[:,1:3]
 df_dist_road = DataFrame(XLSX.readtable("Data/distances.xlsx", "Road")...)[:,1:3]
-df_costs = DataFrame(XLSX.readtable("Data/transport_costs_emissions.xlsx", "Costs")...)[:,1:11]
-df_transfer_costs = DataFrame(XLSX.readtable("Data/transport_costs_emissions.xlsx", "transfer_costs")...)
+#df_costs = DataFrame(XLSX.readtable("Data/transport_costs_emissions.xlsx", "Costs")...)[:,1:11] #OLD
+df_costs = DataFrame(XLSX.readtable("Data/transport_costs_emissions.xlsx", "costs_emissions")...)[:,1:7] #TODO: update how this is USED
+df_co2_fee = DataFrame(XLSX.readtable("Data/transport_costs_emissions_raw.xlsx", "CO2_fee")...)
+#df_transfer_costs = DataFrame(XLSX.readtable("Data/transport_costs_emissions.xlsx", "transfer_costs")...) #OLD
+df_transfer_costs = DataFrame(XLSX.readtable("Data/transport_costs_emissions_raw.xlsx", "transfer_costs")...)
 delete!(df_dist_rail, [9]) #HARDCODED: delete (longest) duplicate route
 
 colnames_dist = ["orig", "dest", "dist"]
-colnames_costs = ["mode", "product", "vehicle", "fuel", "year", "costs_eur", "costs", "emissions", "co2_fee", "co2_fee_high", "co2_fee_low"]
+#colnames_costs = ["mode", "product", "vehicle", "fuel", "year", "costs_eur", "costs", "emissions", "co2_fee", "co2_fee_high", "co2_fee_low"]
+colnames_costs = ["mode", "product", "vehicle", "fuel", "year", "costs", "emissions"]
 colnames_transfer = ["product", "transfer_type", "transfer_cost"]
+colnames_co2_fee = ["year", "co2_fee_base", "co2_fee_scen2", "co2_fee_scen3"]
 rename!(df_dist_sea, colnames_dist)
 rename!(df_dist_rail, colnames_dist)
 rename!(df_dist_road, colnames_dist)
 rename!(df_costs, colnames_costs)
 rename!(df_transfer_costs, colnames_transfer)
+rename!(df_co2_fee, colnames_co2_fee)
 
 #make list of DataFrames
 df_list = [df_dist_road, df_dist_sea, df_dist_rail] #index d
@@ -120,7 +127,8 @@ for i in 1:size(df_costs, 1)
     p = product_dict[df_costs.product[i]]
     f = fuel_dict[df_costs.fuel[i]]
     y = year_dict[df_costs.year[i]]
-    costs[m,p,f,y] = df_costs.costs[i] + df_costs.emissions[i] * df_costs.co2_fee[i]
+    #costs[m,p,f,y] = df_costs.costs[i] + df_costs.emissions[i] * df_costs.co2_fee[i] #OLD
+    costs[m,p,f,y] = df_costs.costs[i] + df_costs.emissions[i] * df_co2_fee.co2_fee_base[y]
 end
 
 #process df_transfer_costs 
@@ -382,7 +390,7 @@ end
 #(sh_path, sh_dist, generated_paths, generated_path_lengths) = gen_paths(mode_cost, prod_transfer_cost[:,:,cur_p])
 
 #set max number of different modes per path
-mode_comb_level = 2
+mode_comb_level = 3 #or 2
 
 
 #Generate all paths (loop over all years, products, fuels)
