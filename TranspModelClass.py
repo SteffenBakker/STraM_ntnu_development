@@ -299,10 +299,13 @@ class TranspModel:
 
     def fix_variables_first_time_period(self,solved_init_model):
 
+        #not providing a value in the fix operator leads to the following error:
+        #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
+
         for j in solved_init_model.model.q_transp_amount:
             val = solved_init_model.model.q_transp_amount[j].value
             if val >= 0:
-                self.model.q_transp_amount[j].fix()
+                self.model.q_transp_amount[j].fix(val)
 
         for j in solved_init_model.model.b_flow:
             val = solved_init_model.model.b_flow[j].value
