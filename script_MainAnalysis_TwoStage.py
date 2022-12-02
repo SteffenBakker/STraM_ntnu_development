@@ -119,6 +119,12 @@ if __name__ == "__main__":
 
     file_string = 'output_data_' + analysis_type 
     output = OutputData(ef,base_data,instance_run,EV_problem)
+    
+
+    [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,\
+    z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount] = extract_model_results2(base_data,ef,EV_problem)
+
+
     with open(r'Data\\' + file_string, 'wb') as output_file: 
         pickle.dump(output, output_file)
 

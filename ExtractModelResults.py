@@ -32,7 +32,7 @@ class OutputData():
             self.z_emission_violation,self.total_emissions,self.q_transp_amount,self.q_max_transp_amount = extract_model_results(base_data,ef,EV_problem)
 
         
-def extract_model_results(base_data,ef,EV_problem):  #currently only for extensive form
+def extract_model_results2(base_data,ef,EV_problem):  #currently only for extensive form
     
     scenario_names_and_models = []
     if EV_problem:
@@ -160,7 +160,7 @@ def extract_model_results(base_data,ef,EV_problem):  #currently only for extensi
                 costs[var][(t,scen_name)] = getattr(modell,str(var))[t].value
         costs['MaxTranspPenaltyCost'][scen_name] = modell.MaxTranspPenaltyCost.value
 
-        return (all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount)
+        return [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount]
 
             
             
