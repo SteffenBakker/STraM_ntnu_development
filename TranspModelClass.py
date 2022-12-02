@@ -298,7 +298,7 @@ class TranspModel:
                 self.model.nu_node[(n,c,m,t)].fix(0)
 
     def fix_variables_first_time_period(self,solved_init_model):
-
+        
         # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
         #     #print("Variable",v)  
         #     for index in v:
@@ -307,10 +307,13 @@ class TranspModel:
         #             var_big_model = getattr(self.model,str(v))
         #             var_big_model[index].fix(v[index].value)  
 
+        #not providing a value in the fix operator leads to the following error:
+        #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
+
         for j in solved_init_model.model.q_transp_amount:
             val = solved_init_model.model.q_transp_amount[j].value
             if val >= 0:
-                self.model.q_transp_amount[j].fix()
+                self.model.q_transp_amount[j].fix(val)
 
         for j in solved_init_model.model.b_flow:
             val = solved_init_model.model.b_flow[j].value
