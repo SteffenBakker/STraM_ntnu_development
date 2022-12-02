@@ -16,6 +16,8 @@ RISK_FREE_RATE = 0.038 # social discount rate, ref Ruben (Old:  https://tradinge
 MAX_TRUCK_CAP = 30
 EMPTY_VEHICLE_FACTOR = 0.6
 
+INTERPOLATE_DEMAND_DATA_2040 = False
+
 #Model settings
 
 EMISSION_VIOLATION_PENALTY = 1*10**5  # TO DO: depend on scaling factor

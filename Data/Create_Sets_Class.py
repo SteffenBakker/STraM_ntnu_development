@@ -371,6 +371,16 @@ class TransportSets():
         for (o,d,p,t), value in D_DEMAND_CUT.items():
             self.D_DEMAND[(o,d,p,t)] = round(value/self.scaling_factor,self.precision_digits)
         
+        if INTERPOLATE_DEMAND_DATA_2040:
+            for (o,d,p,t), value in self.D_DEMAND.items(): 
+                if t == 2040:
+                    v30 = self.D_DEMAND[(o,d,p,2030)]
+                    v40 = self.D_DEMAND[(o,d,p,2040)]
+                    v50 = self.D_DEMAND[(o,d,p,2050)]
+                    if  (v30 <= v40 <=v50) or (v30 >= v40 >=v50):
+                        pass
+                    else:
+                        self.D_DEMAND[(o,d,p,2040)] = float(np.mean([v30,v50]))
         
         self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS}
         for (o,d,p,t),value in self.D_DEMAND.items():

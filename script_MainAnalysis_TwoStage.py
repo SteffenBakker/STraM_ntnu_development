@@ -38,7 +38,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #scenarios_base, three_scenarios
+sheet_name_scenarios = 'three_scenarios' #scenarios_base, three_scenarios
     
 
 #################################################
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     #options = option_settings_ef()
     solver = pyo.SolverFactory('gurobi')  #options["solvername"]
     solver.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
-    results = solver.solve(ef,logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log', tee= True)
+    results = solver.solve(ef, tee= True)  #logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log',
     print("Time used solving the model:", time.time() - start)
 
 

@@ -382,3 +382,35 @@ output = mode_mix_calculations(output,base_data)
 # decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
 # factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
 # return (decrease <= factor*self.model.q_max_transp_amount[m,f,t])
+
+#---------------------------------------------------------#
+#       DEMAND ANALYSIS
+#---------------------------------------------------------#
+
+base_data.D_DEMAND_AGGR
+total_demand = {t:0 for t in base_data.T_TIME_PERIODS}
+total_demand_european = {t:0 for t in base_data.T_TIME_PERIODS}
+total_demand_domestic = {t:0 for t in base_data.T_TIME_PERIODS}
+for key,value in base_data.D_DEMAND.items():
+    (i,j,p,t) = key
+    val = round(value/10**6*SCALING_FACTOR,2)
+    total_demand[t] += val
+    if (i not in ['Europa','Verden']) and (j not in ['Europa','Verden']):
+        total_demand_domestic[t] += val
+    if (i not in ['Verden']) and (j not in ['Verden']):
+         total_demand_european[t] += val
+
+
+data = [total_demand,total_demand_european,total_demand_domestic]
+demand_overview = pd.DataFrame.from_dict(data,orient='columns') 
+demand_overview.index = ['all','european','domestic']
+print('total demand in MTonnes')
+print(demand_overview)
+
+
+
+
+DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
+pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
+for i in range(3):
+    print(len(DEMAND_PER_YEAR[i]))

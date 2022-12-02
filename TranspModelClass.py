@@ -299,6 +299,14 @@ class TranspModel:
 
     def fix_variables_first_time_period(self,solved_init_model):
 
+        # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
+        #     #print("Variable",v)  
+        #     for index in v:
+        #         if v[index].value is not None:
+        #             #print ("   ",index, pyo.value(v[index]))
+        #             var_big_model = getattr(self.model,str(v))
+        #             var_big_model[index].fix(v[index].value)  
+
         for j in solved_init_model.model.q_transp_amount:
             val = solved_init_model.model.q_transp_amount[j].value
             if val >= 0:
@@ -324,21 +332,6 @@ class TranspModel:
             if val >= 0:
                 self.model.total_emissions[j].fix(val)
 
-
-        # etc
-
-        # OR add additional constraint:
-        #def EmissionCapRule2(model, t):
-        #    return self.model.total_emissions[t] <= solved_init_model.model.total_emissions[j].value
-        #self.model.EmissionCap2 = Constraint(self.data.TS, rule=EmissionCapRule2)
-
-        # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
-        #     #print("Variable",v)  
-        #     for index in v:
-        #         if v[index].value is not None:
-        #             #print ("   ",index, pyo.value(v[index]))
-        #             var_big_model = getattr(self.model,str(v))
-        #             var_big_model[index].fix(v[index].value)  
 
     def solve_model(self):
 
