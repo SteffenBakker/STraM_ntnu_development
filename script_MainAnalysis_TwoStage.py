@@ -10,7 +10,7 @@ import os
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 from TranspModelClass import TranspModel
-from ExtractModelResults import OutputData, extract_model_results
+from ExtractModelResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
 from solver_and_scenario_settings import scenario_creator, scenario_denouement, option_settings_ef
@@ -120,11 +120,6 @@ if __name__ == "__main__":
     file_string = 'output_data_' + analysis_type 
     output = OutputData(ef,base_data,instance_run,EV_problem)
     
-
-    [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,\
-    z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount] = extract_model_results2(base_data,ef,EV_problem)
-
-
     with open(r'Data\\' + file_string, 'wb') as output_file: 
         pickle.dump(output, output_file)
 
