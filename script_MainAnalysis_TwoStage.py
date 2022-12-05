@@ -38,7 +38,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'three_scenarios_new' #scenarios_base, three_scenarios,three_scenarios_new
+sheet_name_scenarios = 'scenarios_base' #scenarios_base, three_scenarios,three_scenarios_new
     
 
 #################################################
