@@ -177,10 +177,10 @@ def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
     t0 = base_data.T_TIME_PERIODS[0]
     for index,row in x_flow[x_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,p,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['weight'])
-        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value
+        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR # in MTonnes CO2 equivalents
     for index,row in b_flow[b_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,v,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['weight'])
-        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value
+        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value/10**6*SCALING_FACTOR # in MTonnes CO2 equivalents
     print('direct: ',round(emissions_direct*10**(-6),2))
     print('indirect: ',round(emission_empty*10**(-6),2))
     print('both: ',round((emissions_direct+emission_empty)*10**(-6),2))
@@ -227,10 +227,9 @@ def plot_emission_results(output,base_data):
     fig = ax.get_figure()
     #fig.savefig('/path/to/figure.pdf')
     
-    #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter
-    # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
-    # This is from all transport. We do not have all transport, 
-    # But our base case in 2020 is 40 millioner tonn CO2! equivalents, probably because of international transport...?
+#I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
+# https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
+
     
 plot_emission_results(output,base_data)
 
@@ -384,7 +383,7 @@ pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
 
 base_data.scenario_information.mode_fuel_cost_factor
 
-output.q_transp_amount[output.q_transp_amount['time_period']==2040].sort_values(by=['mode','fuel']).reset_index()
+output.q_transp_amount[output.q_transp_amount['time_period']==2050].sort_values(by=['mode','fuel']).reset_index()
 
 # use to check
 #q_transp_amount	Sea	HFO	2030	1e+06	HLL

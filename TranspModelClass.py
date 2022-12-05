@@ -280,8 +280,6 @@ class TranspModel:
                 return (sum(self.model.chi_max_transp[m,f,t] for t in self.data.T_TIME_PERIODS) == 1)
             self.model.MaxTranspAmount3 = Constraint(self.data.MF, rule = MaxTransportAmountRule3)
             
-
-
         #Fleet Renewal
         def FleetRenewalRule(model,m,f, t):
             decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
@@ -289,6 +287,34 @@ class TranspModel:
             return (decrease <= factor*self.model.q_max_transp_amount[m,f])
         self.model.FleetRenewal = Constraint(self.data.MFT_MIN0, rule = FleetRenewalRule)
         
+        #-----------------------------------------------#
+        #    Specific constraints
+        #-----------------------------------------------#
+
+        #Do not use too much road
+        def RoadDevelopmentRule(model, t):
+            m = "Road"
+            return (sum(self.model.q_transp_amount[(m,f,t)] for f in self.data.FM_FUEL[m]) <= \
+                GROWTH_ON_ROAD*sum(self.model.q_transp_amount[(m,f,self.data.T_TIME_PERIODS[0])] for f in self.data.FM_FUEL[m]))   
+        self.model.RoadDevelopment = Constraint(self.data.T_TIME_PERIODS, rule = RoadDevelopmentRule)
+
+        def InitialModeSplitLower(model,m):
+            t0 = self.data.T_TIME_PERIODS[0]
+            total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+            modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0)] for f in self.data.FM_FUEL[m])
+            return ( INIT_MODE_SPLIT_LOWER[m]*total_transport_amount <= modal_transport_amount ) 
+        self.model.InitModeSplitLower = Constraint(self.data.M_MODES,rule = InitialModeSplitLower)
+
+        def InitialModeSplitUpper(model,m):
+            t0 = self.data.T_TIME_PERIODS[0]
+            total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+            modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0)] for f in self.data.FM_FUEL[m])
+            return (modal_transport_amount <= INIT_MODE_SPLIT_UPPER[m]*total_transport_amount) 
+        self.model.InitModeSplitUpper = Constraint(self.data.M_MODES,rule = InitialModeSplitUpper)
+
+        #-----------------------------------------------#
+
+
 
         if ALLOW_NO_INVESTMENTS:
             for (i,j,m,r,tau) in self.data.ET_RAIL:
