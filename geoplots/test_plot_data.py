@@ -7,6 +7,9 @@ In this file we plot the resulting flows in the model on a map of Norway
 import numpy as np
 import pandas as pd
 import pickle
+from mpl_toolkits.basemap import Basemap #for creating the background map
+import matplotlib.pyplot as plt #for plotting on top of the background map
+import matplotlib.patches as patches #import library for fancy arrows/edges
 
 # DEFINE FUNCTIONS 
 
@@ -240,10 +243,6 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     ####################
     # b. Build a map
 
-    #import map/plotting tools
-    from mpl_toolkits.basemap import Basemap #for creating the background map
-    import matplotlib.pyplot as plt #for plotting on top of the background map
-
     #draw the basic map including country borders
     map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
     # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
@@ -260,9 +259,6 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     ##########################
     # c. Plot flow in the map
 
-    #import library for fancy arrows/edges
-    import matplotlib.patches as patches
-
     #arrow settings
     tail_width_base = 8
     head_with = 0.01
@@ -270,7 +266,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     base_curvature = 0.2
     #arrow settings for the different modes
     mode_color_dict = {"road":"grey", "sea":"blue", "rail":"darkgreen", "total":"black"}
-    mode_linestyle_dict = {"road":"-", "sea":"--", "rail":":", "total":"-"}
+    mode_linestyle_dict = {"road":"-", "sea":(0, (5, 10)), "rail":(0, (1, 10)), "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
     # arrow settings for direction of change (for "diff" option)
     dir_color_dict = {"increase":"green", "decrease":"red"}
@@ -333,7 +329,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                         (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
                         (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
                         connectionstyle=f"arc3,rad={base_curvature * curvature_factor}", #curvature of the edge
-                        arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
+                        #arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
+                        linewidth = tail_width_base * cur_flow/cur_max_flow,
                         linestyle=mode_linestyle_dict[cur_mode],
                         color=cur_color
                         )    
@@ -375,7 +372,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                     (node_x[cur_orig_index], node_y[cur_orig_index]), 
                     (node_x[cur_dest_index], node_y[cur_dest_index]), 
                     connectionstyle=f"arc3,rad={base_curvature * curvature_factor}",
-                    arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
+                    #arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
+                    linewidth = tail_width_base * cur_flow/cur_max_flow,
                     linestyle=mode_linestyle_dict[mode_variant],
                     color=cur_color
                     )    
@@ -437,13 +435,14 @@ with open(r'Data\base_data', 'rb') as data_file:
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
 sel_time_period = 2050
-plot_overseas = False 
-plot_up_north = False
+plot_overseas = True
+plot_up_north = True
 show_fig = True
 save_fig = False
 
 # Make plot
-process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, plot_overseas, plot_up_north, show_fig, save_fig)
+if True:
+    process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
 # 2. Make difference plots
@@ -453,12 +452,13 @@ mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
 sel_time_period_before = 2020
 sel_time_period_after = 2050
-plot_overseas = False 
-plot_up_north = False
+plot_overseas = True
+plot_up_north = True
 show_fig = True
 save_fig = False
 
 # Make plot
-process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, plot_overseas, plot_up_north, show_fig, save_fig)
+if True:
+    process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
