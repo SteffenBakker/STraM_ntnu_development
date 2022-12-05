@@ -93,21 +93,6 @@ def plot_costs(output):
     fig = ax.get_figure()
     #fig.savefig('/path/to/figure.pdf')
 
-
-    fig, ax = plt.subplots()
-
-    bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
-    for f in base_data.FM_FUEL[m]:
-        subset = TranspArbAvgScen[(TranspArbAvgScen['mode']==m)&(TranspArbAvgScen['fuel']==f)]
-        ax.bar(labels, subset[base_string].tolist(), width, yerr=subset[base_string+'_std'].tolist(), 
-                    bottom = bottom,label=f,color=color_dict[f])
-        bottom = [subset[base_string].tolist()[i]+bottom[i] for i in range(len(bottom))]
-    ax.set_ylabel(ylabel)
-    ax.set_title(m + ' - ' + analysis_type)
-    ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
-
-    plt.show()
-
 def cost_and_investment_table(base_data,output):
 
     keys = list(zip(output.z_emission_violation["time_period"],output.z_emission_violation["scenario"]))
@@ -141,7 +126,6 @@ def cost_and_investment_table(base_data,output):
     #get the right measure:
     for var in cost_vars:
         var2 = legend_names[var]
-        print(var2)
         for key, value in output.all_costs[var2].items():
             output.all_costs[legend_names[var]][key] = round(value / 10**9*SCALING_FACTOR,3) # in GNOK
 
@@ -314,7 +298,7 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,absolute_transp_work=True, analy
 def mode_mix_calculations(output,base_data):
     output.x_flow['Distance'] = 0 # in Tonnes KM
     for index, row in output.x_flow.iterrows():
-            output.x_flow.at[index,'Distance'] = base_data.AVG_DISTANCE[(row['from'],row['to'],row['mode'],row['route'])]
+        output.x_flow.at[index,'Distance'] = base_data.AVG_DISTANCE[(row['from'],row['to'],row['mode'],row['route'])]
 
     output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] /10**9*SCALING_FACTOR # in GTonnes KM
 
@@ -328,6 +312,9 @@ def mode_mix_calculations(output,base_data):
     ss_x_flow = output.x_flow
 
     TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
+    
+    #output.q_transp_amount[output.q_transp_amount["time_period"]==2050]
+    
     TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
     TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
     TranspArb = TranspArb.rename(columns={"TransportArbeid": "TranspArb"})
@@ -385,8 +372,7 @@ print(demand_overview)
 
 DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
 pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
-for i in range(3):
-    print(len(DEMAND_PER_YEAR[i]))
+
 
 #conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
 
