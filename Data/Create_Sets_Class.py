@@ -117,11 +117,66 @@ class TransportSets():
         self.scaling_factor = SCALING_FACTOR #10E-5
         self.precision_digits = 6
 
-        self.N_NODES = ["Oslo", "Bergen", "Trondheim", "Hamar", "Bodø", "Tromsø", "Kristiansand",
-                        "Ålesund", "Stavanger", "Skien", "Sør-Sverige", "Nord-Sverige",
-                        "Kontinentalsokkelen", "Europa", "Verden"]
-        self.N_NODES_NORWAY = ["Oslo", "Bergen", "Trondheim", "Hamar", "Bodø", "Tromsø", "Kristiansand",
-                        "Ålesund", "Stavanger", "Skien", "Kontinentalsokkelen"]
+
+
+        self.M_MODES = ["Road", "Rail", "Sea"]
+
+
+        # -----------------------
+        # ------- Network--------
+        # -----------------------
+
+        sea_distance = pd.read_excel(self.prefix+r'distances.xlsx', sheet_name='Sea')
+        road_distance = pd.read_excel(self.prefix+r'distances.xlsx', sheet_name='Road')
+        rail_distance = pd.read_excel(self.prefix+r'distances.xlsx', sheet_name='Rail')
+
+        distances_dict = {}
+
+        for index, row in sea_distance.iterrows():
+            distances_dict[(row["Fra"],row["Til"],"Sea",int(row["Route"]))] = row["Km - sjø"]
+        for index, row in road_distance.iterrows():
+            distances_dict[(row["Fra"],row["Til"],"Road",int(row["Route"]))] = row["Km - road"]
+        for index, row in rail_distance.iterrows():
+            distances_dict[(row["Fra"],row["Til"],"Rail",int(row["Route"]))] = row["Km - rail"]
+
+        self.Utlandet = ['Nord-Sverige','Sør-Sverige','Europa','Verden']
+        self.N_NODES = set()
+        self.E_EDGES = []
+        self.E_EDGES_RAIL = []
+        
+        self.A_ARCS = []
+        
+        self.AVG_DISTANCE = {}
+        for (i,j,m,r),value in distances_dict.items():
+            a1 = (i,j,m,r)
+            a2 = (j,i,m,r)
+            self.N_NODES.add(i)
+            self.N_NODES.add(j)
+            self.E_EDGES.append(a1)
+            self.A_ARCS.append(a1)
+            self.A_ARCS.append(a2)
+            self.AVG_DISTANCE[a1] = value
+            self.AVG_DISTANCE[a2] = value
+            if (i in self.Utlandet) or (j in self.Utlandet):
+                self.AVG_DISTANCE[a1] = value/2
+                self.AVG_DISTANCE[a2] = value/2
+                # half the distance for international transport -> split the emissions and costs
+            if m == 'Rail':
+                if (i not in self.Utlandet) or (j not in self.Utlandet):
+                    self.E_EDGES_RAIL.append(a1)
+        self.N_NODES = list(self.N_NODES)
+        self.N_NODES_NORWAY = set(self.N_NODES) - set(self.Utlandet)
+
+        self.AE_ARCS = {e:[] for e in self.E_EDGES}
+        self.AM_ARCS = {m:[] for m in self.M_MODES}
+        for (i,j,m,r) in self.E_EDGES:
+            a1 = (i,j,m,r)
+            a2 = (j,i,m,r)
+            self.AE_ARCS[a1].append(a1)
+            self.AE_ARCS[a1].append(a2)
+            self.AM_ARCS[m].append(a1)
+            self.AM_ARCS[m].append(a2)
+        
         
         self.SEA_NODES = self.N_NODES.copy()
         self.SEA_NODES.remove("Hamar")
@@ -138,8 +193,6 @@ class TransportSets():
         self.RAIL_NODES.remove("Kontinentalsokkelen")
         self.RAIL_NODES.remove("Europa")
         self.RAIL_NODES.remove("Verden")
-        
-        self.M_MODES = ["Road", "Rail", "Sea"]
 
         self.NM_NODES = {m:None for m in self.M_MODES}
         self.NM_NODES["Road"] = self.ROAD_NODES
@@ -153,6 +206,11 @@ class TransportSets():
         
         self.N_NODES_CAP_NORWAY = {"Rail": self.RAIL_NODES_NORWAY,
                             "Sea": self.SEA_NODES_NORWAY}
+
+
+        #####################################
+        ## Mode-Fuel stuff
+        #####################################
 
         self.F_FUEL = ["Diesel", "Ammonia", "Hydrogen", "Battery electric", "Electric train (CL)", "LNG", "MGO",
                        'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"]
@@ -169,6 +227,11 @@ class TransportSets():
 
         self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
         
+
+        # -----------------------
+        # ------- Timing --------
+        # -----------------------
+
         self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]
         self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
         self.T_TIME_FIRST_STAGE = [2020,2025]
@@ -190,6 +253,11 @@ class TransportSets():
                 duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS[i-1]])
                 self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0 + j for j in range(duration_previous)]
 
+        
+        # -----------------------
+        # ------- Other--------
+        # -----------------------
+
         self.P_PRODUCTS = ['Dry bulk', 'Fish', 'General cargo', 'Industrial goods', 'Other thermo',
                            'Timber', 'Wet bulk']
         
@@ -199,123 +267,16 @@ class TransportSets():
                    "Timber": ['Timber'],
                    "All": self.P_PRODUCTS}
 
-        self.E_EDGES = []
-        self.E_EDGES_RAIL = []
-        self.E_EDGES_UPG = []
-        self.A_ARCS = []
-        self.U_UPGRADE=[] #only one option, upgrade to electrify by means of electric train
-        self.OD_PAIRS = []
-        self.K_PATHS = []
-      
-
-        #self.UF_UPG = {"Battery train": ["Partially electrified rail", "Fully electrified rail"],
-        #               "Electric train (CL)": ["Fully electrified rail"]}
         
-
-        # Create initial edges              modal links
-        for i in self.N_NODES:
-            for j in self.N_NODES:
-                if (j!=i):
-                    for m in self.M_MODES:
-                        if (i == "Hamar" and j == "Trondheim" and m == "Rail") or (
-                                i == "Trondheim" and j == "Hamar" and m == "Rail"):
-                            self.R_ROUTES = [1, 2]  # 1 = Dovrebanen, 2 = Rørosbanen
-                        else:
-                            self.R_ROUTES = [1]
-                        for r in self.R_ROUTES:
-                            edge = (i, j, m, r)
-                            if ((j, i, m, r) not in self.E_EDGES):
-                                self.E_EDGES.append(edge)
-
-        # Defined allowed railway modal links
-        self.allowed_rail = {"Oslo": ["Hamar", "Bergen", "Skien", "Sør-Sverige"],
-                             "Bergen": ["Oslo"],
-                             "Trondheim": ["Bodø", "Hamar", "Nord-Sverige"],
-                             "Bodø": ["Trondheim", "Tromsø", "Nord-Sverige"],
-                             "Tromsø": ["Bodø"],
-                             "Hamar": ["Oslo", "Trondheim", "Ålesund","Sør-Sverige"],
-                             "Kristiansand": ["Stavanger", "Skien"],
-                             "Skien":["Kristiansand","Oslo"],
-                             "Ålesund": ["Hamar"],
-                             "Stavanger": ["Kristiansand"],
-                             "Sør-Sverige": ["Oslo", "Hamar", "Nord-Sverige","Europa"],
-                             "Nord-Sverige": ["Sør-Sverige", "Bodø", "Trondheim"],
-                             "Europa": ["Sør-Sverige"]}
-
-        self.allowed_road = {"Oslo": ["Hamar", "Bergen", "Skien", "Sør-Sverige"],
-                             "Bergen": ["Oslo","Ålesund","Stavanger"],
-                             "Trondheim": ["Bodø", "Hamar", "Nord-Sverige","Ålesund"],
-                             "Bodø": ["Trondheim", "Tromsø", "Nord-Sverige"],
-                             "Tromsø": ["Bodø"],
-                             "Hamar": ["Oslo", "Trondheim", "Ålesund"],
-                             "Kristiansand": ["Stavanger", "Skien"],
-                             "Skien": ["Kristiansand", "Oslo"],
-                             "Ålesund": ["Hamar","Bergen","Trondheim"],
-                             "Stavanger": ["Kristiansand","Bergen"],
-                             "Sør-Sverige": ["Oslo", "Nord-Sverige", "Europa"],
-                             "Nord-Sverige": ["Sør-Sverige", "Bodø", "Trondheim"],
-                             "Europa": ["Sør-Sverige"]}
-
-        edges_for_deletion = []
-        for e in self.E_EDGES:
-            if e[2] == "Road":
-                if e[0] not in self.allowed_road.keys() or e[1] not in self.allowed_road.keys():
-                    edges_for_deletion.append(e)
-                elif e[1] not in self.allowed_road[e[0]]:
-                    edges_for_deletion.append(e)
-            elif e[2] == "Sea":
-                if (e[0] == "Hamar") or (e[1] == "Hamar"):
-                    edges_for_deletion.append(e)
-            elif e[2] == "Rail":
-                if e[0] not in self.allowed_rail.keys() or e[1] not in self.allowed_rail.keys():
-                    edges_for_deletion.append(e)
-                elif e[1] not in self.allowed_rail[e[0]]:
-                    edges_for_deletion.append(e)
-        self.E_EDGES = set(self.E_EDGES) - set(edges_for_deletion)
-
-        self.E_EDGES_NORWAY = []
-        for (i,j,m,r) in self.E_EDGES:
-            if i in self.N_NODES_NORWAY or j in self.N_NODES_NORWAY:
-                self.E_EDGES_NORWAY.append((i,j,m,r))
-
-        self.AE_ARCS = {e:[] for e in self.E_EDGES}
-        self.AM_ARCS = {m:[] for m in self.M_MODES}
-        # Create all arcs from allowed modal links THE F CAN BE REMOVED HERE!
-        for (i, j, m, r) in self.E_EDGES:
-            e = (i, j, m, r)
-            a1 = (i, j, m, r)
-            a2 = (j, i, m, r)
-            self.A_ARCS.append(a1)
-            self.A_ARCS.append(a2)
-            self.AE_ARCS[e].append(a1)
-            self.AE_ARCS[e].append(a2)
-            self.AM_ARCS[m].append(a1)
-            self.AM_ARCS[m].append(a2)
-                
-        
-        for l in self.E_EDGES_NORWAY:
-            if l[2] == "Rail":
-                self.E_EDGES_RAIL.append(l)
-        
-        
-        rail_cap_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Cap rail')
-        inv_rail_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Invest rail')
-        inv_sea_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Invest sea')
-     
-        for index, row in inv_rail_data.iterrows():
-            if pd.isnull(row["From"]):
-                pass
-            else:
-                self.E_EDGES_UPG.append((row["From"],row["To"],row["Mode"],row["Route"]))   #this was L_LINKS_UPG
-        
-        for e in self.E_EDGES_UPG:
-            self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
             
 
         ####################################
         ### ORIGIN, DESTINATION AND DEMAND #
         ####################################
 
+
+        self.OD_PAIRS = []
+        
 
         #Start with filtering of demand data. What to include and what not.
         D_DEMAND_ALL = {}  #5330 entries, after cutting off the small elements, only 4105 entries
@@ -398,8 +359,9 @@ class TransportSets():
         # ----LOAD ALL PATHS------
         # ------------------------
 
+
         self.K_PATHS = []
-        all_generated_paths = pd.read_csv(self.prefix+r'generated_paths.csv', converters={'paths': eval})
+        all_generated_paths = pd.read_csv(self.prefix+r'generated_paths_Ruben.csv', converters={'paths': eval})
         self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
         for index, row in all_generated_paths.iterrows():
             elem = tuple(row['paths']) 
@@ -414,52 +376,6 @@ class TransportSets():
                     self.OD_PATHS[od].append(k)
 
         
-
-        # ---------------------------------------
-        # -------CALCULATE LINK DISTANCES--------
-        # ---------------------------------------
-
-        sea_distance = pd.read_excel(self.prefix+r'distances.xlsx', sheet_name='Sea')
-        road_distance = pd.read_excel(self.prefix+r'distances.xlsx', sheet_name='Road')
-        rail_distance = pd.read_excel(self.prefix+r'distances.xlsx', sheet_name='Rail')
-
-        road_distances_dict = {}
-        sea_distances_dict = {}
-        rail_distances_dict = {}
-        for i in self.N_NODES:
-            for j in self.N_NODES:
-                for index, row in sea_distance.iterrows():
-                    if row["Fra"] in [i, j] and row["Til"] in [i, j]:
-                        sea_distances_dict[(i, j)] = row["Km - sjø"]
-                for index, row in road_distance.iterrows():
-                    if row["Fra"] in [i, j] and row["Til"] in [i, j]:
-                        road_distances_dict[(i,j)] = row["Km - road"]
-                for index, row in rail_distance.iterrows():
-                    if row["Fra"] in [i, j] and row["Til"] in [i, j]:
-                        rail_distances_dict[(i, j)] = row["Km - rail"]
-
-        self.AVG_DISTANCE = {e: 0 for e in self.E_EDGES}
-        for l in self.E_EDGES:
-            if l[2] == "Road":
-                if (l[0], l[1]) in road_distances_dict.keys():
-                    self.AVG_DISTANCE[l] = road_distances_dict[(l[0], l[1])]
-                    self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = road_distances_dict[(l[1], l[0])]
-            elif l[2] == "Sea":
-                if (l[0], l[1]) in sea_distances_dict.keys():
-                    self.AVG_DISTANCE[l] = sea_distances_dict[(l[0], l[1])]
-                    self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = sea_distances_dict[(l[1], l[0])]
-            elif l[2] == "Rail":
-                if (l[0], l[1]) in rail_distances_dict.keys():
-                    self.AVG_DISTANCE[l] = rail_distances_dict[(l[0], l[1])]
-                    self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = rail_distances_dict[(l[1], l[0])]
-            if l[0] not in self.N_NODES_NORWAY or l[1] not in self.N_NODES_NORWAY:
-                self.AVG_DISTANCE[l] = self.AVG_DISTANCE[l] / 2        #We have to account for half the costs of international transport
-                self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] = self.AVG_DISTANCE[(l[1], l[0], l[2], l[3])] / 2
-            #if (l[0] == "Verden") and (l[1] == "Oslo") or (l[1] == "Verden") and (l[0] == "Oslo"):
-            #    self.AVG_DISTANCE[l] = 0
-
-        for key, value in self.AVG_DISTANCE.items():  
-            self.AVG_DISTANCE[key] = round(value,1)
 
         #multi-mode paths and unimodal paths
         self.MULTI_MODE_PATHS = []
@@ -638,6 +554,25 @@ class TransportSets():
         #  INVESTMENTS  #
         #################
         
+        rail_cap_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Cap rail')
+        inv_rail_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Invest rail')
+        inv_sea_data = pd.read_excel(self.prefix+r'capacities_and_investments.xlsx', sheet_name='Invest sea')
+
+        self.E_EDGES_UPG = []
+        for index, row in inv_rail_data.iterrows():
+            if pd.isnull(row["From"]):
+                pass
+            else:
+                (i,j,m,r) = (row["From"],row["To"],row["Mode"],int(row["Route"]))
+                edge = (i,j,m,r)
+                if (i,j,m,r) not in self.E_EDGES_RAIL:
+                    edge = (j,i,m,r)
+                    self.E_EDGES_UPG.append(edge)   #this was L_LINKS_UPG
+        
+        self.U_UPGRADE=[] #only one option, upgrade to electrify by means of electric train
+        for e in self.E_EDGES_UPG:
+            self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
+
         self.C_EDGE_RAIL = {e: 100000000 for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
         self.Q_EDGE_RAIL = {e: 0 for e in self.E_EDGES_RAIL}   # TONNES ->MTONNES
         self.Q_EDGE_BASE_RAIL = {e: 100000 for e in self.E_EDGES_RAIL}   # TONNES
@@ -651,13 +586,13 @@ class TransportSets():
         #how many times can you invest?
         #self.INV_NODE = {(i,m,b): 4 for (i,m,b) in self.NMB_CAP}
         #self.INV_LINK = {(l): 1 for l in self.E_EDGES_RAIL}
-        
 
         for index, row in inv_rail_data.iterrows():
             for ((i,j,m,r),f) in self.U_UPGRADE:
                 #for u in self.U_UPG:
-                if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and f == "Electric train (CL)": # u == 'Fully electrified rail':
+                if i == row["From"] and j == row["To"] and m == row["Mode"] and r == int(row["Route"]) and f == "Electric train (CL)": # u == 'Fully electrified rail':
                     self.C_UPG[((i,j,m,r),f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor,2)
+                    self.C_UPG[((j,i,m,r),f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor,2)
                 #if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and u == 'Partially electrified rail':
                 #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.scaling_factor
 
@@ -682,21 +617,23 @@ class TransportSets():
                         self.Q_NODE[i,c,m] = cap_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor  #MTONNES
                         self.C_NODE[i,c,m] = cap_data.iloc[0]['Kostnad']/self.scaling_factor  #MNOK
 
+        #this is bad programming -> To do: update
         for (i, j, m, r) in self.E_EDGES_RAIL:
+            a1 = (i, j, m, r)
             capacity_data1 = rail_cap_data.loc[(rail_cap_data['Fra'] == i) & (rail_cap_data['Til'] == j) & (rail_cap_data['Rute'] == r)]
             capacity_data2 = rail_cap_data.loc[(rail_cap_data['Fra'] == j) & (rail_cap_data['Til'] == i) & (rail_cap_data['Rute'] == r)]
             capacity_exp_data1 = inv_rail_data.loc[(inv_rail_data['Fra'] == i) & (inv_rail_data['Til'] == j) & (inv_rail_data['Rute'] == r)]
             capacity_exp_data2 = inv_rail_data.loc[(inv_rail_data['Fra'] == j) & (inv_rail_data['Til'] == i) & (inv_rail_data['Rute'] == r)]
             if len(capacity_data1) > 0:
-                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_data1.iloc[0]['Maks kapasitet']/self.scaling_factor
+                self.Q_EDGE_BASE_RAIL[a1] = capacity_data1.iloc[0]['Maks kapasitet']/self.scaling_factor
             if len(capacity_data2) > 0:
-                self.Q_EDGE_BASE_RAIL[i, j, m, r] = capacity_data2.iloc[0]['Maks kapasitet']/self.scaling_factor
+                self.Q_EDGE_BASE_RAIL[a1] = capacity_data2.iloc[0]['Maks kapasitet']/self.scaling_factor
             if len(capacity_exp_data1) > 0:
-                self.Q_EDGE_RAIL[i, j, m, r] = capacity_exp_data1.iloc[0]['Kapasitetsøkning']/self.scaling_factor
-                self.C_EDGE_RAIL[i, j, m, r] = round(capacity_exp_data1.iloc[0]['Kostnad']/self.scaling_factor,1)
+                self.Q_EDGE_RAIL[a1] = capacity_exp_data1.iloc[0]['Kapasitetsøkning']/self.scaling_factor
+                self.C_EDGE_RAIL[a1] = round(capacity_exp_data1.iloc[0]['Kostnad']/self.scaling_factor,1)
             if len(capacity_exp_data2) > 0:
-                self.Q_EDGE_RAIL[i, j, m, r] = capacity_exp_data2.iloc[0]['Kapasitetsøkning']/self.scaling_factor
-                self.C_EDGE_RAIL[i, j, m, r] = round(capacity_exp_data2.iloc[0]['Kostnad']/self.scaling_factor,1)
+                self.Q_EDGE_RAIL[a1] = capacity_exp_data2.iloc[0]['Kapasitetsøkning']/self.scaling_factor
+                self.C_EDGE_RAIL[a1] = round(capacity_exp_data2.iloc[0]['Kostnad']/self.scaling_factor,1)
         
         for l in self.E_EDGES_UPG:
             self.BIG_M_UPG[l] =  self.Q_EDGE_BASE_RAIL[l] + self.Q_EDGE_RAIL[l]#*self.INV_LINK[l] 
@@ -732,15 +669,12 @@ class TransportSets():
 
         # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
         self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
-        # ALLE DISTANSER PÅ ROAD SOM TRENGER CHARGING INFRASTUCTURE
-        self.CHARGE_ROAD_DISTANCE = {(e,f): road_distances_dict[(e[0], e[1])] for (e,f) in self.EF_CHARGING}
-        # self.CHARGE_ROAD_DISTANCE = {mf:  for mf in self.CHARGING_TECH}
         self.C_CHARGE = {(e,f): 9999 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
         max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
         for ((i, j, m, r),f) in self.EF_CHARGING:
             e = (i, j, m, r) 
             data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
-            self.C_CHARGE[(e,f)] = round((self.CHARGE_ROAD_DISTANCE[(e,f)]
+            self.C_CHARGE[(e,f)] = round((self.AVG_DISTANCE[e]
                                                    / data_index.iloc[0]["Max_station_dist"]
                                                    * data_index.iloc[0]["Station_cost"]
                                                    / (data_index.iloc[0][

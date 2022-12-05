@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     file_string = 'output_data_' + analysis_type 
     output = OutputData(ef,base_data,instance_run,EV_problem)
-    
+
     with open(r'Data\\' + file_string, 'wb') as output_file: 
         pickle.dump(output, output_file)
 

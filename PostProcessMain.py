@@ -384,7 +384,7 @@ pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
 
 base_data.scenario_information.mode_fuel_cost_factor
 
-output.q_transp_amount[output.q_transp_amount['time_period']==2030].sort_values(by=['mode','fuel']).reset_index()
+output.q_transp_amount[output.q_transp_amount['time_period']==2040].sort_values(by=['mode','fuel']).reset_index()
 
 # use to check
 #q_transp_amount	Sea	HFO	2030	1e+06	HLL
