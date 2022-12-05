@@ -1,24 +1,14 @@
-### Copy from PostProcessMain.py:
-#from Data.settings import *
-#from matplotlib.pyplot import cm
+"""
+In this file we plot the resulting flows in the model on a map of Norway
+"""
+
+# IMPORTS
+
 import numpy as np
 import pandas as pd
 import pickle
 
-#open old data
-analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
-with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
-    output = pickle.load(output_file)
-
-with open(r'Data\base_data', 'rb') as data_file:
-    base_data = pickle.load(data_file)
-
-################   NEW CODE BELOW  ##########################################################
-
-
-#########################
-# 1. PROCESS FLOW DATA
-#########################
+# DEFINE FUNCTIONS 
 
 # function that processes and aggregates flows
 def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period):
@@ -122,19 +112,76 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period):
     #return a dataframe with aggregated flows
     return df_flow
 
-# select scenario and time period
-sel_scenario = "average" #either a scenarioi name or "average"
-sel_time_period = 2050 #one of [2020, 2025, 2030, 2040, 2050]
+# function that computes difference in flows between two years
+def compute_flow_differences(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_time_period_after):   
+    """
+    Compute the difference in flows between two selected years. Outputs a dataframe with these differences
+    """
+    #create dataframes for before and after year
+    df_flow_before = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_before)
+    df_flow_after = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_after)
 
-# process and aggregate flows
-df_flow = process_and_aggregate_flows(output.x_flow, output.b_flow, sel_scenario, sel_time_period)
+    #initialize lists that will be columns of df_flow_diff
+    arcs_diff = []
+    orig_diff = []
+    dest_diff = []
+    flow_diff = []
+    flow_road_diff = []
+    flow_sea_diff = []
+    flow_rail_diff = []
 
-######################
-# 2. CREATE MAP PLOT
-######################
+    # add flows from after
+    for index, row in df_flow_after.iterrows():
+        #add arc if it is new
+        if row["arc"] not in arcs_diff:
+            arcs_diff.append(row["arc"])
+            orig_diff.append(row["orig"])
+            dest_diff.append(row["dest"])
+            flow_diff.append(0.0)
+            flow_road_diff.append(0.0)
+            flow_sea_diff.append(0.0)
+            flow_rail_diff.append(0.0)
+        # find arc index
+        cur_index = arcs_diff.index(row["arc"])
+        # add flows at right index
+        flow_diff[cur_index] += row["flow"]
+        flow_road_diff[cur_index] += row["flow_road"]
+        flow_sea_diff[cur_index] += row["flow_sea"]
+        flow_rail_diff[cur_index] += row["flow_rail"]
 
-#TODO: FIGURE THAT PLOTS DIFFERENCES
+    # subtract flows from before
+    for index, row in df_flow_before.iterrows():
+        #add arc if it is new
+        if row["arc"] not in arcs_diff:
+            arcs_diff.append(row["arc"])
+            orig_diff.append(row["orig"])
+            dest_diff.append(row["dest"])
+            flow_diff.append(0.0)
+            flow_road_diff.append(0.0)
+            flow_sea_diff.append(0.0)
+            flow_rail_diff.append(0.0)
+        # find arc index
+        cur_index = arcs_diff.index(row["arc"])
+        # add flows at right index
+        flow_diff[cur_index] -= row["flow"]
+        flow_road_diff[cur_index] -= row["flow_road"]
+        flow_sea_diff[cur_index] -= row["flow_sea"]
+        flow_rail_diff[cur_index] -= row["flow_rail"]
 
+    # store differences in a dataframe
+    df_flow_diff = pd.DataFrame()
+    df_flow_diff["arc"] = arcs_diff
+    df_flow_diff["orig"] = orig_diff
+    df_flow_diff["dest"] = dest_diff
+    df_flow_diff["flow"] = flow_diff
+    df_flow_diff["flow_road"] = flow_road_diff
+    df_flow_diff["flow_sea"] = flow_sea_diff
+    df_flow_diff["flow_rail"] = flow_rail_diff
+
+    # return dataframe with flow differences between the two years per edge
+    return df_flow_diff
+
+# function that plots flow on the map
 def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):    
     """
     Create a plot on the map of Norway with all the flows
@@ -142,7 +189,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     INPUT
     df_flow:        dataframe with aggregated flows per edge (split out by mode)
     base_data:      base model data (only used to extract N_NODES)
-    flow_variant:   TODO
+    flow_variant:   type of flow input, i.e., absolute flow or difference between two years; choose form ["flow", "diff"]
     mode_variant:   what mode to plot; choose from ["road", "sea", "rail", "all", "total"]
     plot_overseas:  indicate whether to plot flow to oversees nodes ("Kontinentalsokkelen", "Europa", and "Verden")
     plot_up_north:  indicate whether to plot flow to nodes up north ("Bodø" and "Tromsø")
@@ -222,18 +269,23 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    color_dict = {"road":"grey", "sea":"blue", "rail":"darkgreen", "total":"black"}
+    mode_color_dict = {"road":"grey", "sea":"blue", "rail":"darkgreen", "total":"black"}
+    mode_linestyle_dict = {"road":"-", "sea":"--", "rail":":", "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
+    # arrow settings for direction of change (for "diff" option)
+    dir_color_dict = {"increase":"green", "decrease":"red"}
+    
 
-    #compute maximum and total flows over all edges (for scaling purposes)
-    max_flow = max(df_flow["flow"])
-    max_flow_road = max(df_flow["flow_road"])
-    max_flow_sea = max(df_flow["flow_sea"])
-    max_flow_rail = max(df_flow["flow_rail"])
-    total_flow = sum(df_flow["flow"])
-    total_flow_road = sum(df_flow["flow_road"])
-    total_flow_sea = sum(df_flow["flow_sea"])
-    total_flow_rail = sum(df_flow["flow_rail"])
+    # compute maximum and total flows over all edges (for scaling purposes)
+    #   note: use absolute value to deal with flow_diff if we use that plotting option
+    max_flow = max(abs(df_flow["flow"]))
+    max_flow_road = max(abs(df_flow["flow_road"]))
+    max_flow_sea = max(abs(df_flow["flow_sea"]))
+    max_flow_rail = max(abs(df_flow["flow_rail"]))
+    total_flow = sum(abs(df_flow["flow"]))
+    total_flow_road = sum(abs(df_flow["flow_road"]))
+    total_flow_sea = sum(abs(df_flow["flow_sea"]))
+    total_flow_rail = sum(abs(df_flow["flow_rail"]))
     #store in dictionaries
     total_flow_dict = {"road":total_flow_road, "sea":total_flow_sea, "rail":total_flow_rail, "total":total_flow, "all":total_flow}
     max_flow_dict = {"road":max_flow_road, "sea":max_flow_sea, "rail":max_flow_rail, "total":max_flow, "all":max_flow}
@@ -259,10 +311,22 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
             #loop over the three modes
             for cur_mode in ["road", "sea", "rail"]:
                 #extract information the current mode
-                cur_flow = flow_dict[cur_mode]
+                cur_flow = abs(flow_dict[cur_mode]) # take absolute value to deal with "diff" version
+                cur_sign = np.sign(flow_dict[cur_mode]) # sign of flow
                 cur_total_flow = total_flow_dict[mode_variant]
                 cur_max_flow = max_flow_dict[mode_variant]
                 curvature_factor = curvature_fact_dict[cur_mode] #indicates in what direction the arc should bend
+                # determine plot color
+                cur_color = "k" # initialize color at black
+                if flow_variant == "flow":
+                    cur_color = mode_color_dict[cur_mode]
+                elif flow_variant == "diff":    
+                    cur_direction = ""
+                    if cur_sign >= 0.0:
+                        cur_direction = "increase"
+                    else:
+                        cur_direction = "decrease"
+                    cur_color = dir_color_dict[cur_direction]
                 #create new arc
                 if cur_flow > 0.001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
                     new_arc = patches.FancyArrowPatch(
@@ -270,7 +334,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                         (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
                         connectionstyle=f"arc3,rad={base_curvature * curvature_factor}", #curvature of the edge
                         arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
-                        color=color_dict[cur_mode]
+                        linestyle=mode_linestyle_dict[cur_mode],
+                        color=cur_color
                         )    
                     if ((not overseas) or (overseas and plot_overseas)) and ((not up_north) or (up_north and plot_up_north)): #only add the arc if we want to plot it
                         #add the arc to the plot
@@ -279,16 +344,31 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
             #get current flow and related information
             cur_flow = 0.0
             if mode_variant == "total":
-                cur_flow = row["flow"]
+                cur_flow = abs(row["flow"]) # take absolute value to deal with "diff" version
+                cur_sign = np.sign(row["flow"]) # sign of flow
             elif mode_variant == "road":
-                cur_flow = row["flow_road"]
+                cur_flow = abs(row["flow_road"])
+                cur_sign = np.sign(row["flow_road"])
             elif mode_variant == "sea":
-                cur_flow = row["flow_sea"]
+                cur_flow = abs(row["flow_sea"])
+                cur_sign = np.sign(row["flow_sea"])
             elif mode_variant == "rail":
-                cur_flow = row["flow_rail"]
+                cur_flow = abs(row["flow_rail"])
+                cur_sign = np.sign(row["flow_rail"])
             cur_total_flow = total_flow_dict[mode_variant]
             cur_max_flow = max_flow_dict[mode_variant]
             curvature_factor = curvature_fact_dict[mode_variant] #indicates in what direction the arc should bend
+            # determine plot color
+            cur_color = "k" # initialize color at black
+            if flow_variant == "flow":
+                cur_color = mode_color_dict[mode_variant]
+            elif flow_variant == "diff":    
+                cur_direction = ""
+                if cur_sign >= 0.0:
+                    cur_direction = "increase"
+                else:
+                    cur_direction = "decrease"
+                cur_color = dir_color_dict[cur_direction]
             #create new arc
             if cur_flow > 0.001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
                 new_arc = patches.FancyArrowPatch(
@@ -296,7 +376,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                     (node_x[cur_dest_index], node_y[cur_dest_index]), 
                     connectionstyle=f"arc3,rad={base_curvature * curvature_factor}",
                     arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
-                    color=color_dict[mode_variant]
+                    linestyle=mode_linestyle_dict[mode_variant],
+                    color=cur_color
                     )    
                 if ((not overseas) or (overseas and plot_overseas)) and ((not up_north) or (up_north and plot_up_north)): #only add the arc if we want to plot it
                     #add the arc to the plot
@@ -309,31 +390,75 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     plt.gcf().set_size_inches(8.5,10.5, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        filename = f"flow_plot_{sel_time_period}_{sel_scenario}_{mode_variant}.png"
+        filename = f"flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{mode_variant}.png"
         plt.savefig(filename)
     #show figure
     if show_fig:
         plt.show()
 
-# select what type of plot to make
-flow_variant = "flow" # ["flow", "difference"]
-mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
+# function that processes data and makes a flow plot in one go
+def process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):
+    # compute flow 
+    print("Computing flow...")
+    df_flow = process_and_aggregate_flows(output.x_flow, output.b_flow, sel_scenario, sel_time_period)
 
-# select whether to plot distant flow
+    # make plot
+    print("Making plot...")
+    plot_flow_on_map(df_flow, base_data, "flow", mode_variant, plot_overseas, plot_up_north, show_fig, save_fig)
+
+# function that processes data and makes a diff plot in one go
+def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):    
+    
+    # compute flow differences
+    print("Computing flow differences...")
+    df_flow_diff = compute_flow_differences(output.x_flow, output.b_flow, sel_scenario, sel_time_period_before, sel_time_period_after)
+
+    # make plot
+    print("Making plot...")
+    plot_flow_on_map(df_flow_diff, base_data, "diff", mode_variant, plot_overseas, plot_up_north, show_fig, save_fig)
+
+
+################################################
+
+
+# RUN ANALYSIS
+
+# Read model output
+analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
+with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
+    output = pickle.load(output_file)
+with open(r'Data\base_data', 'rb') as data_file:
+    base_data = pickle.load(data_file)
+
+
+# 1. Make flow plots
+
+# Choose settings
+mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
+sel_scenario = "average"
+sel_time_period = 2050
 plot_overseas = False 
 plot_up_north = False
+show_fig = True
+save_fig = False
+
+# Make plot
+process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
-plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overseas, plot_up_north)
+# 2. Make difference plots
 
+# Choose settings
+mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
+sel_scenario = "average"
+sel_time_period_before = 2020
+sel_time_period_after = 2050
+plot_overseas = False 
+plot_up_north = False
+show_fig = True
+save_fig = False
 
-
-
-##################
-
-#TODO:
-"""
-- write code that can plot increase/decrease in flow
-"""
+# Make plot
+process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
