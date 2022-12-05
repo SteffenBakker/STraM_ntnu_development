@@ -260,13 +260,15 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     # c. Plot flow in the map
 
     #arrow settings
-    tail_width_base = 8
+    tail_width_base = 20
+    if flow_variant == "diff":
+        tail_width_base = 0.5 * tail_width_base #use a lower value here, since 
     head_with = 0.01
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
     mode_color_dict = {"road":"grey", "sea":"blue", "rail":"darkgreen", "total":"black"}
-    mode_linestyle_dict = {"road":"-", "sea":(0, (5, 10)), "rail":(0, (1, 10)), "total":"-"}
+    mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
     # arrow settings for direction of change (for "diff" option)
     dir_color_dict = {"increase":"green", "decrease":"red"}
@@ -324,7 +326,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                         cur_direction = "decrease"
                     cur_color = dir_color_dict[cur_direction]
                 #create new arc
-                if cur_flow > 0.001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
+                if cur_flow > 0.000001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
                     new_arc = patches.FancyArrowPatch(
                         (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
                         (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
@@ -367,7 +369,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                     cur_direction = "decrease"
                 cur_color = dir_color_dict[cur_direction]
             #create new arc
-            if cur_flow > 0.001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
+            if cur_flow > 0.000001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
                 new_arc = patches.FancyArrowPatch(
                     (node_x[cur_orig_index], node_y[cur_orig_index]), 
                     (node_x[cur_dest_index], node_y[cur_dest_index]), 
@@ -422,7 +424,8 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 # RUN ANALYSIS
 
 # Read model output
-analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
+#analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
+analyses_type = 'SP' # EV , EEV, 'SP
 with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
     output = pickle.load(output_file)
 with open(r'Data\base_data', 'rb') as data_file:
