@@ -5,8 +5,11 @@ import numpy as np
 import pandas as pd
 import pickle
 
+import os
+print(os.getcwd())
+
 #open old data
-analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
+analyses_type = 'SP' # EV , EEV, 'SP', SP_visualization_ruben
 with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
     output = pickle.load(output_file)
 
