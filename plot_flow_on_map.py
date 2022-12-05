@@ -232,12 +232,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
             lats[n_ind] = row["lat"]
             lons[n_ind] = row["lon"]
     #add colors (for checking and perhaps plotting)
-    node_colors = ["black"]*len(N_NODES)
-    node_colors[-1] = "red"    #Verden                
-    node_colors[-2] = "green"  #Europa                
-    node_colors[-3] = "yellow" #Kontinentalsokkelen   
-    #node_colors[-4] = "blue"   #Nord-Sverige         
-    #node_colors[-5] = "grey"   #Sør-Sverige          
+    node_colors = ["black"]*len(N_NODES)     
 
 
     ####################
@@ -248,8 +243,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
     map.drawmapboundary(fill_color='aqua')
     map.fillcontinents(color='lightgrey', lake_color='aqua')
-    map.drawcoastlines(linewidth=0.3)
-    map.drawcountries(linewidth=0.3)
+    map.drawcoastlines(linewidth=0.2)
+    map.drawcountries(linewidth=0.2)
 
     #draw nodes on the map
     node_x, node_y = map(lons, lats)
@@ -267,7 +262,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"road":"grey", "sea":"blue", "rail":"darkgreen", "total":"black"}
+    mode_color_dict = {"road":"dimgrey", "sea":"blue", "rail":"magenta", "total":"black"}
     mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
     # arrow settings for direction of change (for "diff" option)
@@ -387,7 +382,10 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     # d. Show and save the figure
 
     #set size
-    plt.gcf().set_size_inches(8.5,10.5, forward=True) #TODO: FIND THE RIGH TSIZE
+    scale = 1.3
+    plot_width = 5 #in inches
+    plot_height = scale * plot_width
+    plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
         filename = f"flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{mode_variant}.png"
@@ -437,7 +435,7 @@ with open(r'Data\base_data', 'rb') as data_file:
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period = 2050
+sel_time_period = 2020
 plot_overseas = True
 plot_up_north = True
 show_fig = True
@@ -463,5 +461,4 @@ save_fig = False
 # Make plot
 if True:
     process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, plot_overseas, plot_up_north, show_fig, save_fig)
-
 
