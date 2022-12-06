@@ -3,6 +3,7 @@
 
 #using Pandas
 #using CSV
+using Pkg
 using XLSX
 using DataFrames
 
@@ -390,7 +391,7 @@ end
 #(sh_path, sh_dist, generated_paths, generated_path_lengths) = gen_paths(mode_cost, prod_transfer_cost[:,:,cur_p])
 
 #set max number of different modes per path
-mode_comb_level = 3 #or 2
+mode_comb_level = 2 #2 or 3
 
 
 #Generate all paths (loop over all years, products, fuels)
