@@ -361,7 +361,7 @@ class TransportSets():
 
 
         self.K_PATHS = []
-        all_generated_paths = pd.read_csv(self.prefix+r'generated_paths_Ruben.csv', converters={'paths': eval})
+        all_generated_paths = pd.read_csv(self.prefix+r'generated_paths_Ruben_2_modes.csv', converters={'paths': eval})
         self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
         for index, row in all_generated_paths.iterrows():
             elem = tuple(row['paths']) 
@@ -573,15 +573,16 @@ class TransportSets():
         for e in self.E_EDGES_UPG:
             self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
 
-        self.C_EDGE_RAIL = {e: 100000000 for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
+        BIG_COST_NUMBER = 10**12/self.scaling_factor # nord-norge banen = 113 milliarder = 113*10**9
+        self.C_EDGE_RAIL = {e: BIG_COST_NUMBER for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
         self.Q_EDGE_RAIL = {e: 0 for e in self.E_EDGES_RAIL}   # TONNES ->MTONNES
         self.Q_EDGE_BASE_RAIL = {e: 100000 for e in self.E_EDGES_RAIL}   # TONNES
         
-        self.C_NODE = {(i,c,m) : 100000000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]}  # NOK
+        self.C_NODE = {(i,c,m) : BIG_COST_NUMBER for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]}  # NOK
         self.Q_NODE_BASE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #endret    # TONNES
         self.Q_NODE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #lagt til 03.05    # TONNES
 
-        self.C_UPG = {(e,f) : 100000000 for (e,f) in self.U_UPGRADE}  #NOK
+        self.C_UPG = {(e,f) : BIG_COST_NUMBER for (e,f) in self.U_UPGRADE}  #NOK
         self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES
         #how many times can you invest?
         #self.INV_NODE = {(i,m,b): 4 for (i,m,b) in self.NMB_CAP}
@@ -630,10 +631,10 @@ class TransportSets():
                 self.Q_EDGE_BASE_RAIL[a1] = capacity_data2.iloc[0]['Maks kapasitet']/self.scaling_factor
             if len(capacity_exp_data1) > 0:
                 self.Q_EDGE_RAIL[a1] = capacity_exp_data1.iloc[0]['Kapasitetsøkning']/self.scaling_factor
-                self.C_EDGE_RAIL[a1] = round(capacity_exp_data1.iloc[0]['Kostnad']/self.scaling_factor,1)
+                self.C_EDGE_RAIL[a1] = round(capacity_exp_data1.iloc[0]['Kostnad']/self.scaling_factor,2) # nord-norge banen = 113 milliarder
             if len(capacity_exp_data2) > 0:
                 self.Q_EDGE_RAIL[a1] = capacity_exp_data2.iloc[0]['Kapasitetsøkning']/self.scaling_factor
-                self.C_EDGE_RAIL[a1] = round(capacity_exp_data2.iloc[0]['Kostnad']/self.scaling_factor,1)
+                self.C_EDGE_RAIL[a1] = round(capacity_exp_data2.iloc[0]['Kostnad']/self.scaling_factor,2) #
         
         for l in self.E_EDGES_UPG:
             self.BIG_M_UPG[l] =  self.Q_EDGE_BASE_RAIL[l] + self.Q_EDGE_RAIL[l]#*self.INV_LINK[l] 

@@ -11,7 +11,7 @@ import pickle
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = 'SP_Monday_Evening' # EV , EEV, 'SP
+analyses_type = 'SP' # EV , EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
@@ -72,10 +72,10 @@ if result_q_max>1:
 #---------------------------------------------------------#
 #       COSTS
 #---------------------------------------------------------#
-def plot_costs(output):
+def plot_costs(output,which_costs,ylabel,title):
 
-    indices = [i for i in output.all_costs_table.index if i not in ['discount_factor']]
-    all_costs_table2 = output.all_costs_table.loc[indices]
+    #indices = [i for i in output.all_costs_table.index if i not in ['discount_factor']]
+    all_costs_table2 = output.all_costs_table.loc[which_costs]
 
     mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
     mean_data = mean_data.droplevel(1, axis=1)
@@ -85,8 +85,8 @@ def plot_costs(output):
     ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), 
         stacked = True,
         xlabel = 'time periods',
-        ylabel = 'Costs (GNOK)',
-        title = "Costs",
+        ylabel = ylabel,
+        title = title,
         color = output.cost_var_colours
         )  
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
@@ -100,21 +100,21 @@ def cost_and_investment_table(base_data,output):
     output.costs["EmissionCosts"] = {keys[i]:EMISSION_VIOLATION_PENALTY*values[i] for i in range(len(values))}
     
     cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost","EmissionCosts"]
-    legend_names = {"TranspOpexCost":"TransportOpex",
-        "TranspOpexCostB":"TransportOpexEmptyTrips",
-        "TranspCO2Cost":"TransportCarbonCost",
-        "TranspCO2CostB":"TransportCarbonCostEmptyTrips",
+    legend_names = {"TranspOpexCost":"OPEX",
+        "TranspOpexCostB":"OPEX_Empty",
+        "TranspCO2Cost":"Carbon",
+        "TranspCO2CostB":"Carbon_Empty",
         "TransfCost":"Transfer",
         "EdgeCost":"Edge",
         "NodeCost":"Node",
         "UpgCost":"Upg", 
         "ChargeCost":"Charge",
         "EmissionCosts":"EmissionPenalty"}
-    output.cost_var_colours =  {"TransportOpex":"royalblue",
-        "TransportOpexEmptyTrips":"cornflowerblue",
-        "TransportCarbonCost":"dimgrey",
-        "TransportCarbonCostEmptyTrips":"silver",
-        "Transfer":"deepskyblue",
+    output.cost_var_colours =  {"OPEX":"royalblue",
+        "OPEX_Empty":"cornflowerblue",
+        "Carbon":"dimgrey",
+        "Carbon_Empty":"silver",
+        "Transfer":"brown",
         "Edge":"indianred",
         "Node":"darkred",
         "Upg":"teal", 
@@ -157,7 +157,14 @@ def cost_and_investment_table(base_data,output):
     return output
 
 output = cost_and_investment_table(base_data,output)
-plot_costs(output)
+opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
+investment_variables = ['Edge', 'Node', 'Upg','Charge']
+plot_costs(output,opex_variables,'Annual costs (GNOK)',"Costs")
+plot_costs(output,investment_variables,'One time investment costs (GNOK)',"Costs")
+
+
+if sum(output.z_emission_violation["weight"])>1:
+    raise Exception('We cannot decarbonize in time scenario:  -> z_emission_violation is non-negative')
 
 #---------------------------------------------------------#
 #       EMISSIONS 
