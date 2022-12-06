@@ -25,7 +25,7 @@ with open(r'Data\base_data', 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 
-output.ob_function_value
+print('objective function value: ', output.ob_function_value*SCALING_FACTOR/10**9)
 #---------------------------------------------------------#
 #       Accuracy of Q MAX approximation due to penalty -> should become zero
 #---------------------------------------------------------#
@@ -159,8 +159,8 @@ def cost_and_investment_table(base_data,output):
 output = cost_and_investment_table(base_data,output)
 opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
 investment_variables = ['Edge', 'Node', 'Upg','Charge']
-plot_costs(output,opex_variables,'Annual costs (GNOK)',"Costs")
-plot_costs(output,investment_variables,'One time investment costs (GNOK)',"Costs")
+plot_costs(output,opex_variables,'Annual costs (GNOK)',"Annual operational costs")
+plot_costs(output,investment_variables,'Investment costs (GNOK)',"(One-time) Investment costs")
 
 
 if sum(output.z_emission_violation["weight"])>1:

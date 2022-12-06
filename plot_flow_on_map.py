@@ -435,7 +435,7 @@ with open(r'Data\base_data', 'rb') as data_file:
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period = 2020
+sel_time_period = 2025
 plot_overseas = True
 plot_up_north = True
 show_fig = True
@@ -451,7 +451,7 @@ if True:
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period_before = 2020
+sel_time_period_before = 2025
 sel_time_period_after = 2050
 plot_overseas = True
 plot_up_north = True

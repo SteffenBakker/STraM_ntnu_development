@@ -37,8 +37,8 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'SP' # 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #scenarios_base, three_scenarios,three_scenarios_new, three_scenarios_with_maturity
+analysis_type = 'EEV' # 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+sheet_name_scenarios = 'scenarios_base' #EV_scenario, scenarios_base, three_scenarios,three_scenarios_new, three_scenarios_with_maturity
 
     
 
@@ -57,6 +57,7 @@ if __name__ == "__main__":
     EV_problem = False
     if analysis_type == 'EV':
         EV_problem = True
+        sheet_name_scenarios = 'EV_scenario'
     EEV_problem = False
     if analysis_type == 'EEV':
         EEV_problem = True

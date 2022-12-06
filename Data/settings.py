@@ -20,7 +20,7 @@ INTERPOLATE_DEMAND_DATA_2040 = True
 
 #Model settings
 
-ALLOW_NO_INVESTMENTS = False
+NO_INVESTMENTS = False
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
 EMISSION_VIOLATION_PENALTY = SCALING_FACTOR/10**2  # TO DO: depend on scaling factor

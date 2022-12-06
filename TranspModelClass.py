@@ -316,7 +316,7 @@ class TranspModel:
 
 
 
-        if ALLOW_NO_INVESTMENTS:
+        if NO_INVESTMENTS:
             for (i,j,m,r,tau) in self.data.ET_RAIL:
                 self.model.epsilon_edge[i,j,m,r, tau].fix(0)
             for (e,f,t) in self.data.UT_UPG:
