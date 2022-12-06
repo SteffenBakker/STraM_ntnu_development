@@ -699,7 +699,7 @@ class TransportSets():
         for index, row in self.tech_readiness.iterrows():
             for year in self.T_TIME_PERIODS:
                 # self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'], year)] = row[str(year)]
-                self.maturity_paths[(row['Mode'], row['Fuel'], row['Maturty_Path'], year)] = row[str(year)]
+                self.maturity_paths[(row['Mode'], row['Fuel'], row['Maturity_Path'], year)] = row[str(year)]
                 if row["Maturity_Path"] == "base":
                     self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'], year)] = row[str(year)] #initialize at base path
 
@@ -813,9 +813,15 @@ class TransportSets():
 
 
 #Testing:
-#base_data = TransportSets()
-#base_data.scenario_information
+"""
+base_data = TransportSets(sheet_name_scenarios='three_scenarios_with_maturity')
+base_data.scenario_information
 
+base_data.scenario_information.scenario_names
 
+base_data.update_scenario_dependent_parameters("HLL")
+for i in base_data.R_TECH_READINESS_MATURITY:
+    print(i, ": ", base_data.R_TECH_READINESS_MATURITY[i])
 
-
+Finished testing.
+"""
