@@ -45,22 +45,31 @@ class ScenarioInformation():
                 self.fuel_groups[row["Fuel group"]] = [(row["Mode"], row["Fuel"])] #create new entry in dict
             else:
                 self.fuel_groups[row["Fuel group"]] = self.fuel_groups[row["Fuel group"]] + [(row["Mode"], row["Fuel"])]  #append entry in dict
+        self.mf_to_fg = {} #translate (m,f) to fuel group name
+        for fg in self.fuel_groups:
+            for (m,f) in self.fuel_groups[fg]:
+                self.mf_to_fg[(m,f)] = fg
+            
 
         #read and process scenario data
         scenario_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name=sheet_name)
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
-                
+        
+
         self.fg_cost_factor = [{}] * self.num_scenarios
+        self.fg_maturity_path_name = [{}] * self.num_scenarios
         for index, row in scenario_data.iterrows():
             if "Name" in scenario_data:
                 self.scenario_names[index] = row["Name"] #update scenario names if available
             if "Probability" in scenario_data:
                 self.probabilities[index] = row["Probability"] #update probabilities if available
-            for fg in self.fuel_groups:
-                new_entry = {fg : row[fg]} #new entry for the dictionary fg_cost_factor[index]
-                self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_entry) #add new entry to existing dict (trick from internet)
+            for fg in self.fuel_group_names:
+                new_cost_entry = {fg : row[f"Cost_{fg}"]} #new entry for the dictionary fg_cost_factor[index]
+                self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_cost_entry) #add new entry to existing dict (trick from internet)
+                new_maturity_entry = {fg : row[f"Maturity_{fg}"]}
+                self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry)
 
         #make dicts for scenario name to nr and vice versa
         self.scen_name_to_nr = {}
@@ -684,11 +693,17 @@ class TransportSets():
 
 
         #Technological readiness/maturity
-        self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness")
-        self.R_TECH_READINESS_MATURITY = {}
+        #self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness")
+        self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness_paths") #new sheet with different readiness paths
+        self.R_TECH_READINESS_MATURITY = {} # contains the active maturity path
+        self.maturity_paths = {} #contains all maturity paths
         for index, row in self.tech_readiness.iterrows():
             for year in self.T_TIME_PERIODS:
-                self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'],year)] = row[str(year)]
+                # self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'], year)] = row[str(year)]
+                self.maturity_paths[(row['Mode'], row['Fuel'], row['Maturity_Path'], year)] = row[str(year)]
+                if row["Maturity_Path"] == "base":
+                    self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'], year)] = row[str(year)] #initialize at base path
+
 
         #Initializing transport work share in base year
         self.init_transport_share = pd.read_excel(self.prefix+r'init_mode_fuel_mix.xlsx',sheet_name="InitMix")
@@ -763,6 +778,7 @@ class TransportSets():
         if self.active_scenario_name in self.scenario_information.scenario_names: #we are in an exising scenario           
             #Find associated active scenario number (only store temporarily)
             active_scenario_nr = self.scenario_information.scen_name_to_nr[self.active_scenario_name]
+
             #update C_TRANSP_COST based on scenario information
             for (i, j, m, r) in self.A_ARCS:
                 for f in self.FM_FUEL[m]:
@@ -771,10 +787,25 @@ class TransportSets():
                             #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
                             self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
 
+            #update R_TECH_READINESS_MATURITY based on scenario information
+            for m in self.M_MODES:
+                for f in self.FM_FUEL[m]:
+                    cur_fg = self.scenario_information.mf_to_fg[(m,f)] #current fuel group name [Established, Battery, Hydrogen, Biofuel]
+                    cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] #find name of current maturity path [base, fast, slow]
+                    for y in self.Y_YEARS:
+                        self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.maturity_paths[(m, f, cur_path_name, y)] #update R_TECH_READINESS_MATURITY based on scenarion informatoin
+
         else: #we should be in the benchmark scenario
             if self.active_scenario_name == "benchmark":
                 #set C_TRANSP_COST to benchmark levels
                 self.C_TRANSP_COST = self.C_TRANSP_COST_BASE
+                #set R_TECH_READINESS_MATURITY to benchmark levels
+                cur_path_name = "base" #HARDCODED: use base path
+                for m in self.M_MODES:
+                    for f in self.FM_FUEL[m]:
+                        for y in self.Y_YEARS:
+                            self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.maturity_paths[(m,f,cur_path_name, y)]
+                
             else:
                 raise Exception("Active scenario name is not in scenario list, but also not equal to benchmark")
 
@@ -783,5 +814,15 @@ class TransportSets():
 
 
 #Testing:
-#base_data = TransportSets()
-#base_data.scenario_information
+"""
+base_data = TransportSets(sheet_name_scenarios='three_scenarios_with_maturity')
+base_data.scenario_information
+
+base_data.scenario_information.scenario_names
+
+base_data.update_scenario_dependent_parameters("HLL")
+for i in base_data.R_TECH_READINESS_MATURITY:
+    print(i, ": ", base_data.R_TECH_READINESS_MATURITY[i])
+
+Finished testing.
+"""

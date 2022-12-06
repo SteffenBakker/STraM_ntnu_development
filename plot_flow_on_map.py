@@ -210,7 +210,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     N_NODES = base_data.N_NODES
 
     #import norwegian city coordinates
-    NO_coordinates = pd.read_csv("Data/maps/NO_cities_coordinates.csv")
+    NO_coordinates = pd.read_csv("Data/NO_cities_coordinates.csv")
     #extract latitudes and longitudes
     lats = [0.0] * len(N_NODES)
     lons = [0.0] * len(N_NODES)
