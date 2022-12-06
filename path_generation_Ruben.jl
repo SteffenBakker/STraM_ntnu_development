@@ -390,7 +390,7 @@ end
 #(sh_path, sh_dist, generated_paths, generated_path_lengths) = gen_paths(mode_cost, prod_transfer_cost[:,:,cur_p])
 
 #set max number of different modes per path
-mode_comb_level = 3 #or 2
+mode_comb_level = 2 #2 or 3
 
 
 #Generate all paths (loop over all years, products, fuels)
@@ -419,7 +419,7 @@ end
 #print all paths
 all_gen_paths 
 #(approximately 12,000 paths. this is about 15x as many as AIM used)
-#(approximately 3,500 paths if we only allow for max two modes per path0)
+#(approximately 3,500 paths if we only allow for max two modes per path)
 
 
 
@@ -428,7 +428,8 @@ all_gen_paths
 
 
 #Write to CSV file  (in exact same format as AIM originally did)
-file_name = "Data/generated_paths_Ruben.csv"
+# file_name = "Data/generated_paths_Ruben.csv"
+file_name = "Data/generated_paths_Ruben_2_modes.csv"
 open(file_name, "w") do f
     #header
     write(f, ",paths\n")
