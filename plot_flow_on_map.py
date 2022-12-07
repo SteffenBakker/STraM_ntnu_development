@@ -115,6 +115,104 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period):
     #return a dataframe with aggregated flows
     return df_flow
 
+# function that processes and aggregates flows
+def process_and_aggregate_flows2(all_flow, sel_scenario, sel_time_period):
+    """
+    Process model output (x_flow and b_flow), aggregate the flow per edge, and output a dataframe.
+    All for a selected scenario and time period
+
+    INPUT
+    all_flow:           dataframe with flow of goods (possibly including empty)
+    b_flow:           dataframe with balancing flow (empty vehicles)
+    sel_scenario:     scenario name or "average"
+    sel_time_period:  time period in [2020, 2025, 2030, 2040, 2050]
+    
+    OUTPUT
+    df_flow:          dataframe with aggregated flows   
+    """
+
+    #create lists that will store aggregate flows (these will be the columns of df_flow)
+    arcs = []
+    flows = []
+    flows_road = []
+    flows_sea = []
+    flows_rail = []
+
+    #scenario list and counter in order to take average when necessary
+    all_scenarios = []
+
+    #list all nodes clockwise, to make sure sea edges curve in the right direction (HARDCODED)
+    nodes_sea_order = ["Nord-Sverige", "Sør-Sverige", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
+                        "Bergen", "Ålesund", "Trondheim", "Bodø", "Tromsø", "Europa", "Verden", "Kontinentalsokkelen"]
+
+    #add arcs and corresponding flow to the right lists
+    #Note: I use the word arc, but we treat them as edges. That is, we look at undirectional flow by aggregating over both directions
+    for index, row in all_flow.iterrows():
+        if row["time_period"] == sel_time_period:
+            if sel_scenario == "average" or row["scenario"] == sel_scenario: #if "average", we add everything and divide by number of scenarios at the end
+                #add scenario to list if not observed yet (for taking average)
+                if row["scenario"] not in all_scenarios:
+                    all_scenarios.append(row["scenario"])
+                #temporarily store current arc and its opposite
+                cur_arc = (row["from"], row["to"])
+                cur_cra = (row["to"], row["from"]) #opposite arc
+                #check if new arc
+                if cur_arc not in arcs and cur_cra not in arcs: #new arc
+                    #determine direction of arc based on nodes_sea_order and append the arc
+                    from_order = nodes_sea_order.index(row["from"]) 
+                    to_order = nodes_sea_order.index(row["to"])
+                    if from_order < to_order:
+                        arcs.append(cur_arc) #append forward arc
+                    else:
+                        arcs.append(cur_cra) #append backward arc
+                    #add zero values for the corresponding flows (initialization)
+                    flows.append(0.0)
+                    flows_road.append(0.0)
+                    flows_sea.append(0.0)
+                    flows_rail.append(0.0)
+                #find index of current arc (or cra) in list "arcs"
+                cur_arc_ind = None
+                if cur_arc in arcs:
+                    cur_arc_ind = arcs.index(cur_arc)
+                elif cur_cra in arcs:
+                    cur_arc_ind = arcs.index(cur_cra)
+                #store corresponding flows in lists
+                flows[cur_arc_ind] += row["weight"]
+                if row["mode"] == "Road":
+                    flows_road[cur_arc_ind] += row["weight"]
+                elif row["mode"] == "Sea":
+                    flows_sea[cur_arc_ind] += row["weight"]
+                elif row["mode"] == "Rail":
+                    flows_rail[cur_arc_ind] += row["weight"]
+
+    #divide everything by number of scenarios if we have selected sel_scenario="average"
+    if sel_scenario == "average":
+        num_scenarios = len(all_scenarios)
+        flows = [(1.0/num_scenarios) * f for f in flows]
+        flows_road = [(1.0/num_scenarios) * f for f in flows_road]
+        flows_sea = [(1.0/num_scenarios) * f for f in flows_sea]
+        flows_rail = [(1.0/num_scenarios) * f for f in flows_rail]
+
+    #store aggregate flows in a dataframe
+    df_flow = pd.DataFrame()
+    df_flow["arc"] = arcs
+    df_flow["orig"] = [""]*len(arcs)
+    df_flow["dest"] = [""]*len(arcs)
+    df_flow["flow"] = flows
+    df_flow["flow_road"] = flows_road
+    df_flow["flow_sea"] = flows_sea
+    df_flow["flow_rail"] = flows_rail
+
+    #fix origins and destinations
+    for i in range(len(df_flow)):
+        df_flow.orig[i] = str(df_flow.arc[i][0])
+        df_flow.dest[i] = str(df_flow.arc[i][1])
+
+    #return a dataframe with aggregated flows
+    return df_flow
+
+
+
 # function that computes difference in flows between two years
 def compute_flow_differences(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_time_period_after):   
     """
@@ -416,6 +514,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
     plot_flow_on_map(df_flow_diff, base_data, "diff", mode_variant, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
+
 ################################################
 
 
@@ -462,3 +561,15 @@ save_fig = False
 if True:
     process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, plot_overseas, plot_up_north, show_fig, save_fig)
 
+
+
+#plots for subset of product groups
+
+
+#copy all flows into one dataframe: product flow and balancing flow
+for p in base_data.P_PRODUCTS:
+    print(p)
+    all_flow = output.x_flow[output.x_flow['product'].isin([p])]
+    all_flow = all_flow[["from", "to", "mode", "fuel", "scenario", "time_period", "weight"]]
+    all_flow = process_and_aggregate_flows2(all_flow, sel_scenario, sel_time_period)
+    plot_flow_on_map(all_flow, base_data, "flow", mode_variant, plot_overseas, plot_up_north, show_fig, save_fig)
