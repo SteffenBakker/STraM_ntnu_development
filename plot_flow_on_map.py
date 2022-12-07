@@ -2,6 +2,9 @@
 In this file we plot the resulting flows in the model on a map of Norway
 """
 
+import warnings
+warnings.filterwarnings("ignore")
+
 # IMPORTS
 
 import numpy as np
@@ -533,7 +536,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 # RUN ANALYSIS
 
 # Read model output
-analyses_type = 'SP_Monday_Evening' # EV , EEV, 'SP
+analyses_type = 'SP' # EV , EEV, 'SP
 #analyses_type = 'SP' # EV , EEV, 'SP
 with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
     output = pickle.load(output_file)
