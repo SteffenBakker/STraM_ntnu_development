@@ -255,9 +255,14 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     # c. Plot flow in the map
 
     #arrow settings
-    tail_width_base = 20
-    if flow_variant == "diff":
-        tail_width_base = 0.5 * tail_width_base #use a lower value here, since 
+    tail_width_dict = {"road":10, "rail":10, "sea":20, "all":20, "diff":10} #base tail width for different plotting variants
+    min_tail_width = 1 #minimum width of any drawn edge
+    #select maximum tail width:
+    tail_width_base = 0 #initialize
+    if flow_variant == "flow":
+        tail_width_base = tail_width_dict[mode_variant]
+    elif flow_variant == "diff":
+        tail_width_base = tail_width_dict["diff"]
     head_with = 0.01
     head_length = 0.01
     base_curvature = 0.2
@@ -265,9 +270,10 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     mode_color_dict = {"road":"dimgrey", "sea":"blue", "rail":"magenta", "total":"black"}
     mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
+    zorder_dict = {"road":30, "sea":20, "rail":40, "total":20}
     # arrow settings for direction of change (for "diff" option)
     dir_color_dict = {"increase":"green", "decrease":"red"}
-    
+
 
     # compute maximum and total flows over all edges (for scaling purposes)
     #   note: use absolute value to deal with flow_diff if we use that plotting option
@@ -279,9 +285,11 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     total_flow_road = sum(abs(df_flow["flow_road"]))
     total_flow_sea = sum(abs(df_flow["flow_sea"]))
     total_flow_rail = sum(abs(df_flow["flow_rail"]))
+    #power_of_ten = 4 #10^power_of_ten is the reference for the max_flow
     #store in dictionaries
     total_flow_dict = {"road":total_flow_road, "sea":total_flow_sea, "rail":total_flow_rail, "total":total_flow, "all":total_flow}
     max_flow_dict = {"road":max_flow_road, "sea":max_flow_sea, "rail":max_flow_rail, "total":max_flow, "all":max_flow}
+    
 
     #iterate over egdes
     for index, row in df_flow.iterrows():
@@ -302,7 +310,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
             #create dictionary that stores all the flows
             flow_dict = {"road":row["flow_road"], "sea":row["flow_sea"], "rail":row["flow_rail"]}
             #loop over the three modes
-            for cur_mode in ["road", "sea", "rail"]:
+            for cur_mode in ["sea", "road", "rail"]:
                 #extract information the current mode
                 cur_flow = abs(flow_dict[cur_mode]) # take absolute value to deal with "diff" version
                 cur_sign = np.sign(flow_dict[cur_mode]) # sign of flow
@@ -321,15 +329,18 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                         cur_direction = "decrease"
                     cur_color = dir_color_dict[cur_direction]
                 #create new arc
-                if cur_flow > 0.000001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
+                if cur_flow > 0.001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
+                #if 10.0 ** power_of_ten * cur_flow/cur_max_flow > 1.0: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
                     new_arc = patches.FancyArrowPatch(
                         (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
                         (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
                         connectionstyle=f"arc3,rad={base_curvature * curvature_factor}", #curvature of the edge
                         #arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
-                        linewidth = tail_width_base * cur_flow/cur_max_flow,
+                        linewidth = max(tail_width_base * cur_flow/cur_max_flow, min_tail_width),
+                        #linewidth = tail_width_base * (1/power_of_ten) * np.log10(10.0 ** power_of_ten * cur_flow/cur_max_flow),
                         linestyle=mode_linestyle_dict[cur_mode],
-                        color=cur_color
+                        color=cur_color,
+                        zorder = zorder_dict[cur_mode]
                         )    
                     if ((not overseas) or (overseas and plot_overseas)) and ((not up_north) or (up_north and plot_up_north)): #only add the arc if we want to plot it
                         #add the arc to the plot
@@ -370,9 +381,10 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                     (node_x[cur_dest_index], node_y[cur_dest_index]), 
                     connectionstyle=f"arc3,rad={base_curvature * curvature_factor}",
                     #arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
-                    linewidth = tail_width_base * cur_flow/cur_max_flow,
+                    linewidth = max(tail_width_base * cur_flow/cur_max_flow, min_tail_width),
                     linestyle=mode_linestyle_dict[mode_variant],
-                    color=cur_color
+                    color=cur_color,
+                    zorder = zorder_dict[mode_variant]
                     )    
                 if ((not overseas) or (overseas and plot_overseas)) and ((not up_north) or (up_north and plot_up_north)): #only add the arc if we want to plot it
                     #add the arc to the plot
@@ -422,8 +434,8 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 # RUN ANALYSIS
 
 # Read model output
-#analyses_type = 'SP_visualization_ruben' # EV , EEV, 'SP
-analyses_type = 'SP' # EV , EEV, 'SP
+analyses_type = 'SP_Monday_Evening' # EV , EEV, 'SP
+#analyses_type = 'SP' # EV , EEV, 'SP
 with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
     output = pickle.load(output_file)
 with open(r'Data\base_data', 'rb') as data_file:
