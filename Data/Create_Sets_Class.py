@@ -9,7 +9,7 @@ Adapted by Ruben
 "Example data"
 
 import os
-#os.chdir('M/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
+#os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
 #os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 
 
@@ -890,7 +890,7 @@ print("Finished reading sets and classes.")
 
 
 #Testing:
-#"""
+"""
 base_data = TransportSets(sheet_name_scenarios='scenarios_base')
 base_data.scenario_information
 
@@ -911,4 +911,4 @@ plt.show()
 
 
 print("Finished testing")
-#"""
+"""

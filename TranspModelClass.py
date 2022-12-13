@@ -12,17 +12,22 @@ import numpy as np
 
 ############# Class ################
 
+class RiskInformation:
 
+    def __init__(self, cvar_coeff, cvar_alpha):
+        self.cvar_coeff = cvar_coeff    # \lambda: coefficient for CVaR in the mean-cvar objective
+        self.cvar_alpha = cvar_alpha    # \alpha:  indicates how far in the tail we care about risk (0.9 means we care about worst 10%)
 
 class TranspModel:
 
-    def __init__(self, data):
+    def __init__(self, data, risk_info):
 
         self.results = None  # results is a structure filled out later in solve_model()
         self.status = None  # status is a string filled out later in solve_model()
         self.model = ConcreteModel()
         self.opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         self.data = data
+        self.risk_info = risk_info # stores parameters of the risk measure (i.e., lambda and alpha for mean-CVaR)
 
         self.calculate_max_transp_amount_exact = False
 
@@ -113,15 +118,25 @@ class TranspModel:
         self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS, rule=ChargeCost)
         
         self.model.MaxTranspPenaltyCost = Var(within=NonNegativeReals)
-        def MaxTranspPenaltyCost(model):
+        def MaxTranspPenaltyCost(model): #TEST
             return (self.model.MaxTranspPenaltyCost == MAX_TRANSP_PENALTY*sum(self.model.q_max_transp_amount[m,f] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) )
         self.model.MaxTranspPenaltyCostConstr = Constraint(rule=MaxTranspPenaltyCost)
+
+
+        # CVaR variables
+        
+        # CVaR auxiliary variable (corresponds to u)
+        self.model.CvarAux = Var(within=Reals)
+
+        #CVaR positive part variable (corresponds to z = (f - u)^+)
+        self.model.CvarPosPart = Var(within=NonNegativeReals)               #note: includes one positive part constraint: z \geq 0
 
 
         "OBJECTIVE"
         #-------------------------
 
-        def StageCostsVar(model, t):  
+        def StageCostsVar(model, t):  #TODO: QUESTION: WHY DO WE USE "model" as input instead of "self"? (not just here, but everywhere)
+
             # SOME QUICK TESTING SHOWED THAT SUM_PRODUCT IS QUITE A BIT SLOWER THAN SIMPLY TAKING THE SUM...
             yearly_transp_cost = (self.model.TranspOpexCost[t] + self.model.TranspCO2Cost[t] + self.model.TranspOpexCostB[t] + self.model.TranspCO2CostB[t]) 
             
@@ -138,10 +153,65 @@ class TranspModel:
             return (self.model.StageCosts[t] == (opex_costs + delta*investment_costs + EMISSION_VIOLATION_PENALTY*self.model.z_emission[t]))
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)
         
+        # scenario objective value variable (risk-neutral model would take expectation over this in the objective)
+        self.model.ScenObjValue = Var(within=Reals)
+        def ScenObjValue(model):
+            return self.model.ScenObjValue == sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS) +  self.model.MaxTranspPenaltyCost  # corresponds to f(x,\xi)
+        self.model.ScenObjValueConstr = Constraint(rule = ScenObjValue)
+        
+        #CVaR positive part constraint
+        def CvarRule(model):
+            return self.model.CvarPosPart >= self.model.ScenObjValue - self.model.CvarAux       # z \geq f - u
+        self.model.CvarPosPartConstr = Constraint(rule=CvarRule) # add to model
+
+        # mean-CVaR:
+        def objfun(model):          
+            # scenario objective value for risk-averse (mean-CVaR) model:
+            mean_cvar_scen_obj_value = ( (1 - self.risk_info.cvar_coeff) * self.model.ScenObjValue                                                            # expectation part
+                                       + self.risk_info.cvar_coeff * (self.model.CvarAux + (1 - self.risk_info.cvar_alpha)**(-1) * self.model.CvarPosPart) )  # CVaR part
+            return mean_cvar_scen_obj_value
+
+        
+        # OLD: risk-neutral:
+        """
         def objfun(model):
             obj_value = sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS) +  self.model.MaxTranspPenaltyCost
             return obj_value
         self.model.Obj = Objective(rule=objfun, sense=minimize)
+        """
+
+        # give objective function to model
+        self.model.Obj = Objective(rule=objfun, sense=minimize)
+
+
+        ###########
+        #"""
+        # NEW: risk-averse
+        # risk measure: \rho(.) = (1 - \lambda) * E[.] + \lambda * CVaR_\alpha(.)
+        # so \rho(f(x,\xi)) = \min_u \E[ (1 - \lambda) * f + \lambda * (u + (1 - \alpha)**(-1) * z) ]
+        # with
+        # z \geq f - u
+        # z \geq 0
+        
+        # CVaR parameters:
+        #cvar_coeff = 0.20 # corresponds to \lambda (coefficient for CVaR, relative importance of CVaR). Set at e.g. 20%
+        #cvar_alpha = 0.10 # corresponds to \alpha (how far in the tail we're looking). Set at e.g. 10% (i.e., three worst scenarios)
+        
+        # CVaR variables:
+        #cvar_aux # corresponds to u (auxiliary variable for CVaR)
+        #cvar_pp # corresponds to z (positive part in CVaR)
+        
+        # CVaR constraints:
+        #cvar_pp >= f - cvar_aux     # z \geq f - u
+        #cvar_pp >= 0                # z \geq 0
+
+        # mean-CVaR objective: 
+        #(1 - cvar_coeff) * f + cvar_coeff * (cvar_aux + (1 - cvar_alpha)**(-1) * cvar_pp) # replace "f" by this
+
+        #"""
+        
+        ###########
+
 
         "CONSTRAINTS"
 
