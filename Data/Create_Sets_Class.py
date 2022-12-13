@@ -18,11 +18,14 @@ from collections import Counter
 import pandas as pd
 import itertools
 import numpy as np
+import matplotlib.pyplot as plt
 
 from math import cos, asin, sqrt, pi
 import networkx as nx
 from itertools import islice
 pd.set_option("display.max_rows", None, "display.max_columns", None)
+
+from Data.BassDiffusion import BassDiffusion 
 
 # from FreightTransportModel.Utils import plot_all_graphs  #FreightTransportModel.
 
@@ -691,19 +694,50 @@ class TransportSets():
                                                           "Trucks_filled_daily"] * max_truck_cap * 365)),1)  # 0.7 or not???
             #MKR/MTONNES, so no dividing here
 
-
+        
         #Technological readiness/maturity
+
+        """OLD VERSION:
         #self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness")
         self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness_paths") #new sheet with different readiness paths
         self.R_TECH_READINESS_MATURITY = {} # contains the active maturity path
         self.maturity_paths = {} #contains all maturity paths
         for index, row in self.tech_readiness.iterrows():
             for year in self.T_TIME_PERIODS:
-                # self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'], year)] = row[str(year)]
                 self.maturity_paths[(row['Mode'], row['Fuel'], row['Maturity_Path'], year)] = row[str(year)]
                 if row["Maturity_Path"] == "base":
                     self.R_TECH_READINESS_MATURITY[(row['Mode'], row['Fuel'], year)] = row[str(year)] #initialize at base path
+        """
 
+        # New version: with Bass diffusion model
+        self.tech_readiness_data = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness_bass") #new sheet with different readiness paths
+        self.tech_is_mature = {} # indicates whether technology is already mature
+        self.tech_base_bass_model = {} # contains all bass diffusion models for the technologies (only for non-mature technologies)
+        self.tech_active_bass_model = {} # active bass model (only for non-mature technologies)
+        self.tech_scen_variation = {} # variations for parameters in the bass diffusion model in each of the scenarios
+        for index, row in self.tech_readiness_data.iterrows():
+            # store whether technology is already mature or not
+            if row["Mature?"] == "yes":
+                self.tech_is_mature[(row['Mode'], row['Fuel'])] = True
+            else:
+                self.tech_is_mature[(row['Mode'], row['Fuel'])] = False
+                # if not mature, add bass diffusion model
+                self.tech_base_bass_model[(row['Mode'], row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
+                # set base bass model as active bass model
+                self.tech_active_bass_model[(m,f)] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
+                # store variation
+                self.tech_scen_variation[(row['Mode'], row['Fuel'])] = row["variation"]
+        
+        self.R_TECH_READINESS_MATURITY = {} # contains the active maturity path (number between 0 and 100)
+        # initialize R_TECH_READINESS_MATURITY at base path
+        for (m,f) in self.tech_is_mature:
+            if self.tech_is_mature[(m,f)]:
+                for year in self.T_TIME_PERIODS:    
+                    self.R_TECH_READINESS_MATURITY[(m, f, year)] = 100 # assumption: all mature technologies have 100% market potential
+            else:
+                for year in self.T_TIME_PERIODS:
+                    self.R_TECH_READINESS_MATURITY[(m, f, year)] = self.tech_base_bass_model[(m,f)].A(year) # compute maturity level based on base Bass diffusion model 
+        
 
         #Initializing transport work share in base year
         self.init_transport_share = pd.read_excel(self.prefix+r'init_mode_fuel_mix.xlsx',sheet_name="InitMix")
@@ -788,12 +822,51 @@ class TransportSets():
                             self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
 
             #update R_TECH_READINESS_MATURITY based on scenario information
+
+            """OLD VERSION (BASED ON FIXED PATHS):
             for m in self.M_MODES:
                 for f in self.FM_FUEL[m]:
                     cur_fg = self.scenario_information.mf_to_fg[(m,f)] #current fuel group name [Established, Battery, Hydrogen, Biofuel]
                     cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] #find name of current maturity path [base, fast, slow]
-                    for y in self.Y_YEARS:
+                    #for y in self.Y_YEARS:
+                    for y in self.T_TIME_PERIODS:
                         self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.maturity_paths[(m, f, cur_path_name, y)] #update R_TECH_READINESS_MATURITY based on scenarion informatoin
+            """
+
+            #NEW version based on Bass diffusion model:
+            for m in self.M_MODES:
+                for f in self.FM_FUEL[m]:
+                    if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
+                        cur_fg = self.scenario_information.mf_to_fg[(m,f)]
+                        cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
+                        # extract info from current base Bass model
+                        cur_base_bass = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                        cur_base_variation = self.tech_scen_variation[(m,f)] # level of variation for this m,f 
+                                    
+                        # find current scenario's level of variation for q and p from base case
+                        cur_scen_variation = 0.0 
+                        if cur_path_name == "base":
+                            cur_scen_variation = 0.0
+                        if cur_path_name == "fast":
+                            cur_scen_variation = cur_base_variation # increase p and q by cur_base_variation (e.g., 50%)
+                        elif cur_path_name == "slow":
+                            cur_scen_variation = - cur_base_variation # decrease p and q by cur_base_variation (e.g., 50%)
+
+                        # construct scenario bass model
+                        cur_scen_bass_model = BassDiffusion(cur_base_bass.p * (1 + cur_scen_variation), # adjust p with cur_scen_variations
+                                                            cur_base_bass.q * (1 + cur_scen_variation),     # adjust q with cur_scen_variations
+                                                            cur_base_bass.m, 
+                                                            cur_base_bass.t_0)
+                        
+                        # set as active bass model
+                        self.tech_active_bass_model[(m,f)] = cur_scen_bass_model
+
+                        # fill R_TECH_READINESS_MATURITY based on current scenario bass model
+                        for y in self.T_TIME_PERIODS:
+                            self.R_TECH_READINESS_MATURITY[(m,f,y)] = cur_scen_bass_model.A(y)
+                        
+                        
+
 
         else: #we should be in the benchmark scenario
             if self.active_scenario_name == "benchmark":
@@ -803,26 +876,39 @@ class TransportSets():
                 cur_path_name = "base" #HARDCODED: use base path
                 for m in self.M_MODES:
                     for f in self.FM_FUEL[m]:
-                        for y in self.Y_YEARS:
-                            self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.maturity_paths[(m,f,cur_path_name, y)]
+                        for y in self.T_TIME_PERIODS:
+                            #self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.maturity_paths[(m,f,cur_path_name, y)] #OLD
+                            self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.tech_base_bass_model[(m,f)].A(y)
                 
             else:
                 raise Exception("Active scenario name is not in scenario list, but also not equal to benchmark")
 
 
+
+print("Finished reading sets and classes.")
                         
 
 
 #Testing:
-"""
-base_data = TransportSets(sheet_name_scenarios='three_scenarios_with_maturity')
+#"""
+base_data = TransportSets(sheet_name_scenarios='scenarios_base')
 base_data.scenario_information
 
 base_data.scenario_information.scenario_names
 
-base_data.update_scenario_dependent_parameters("HLL")
+#base_data.update_scenario_dependent_parameters("LLH")
 for i in base_data.R_TECH_READINESS_MATURITY:
     print(i, ": ", base_data.R_TECH_READINESS_MATURITY[i])
 
-Finished testing.
-"""
+for cur_scen in base_data.scenario_information.scenario_names:
+    base_data.update_scenario_dependent_parameters(cur_scen)
+    #base_data.tech_active_bass_model[('Road', 'Hydrogen')]
+    base_data.tech_active_bass_model[('Road', 'Hydrogen')].plot_A(show=False)
+
+plt.show()
+
+
+
+
+print("Finished testing")
+#"""
