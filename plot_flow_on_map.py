@@ -501,7 +501,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        filename = f"flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{mode_variant}.png"
+        filename = f"Plots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{mode_variant}.png"
         plt.savefig(filename)
     #show figure
     if show_fig:
