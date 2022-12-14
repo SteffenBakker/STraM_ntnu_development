@@ -557,7 +557,7 @@ class TransportSets():
                             if self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] < lowest_cost:
                                 lowest_cost = self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)]
                                 cheapest_product = p
-                        self.cheapest_product_per_vehicle[(m,f,t,v)] = p
+                        self.cheapest_product_per_vehicle[(m,f,t,v)] = cheapest_product
 
         #################
         #  INVESTMENTS  #
@@ -576,7 +576,7 @@ class TransportSets():
                 edge = (i,j,m,r)
                 if (i,j,m,r) not in self.E_EDGES_RAIL:
                     edge = (j,i,m,r)
-                    self.E_EDGES_UPG.append(edge)   #this was L_LINKS_UPG
+                self.E_EDGES_UPG.append(edge)   
         
         self.U_UPGRADE=[] #only one option, upgrade to electrify by means of electric train
         for e in self.E_EDGES_UPG:
@@ -586,23 +586,37 @@ class TransportSets():
         self.C_EDGE_RAIL = {e: BIG_COST_NUMBER for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
         self.Q_EDGE_RAIL = {e: 0 for e in self.E_EDGES_RAIL}   # TONNES ->MTONNES
         self.Q_EDGE_BASE_RAIL = {e: 100000 for e in self.E_EDGES_RAIL}   # TONNES
-        
+        self.LEAD_TIME_EDGE_RAIL = {e: 50 for e in self.E_EDGES_RAIL} #years
+
         self.C_NODE = {(i,c,m) : BIG_COST_NUMBER for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]}  # NOK
         self.Q_NODE_BASE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #endret    # TONNES
         self.Q_NODE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #lagt til 03.05    # TONNES
+        self.LEAD_TIME_NODE = {(i,c,m): 50 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #years
 
         self.C_UPG = {(e,f) : BIG_COST_NUMBER for (e,f) in self.U_UPGRADE}  #NOK
         self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES
+        self.LEAD_TIME_UPGRADE = {(e,f): 50 for (e,f) in self.U_UPGRADE} #years
+
         #how many times can you invest?
         #self.INV_NODE = {(i,m,b): 4 for (i,m,b) in self.NMB_CAP}
         #self.INV_LINK = {(l): 1 for l in self.E_EDGES_RAIL}
 
         for index, row in inv_rail_data.iterrows():
+            ii = row["From"] 
+            jj = row["To"] 
+            mm = row["Mode"] 
+            rr = row["Route"]   
             for ((i,j,m,r),f) in self.U_UPGRADE:
-                #for u in self.U_UPG:
-                if i == row["From"] and j == row["To"] and m == row["Mode"] and r == int(row["Route"]) and f == "Electric train (CL)": # u == 'Fully electrified rail':
-                    self.C_UPG[((i,j,m,r),f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor,2)
-                    self.C_UPG[((j,i,m,r),f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor,2)
+                #if f == "Electric train (CL)":
+                if (ii,jj,mm,rr)==(i,j,m,r) or (jj,ii,mm,rr)==(i,j,m,r):
+                    if (ii,jj,mm,rr)==(i,j,m,r):
+                        e = (i,j,m,r)
+                    elif (jj,ii,mm,rr)==(i,j,m,r):
+                        e = (i,j,m,r)
+                    self.C_UPG[(e,f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor,2)
+                    self.LEAD_TIME_UPGRADE[(e,f)] = row['Leadtime']
+                    #TO DO: allow for partially electrified rail. Now we only take fully electrified. 
+
                 #if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and u == 'Partially electrified rail':
                 #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.scaling_factor
 
@@ -615,36 +629,43 @@ class TransportSets():
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
                         self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.scaling_factor   #MTONNES
                         self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (combi)']/self.scaling_factor   #MNOK
+                        self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeCombi']
                     if m == "Rail" and c=="Timber":
                         cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
                         self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.scaling_factor   #MTONNES
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
                         self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning av kapasitet (tømmer)']/self.scaling_factor   #MTONNES
                         self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (tømmer)']/self.scaling_factor  #MNOK
+                        self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeTimber']
                     if m == "Sea":
                         cap_data = inv_sea_data.loc[(inv_sea_data['Fylke'] == i)]
                         self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet']/self.scaling_factor  #MTONNES
                         self.Q_NODE[i,c,m] = cap_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor  #MTONNES
                         self.C_NODE[i,c,m] = cap_data.iloc[0]['Kostnad']/self.scaling_factor  #MNOK
+                        self.LEAD_TIME_NODE[i,c,m] = cap_data.iloc[0]['Ledetid']
 
         #this is bad programming -> To do: update
         for (i, j, m, r) in self.E_EDGES_RAIL:
             a1 = (i, j, m, r)
+            a2 = (j, i, m, r)
             capacity_data1 = rail_cap_data.loc[(rail_cap_data['Fra'] == i) & (rail_cap_data['Til'] == j) & (rail_cap_data['Rute'] == r)]
             capacity_data2 = rail_cap_data.loc[(rail_cap_data['Fra'] == j) & (rail_cap_data['Til'] == i) & (rail_cap_data['Rute'] == r)]
             capacity_exp_data1 = inv_rail_data.loc[(inv_rail_data['Fra'] == i) & (inv_rail_data['Til'] == j) & (inv_rail_data['Rute'] == r)]
             capacity_exp_data2 = inv_rail_data.loc[(inv_rail_data['Fra'] == j) & (inv_rail_data['Til'] == i) & (inv_rail_data['Rute'] == r)]
             if len(capacity_data1) > 0:
-                self.Q_EDGE_BASE_RAIL[a1] = capacity_data1.iloc[0]['Maks kapasitet']/self.scaling_factor
-            if len(capacity_data2) > 0:
-                self.Q_EDGE_BASE_RAIL[a1] = capacity_data2.iloc[0]['Maks kapasitet']/self.scaling_factor
+                capacity_data = capacity_data1
+            elif len(capacity_data2) > 0:
+                capacity_data = capacity_data2
             if len(capacity_exp_data1) > 0:
-                self.Q_EDGE_RAIL[a1] = capacity_exp_data1.iloc[0]['Kapasitetsøkning']/self.scaling_factor
-                self.C_EDGE_RAIL[a1] = round(capacity_exp_data1.iloc[0]['Kostnad']/self.scaling_factor,2) # nord-norge banen = 113 milliarder
-            if len(capacity_exp_data2) > 0:
-                self.Q_EDGE_RAIL[a1] = capacity_exp_data2.iloc[0]['Kapasitetsøkning']/self.scaling_factor
-                self.C_EDGE_RAIL[a1] = round(capacity_exp_data2.iloc[0]['Kostnad']/self.scaling_factor,2) #
-        
+                capacity_exp_data = capacity_exp_data1
+            elif len(capacity_exp_data2) > 0:
+                capacity_exp_data = capacity_exp_data2
+            
+            self.Q_EDGE_BASE_RAIL[a1] = capacity_data.iloc[0]['Maks kapasitet']/self.scaling_factor
+            self.Q_EDGE_RAIL[a1] = capacity_exp_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor
+            self.C_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kostnad']/self.scaling_factor,2) #
+            self.LEAD_TIME_EDGE_RAIL[a1] = capacity_exp_data.iloc[0]['Ledetid'] #
+
         for l in self.E_EDGES_UPG:
             self.BIG_M_UPG[l] =  self.Q_EDGE_BASE_RAIL[l] + self.Q_EDGE_RAIL[l]#*self.INV_LINK[l] 
 
@@ -680,6 +701,7 @@ class TransportSets():
         # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
         self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
         self.C_CHARGE = {(e,f): 9999 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
+        self.LEAD_TIME_CHARGING = {(e,f): 50 for (e,f) in self.EF_CHARGING}
         max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
         for ((i, j, m, r),f) in self.EF_CHARGING:
             e = (i, j, m, r) 
@@ -690,7 +712,7 @@ class TransportSets():
                                                    / (data_index.iloc[0][
                                                           "Trucks_filled_daily"] * max_truck_cap * 365)),1)  # 0.7 or not???
             #MKR/MTONNES, so no dividing here
-
+            self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid"]
 
         #Technological readiness/maturity
         #self.tech_readiness = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness")

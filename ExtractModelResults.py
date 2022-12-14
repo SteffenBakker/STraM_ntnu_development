@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import mpisppy.utils.sputils as sputils
 import pyomo.environ as pyo
+import math
 
 from Data.settings import *
 
@@ -101,33 +102,39 @@ class OutputData():
                 for i,j,m,r in base_data.E_EDGES_RAIL:
                     e = (i,j,m,r)
                     weight = modell.epsilon_edge[(e, t)].value
-                    if weight > 0:
-                        a_series = pd.Series([variable,i,j,m,r, t, weight, scen_name], index=epsilon_edge.columns)
-                        epsilon_edge = pd.concat([epsilon_edge,a_series.to_frame().T],axis=0, ignore_index=True)
+                    if weight is None:
+                        weight = 0    
+                    a_series = pd.Series([variable,i,j,m,r, t, weight, scen_name], index=epsilon_edge.columns)
+                    epsilon_edge = pd.concat([epsilon_edge,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'upsilon_upg'
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.U_UPGRADE:
                     (i,j,m,r) = e
                     weight = modell.upsilon_upg[(i,j,m,r,f,t)].value
-                    if weight > 0:
-                        a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen_name],index=upsilon_upgrade.columns)
-                        upsilon_upgrade = pd.concat([upsilon_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
+                    if math.isnan(weight):
+                        raise Exception('cannot be na')
+                    if weight is None:
+                        weight = 0
+                    a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen_name],index=upsilon_upgrade.columns)
+                    upsilon_upgrade = pd.concat([upsilon_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'nu_node'
             for t in base_data.T_TIME_PERIODS:
                 for (i, m) in base_data.NM_LIST_CAP:
                     for c in base_data.TERMINAL_TYPE[m]:
                         weight = modell.nu_node[(i, c, m, t)].value
-                        if weight > 0:
-                            a_series = pd.Series([variable,i, c, m, t, weight, scen_name],index=nu_node.columns)
-                            nu_node = pd.concat([nu_node,a_series.to_frame().T],axis=0, ignore_index=True)
+                        if weight is None:
+                            weight = 0
+                        a_series = pd.Series([variable,i, c, m, t, weight, scen_name],index=nu_node.columns)
+                        nu_node = pd.concat([nu_node,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'y_charging'
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.EF_CHARGING:
                     (i,j,m,r) = e
                     weight = modell.y_charge[(i,j,m,r,f,t)].value
-                    if weight > 0:
-                        a_series = pd.Series([variable,i,j,m,r,f,t, weight, scen_name],index=y_charging.columns)
-                        y_charging = pd.concat([y_charging,a_series.to_frame().T],axis=0, ignore_index=True)
+                    if weight is None:
+                        weight = 0
+                    a_series = pd.Series([variable,i,j,m,r,f,t, weight, scen_name],index=y_charging.columns)
+                    y_charging = pd.concat([y_charging,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'z_emission'
             for t in base_data.T_TIME_PERIODS:
                 weight = modell.z_emission[t].value
