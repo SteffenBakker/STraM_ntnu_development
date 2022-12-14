@@ -46,7 +46,6 @@ class TranspModel:
         self.model.upsilon_upg = Var(self.data.UT_UPG, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
         self.model.nu_node = Var(self.data.NCMT, within = Binary) #step-wise investment in terminals
         self.model.y_charge = Var(self.data.EFT_CHARGE, within=NonNegativeReals)
-        self.no_investments_first_time_period()
 
         self.model.z_emission = Var(self.data.TS, within = NonNegativeReals)
 
@@ -205,7 +204,7 @@ class TranspModel:
             a = (ii,jj,mm,rr)
             return (sum(self.model.x_flow[a, f, p, t] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[m]) + 
                     sum(self.model.b_flow[a, f, v, t] for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) <= 0.5*(self.data.Q_EDGE_BASE_RAIL[e] +
-                   + self.data.Q_EDGE_RAIL[e] * sum(self.model.epsilon_edge[e, tau] for tau in self.data.T_TIME_PERIODS if tau <= t)))
+                   + self.data.Q_EDGE_RAIL[e] * sum(self.model.epsilon_edge[e, tau] for tau in self.data.T_TIME_PERIODS if tau <= (t-self.data.LEAD_TIME_EDGE_RAIL[e]))))
         self.model.CapacitatedFlow = Constraint(self.data.EAT_RAIL, rule = CapacitatedFlowRule)
         
         #Num expansions
@@ -220,7 +219,7 @@ class TranspModel:
             return(sum(self.model.h_path[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[c]) + 
                    sum(self.model.h_path[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[c]) +
                    sum(self.model.h_path[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[c]) <= 
-                   self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.nu_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= t))
+                   self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.nu_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= (t-self.data.LEAD_TIME_NODE[i,c,m])))
         self.model.TerminalCap = Constraint(self.data.NCMT, rule = TerminalCapRule)
         
         #Num expansions of terminal NEW -- how many times you can perform a step-wise increase of the capacity
@@ -235,7 +234,7 @@ class TranspModel:
             return (sum(self.model.x_flow[a,f,p, t] for p in self.data.P_PRODUCTS
                        for a in self.data.AE_ARCS[e]) + sum(self.model.b_flow[a,f,v, t] for a in self.data.AE_ARCS[e] 
                         for v in self.data.VEHICLE_TYPES_M[m]) <= self.data.Q_CHARGE_BASE[(e,f)] +
-                   sum(self.model.y_charge[(e,f,tau)] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= t))
+                   sum(self.model.y_charge[(e,f,tau)] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)])))
         self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE, rule=ChargingCapArcRule)
         #AIM also looked into charging infrastructure in NODES
 
@@ -243,7 +242,7 @@ class TranspModel:
         def InvestmentInfraRule(model,i,j,m,r,f,t):
             e = (i,j,m,r)
             return (sum(self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS for a in self.data.AE_ARCS[e])
-                    <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= t))
+                    <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= (t-self.data.LEAD_TIME_UPGRADE[(e,f)])))
         self.model.InvestmentInfra = Constraint(self.data.UT_UPG, rule = InvestmentInfraRule)
     
         #-----------------------------------------------#
@@ -354,7 +353,7 @@ class TranspModel:
             elif variable == 'epsilon_edge':
                 self.model.epsilon_edge[(e,t)].fix(w)
             elif variable == 'upsilon_upg':
-                self.model.upsilon_upg[(i,j,m,r,f,p,t)].fix(w)
+                self.model.upsilon_upg[(i,j,m,r,f,t)].fix(w)
             elif variable == 'nu_node':
                 self.model.nu_node[(i, c, m, t)].fix(w)
             elif variable == 'y_charging':
@@ -367,23 +366,6 @@ class TranspModel:
                 self.model.q_transp_amount[(m, f, t)].fix(w)
             elif variable == 'q_max_transp_amount':
                 self.model.q_max_transp_amount[(m, f)].fix(w)
-
-    def no_investments_first_time_period(self):
-        for (i,j,m,r,f,t) in self.model.y_charge:
-           if t==self.data.T_TIME_PERIODS[0]:
-                self.model.y_charge[(i,j,m,r,f,t)].fix(0)
-        
-        for (i,j,m,r,t) in self.model.epsilon_edge:
-           if t==self.data.T_TIME_PERIODS[0]:
-                self.model.epsilon_edge[(i,j,m,r,t)].fix(0)
-
-        for (i,j,m,r,f,t) in self.model.upsilon_upg:
-           if t==self.data.T_TIME_PERIODS[0]:
-                self.model.upsilon_upg[(i,j,m,r,f,t)].fix(0)
-
-        for (n,c,m,t) in self.model.nu_node:
-           if t==self.data.T_TIME_PERIODS[0]:
-                self.model.nu_node[(n,c,m,t)].fix(0)
 
     def fix_variables_first_time_period(self,solved_init_model):
         

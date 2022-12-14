@@ -38,10 +38,9 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'EEV' # 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #EV_scenario, scenarios_base, three_scenarios,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'three_scenarios_new' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
     
-
 #################################################
 #                   main code                   #
 #################################################
@@ -54,25 +53,33 @@ if __name__ == "__main__":
     
     instance_run = 'base'
 
+    fix_t0 = 0
     EV_problem = False
     if analysis_type == 'EV':
         EV_problem = True
+        fix_t0 = True
         sheet_name_scenarios = 'EV_scenario'
-    EEV_problem = False
+    fix_first_stage = False
     if analysis_type == 'EEV':
-        EEV_problem = True
+        fix_first_stage = True
+    SP_problem = False
+    if analysis_type == 'SP':
+        SP_problem = True
+        fix_t0 = True
 
     #if not os.path.exists(r'Data/Instance_results_write_to_here/Instance'+instance_run):
     #    os.makedirs(r'Data/Instance_results_write_to_here/Instance'+instance_run)
         
     
     start = time.time()
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=True)
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=True) #init_data is used to fix the mode-fuel mix in the first time period.
     print("Time used reading the base data:", time.time() - start)
 
-    init_model = TranspModel(data=base_data)
-    init_model.construct_model()
-    init_model.solve_model()
+    init_model = None
+    if analysis_type in['SP','EV']:
+        init_model = TranspModel(data=base_data)
+        init_model.construct_model()
+        init_model.solve_model()
 
     base_data.update_time_periods(init_data=False)
     with open(r'Data\base_data', 'wb') as data_file: 
@@ -95,7 +102,7 @@ if __name__ == "__main__":
 
 
     start = time.time()
-    scenario_creator_kwargs = {'base_data':base_data, 'fix_first_stage':EEV_problem, 'init_model_results':init_model}
+    scenario_creator_kwargs = {'base_data':base_data, 'fix_first_time_period':fix_t0,'fix_first_stage':fix_first_stage, 'init_model_results':init_model}
     ef = sputils.create_EF(
         scenario_names,
         scenario_creator,
