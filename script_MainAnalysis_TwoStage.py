@@ -8,8 +8,9 @@ Created on Fri Jul 29 10:47:48 2022
 import os
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
+os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
 
-from TranspModelClass import TranspModel
+from TranspModelClass import TranspModel, RiskInformation
 from ExtractModelResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
@@ -40,6 +41,10 @@ distribution_on_cluster = False  #is the code to be run on the cluster using the
 analysis_type = 'SP' # 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios_new' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
+# risk parameters
+cvar_coeff = 0.0    # \lambda: coefficient for CVaR in mean-CVaR objective
+cvar_alpha = 0.9    # \alpha:  indicates how far in the tail we care about risk
+#TODO: test if this is working
     
 #################################################
 #                   main code                   #
@@ -75,9 +80,11 @@ if __name__ == "__main__":
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=True) #init_data is used to fix the mode-fuel mix in the first time period.
     print("Time used reading the base data:", time.time() - start)
 
+    risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
+    
     init_model = None
     if analysis_type in['SP','EV']:
-        init_model = TranspModel(data=base_data)
+        init_model = TranspModel(data=base_data, risk_info=risk_info)
         init_model.construct_model()
         init_model.solve_model()
 
@@ -102,7 +109,7 @@ if __name__ == "__main__":
 
 
     start = time.time()
-    scenario_creator_kwargs = {'base_data':base_data, 'fix_first_time_period':fix_t0,'fix_first_stage':fix_first_stage, 'init_model_results':init_model}
+    scenario_creator_kwargs = {'base_data':base_data, 'fix_first_time_period':fix_t0,'fix_first_stage':fix_first_stage, 'init_model_results':init_model, "risk_info":risk_info,}
     ef = sputils.create_EF(
         scenario_names,
         scenario_creator,
