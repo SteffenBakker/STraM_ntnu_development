@@ -16,13 +16,16 @@ def scenario_creator(scenario_name, **kwargs):
     
     base_data = kwargs.get('base_data')
     fix_first_time_period = kwargs.get('fix_first_time_period')
+    risk_info = kwargs.get('risk_info')
+
     fix_first_stage = kwargs.get('fix_first_stage')
     init_model_results = kwargs.get('init_model_results')
 
     base_data.update_scenario_dependent_parameters(scenario_name)
     
     #deepcopy is slower than repetitively constructing the models.
-    model_instance = TranspModel(data=base_data)
+    #model_instance = TranspModel(data=base_data) #OLD
+    model_instance = TranspModel(data=base_data, risk_info=risk_info)
     model_instance.construct_model()
     if fix_first_time_period:
         model_instance.fix_variables_first_time_period(init_model_results)
