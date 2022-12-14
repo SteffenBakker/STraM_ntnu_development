@@ -170,6 +170,12 @@ class TranspModel:
                                        + self.risk_info.cvar_coeff * (self.model.CvarAux + (1 - self.risk_info.cvar_alpha)**(-1) * self.model.CvarPosPart) )  # CVaR part
             return mean_cvar_scen_obj_value
 
+        # risk-neutral #NOTE: TEMPORARY
+        def objfun_risk_neutral(model):          
+            # scenario objective value for risk-neutral model:
+            risk_neutral_scen_obj_value = self.model.ScenObjValue
+            return risk_neutral_scen_obj_value
+
         
         # OLD: risk-neutral:
         """
@@ -180,8 +186,9 @@ class TranspModel:
         """
 
         # give objective function to model
-        self.model.Obj = Objective(rule=objfun, sense=minimize)
-
+        #self.model.Obj = Objective(rule=objfun, sense=minimize)
+        self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY
+        
 
         ###########
         #"""
