@@ -79,7 +79,7 @@ with open(r'Data\base_data', 'rb') as data_file:
     line_width = 1.2
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"Road":"dimgrey", "Sea":"blue", "Rail":"magenta", "Total":"black"}
+    mode_color_dict = {"Road":"dimgray", "Sea":"blue", "Rail":"magenta", "Total":"black"}
     #mode_linestyle_dict = {"Road":"-", "Sea":"--", "Rail":(0, (1, 5)), "Total":"-"}
     mode_linestyle_dict = {"Road":"-", "Sea":"-", "Rail":"-", "Total":"-"}
     curvature_fact_dict = {"Road":0, "Sea":-2, "Rail":+1, "Total":0}
@@ -109,7 +109,7 @@ with open(r'Data\base_data', 'rb') as data_file:
             
             # add edge to list
             unique_edges.append((cur_orig, cur_dest, cur_mode)) 
-             
+                
             # extract more edge information
             cur_orig_index = N_NODES.index(cur_orig)
             cur_dest_index = N_NODES.index(cur_dest)
