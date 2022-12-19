@@ -8,7 +8,7 @@ Created on Fri Jul 29 10:47:48 2022
 import os
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
-os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
+#os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
 
 from TranspModelClass import TranspModel, RiskInformation
 from ExtractModelResults import OutputData
@@ -38,7 +38,7 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'SP' # 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = 'EEV' # 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios_new' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
 # risk parameters
