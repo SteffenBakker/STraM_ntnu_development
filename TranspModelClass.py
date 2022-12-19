@@ -176,18 +176,10 @@ class TranspModel:
             risk_neutral_scen_obj_value = self.model.ScenObjValue
             return risk_neutral_scen_obj_value
 
-        
-        # OLD: risk-neutral:
-        """
-        def objfun(model):
-            obj_value = sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS) +  self.model.MaxTranspPenaltyCost
-            return obj_value
-        self.model.Obj = Objective(rule=objfun, sense=minimize)
-        """
 
         # give objective function to model
         #self.model.Obj = Objective(rule=objfun, sense=minimize)
-        self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY
+        self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
         
 
         ###########
