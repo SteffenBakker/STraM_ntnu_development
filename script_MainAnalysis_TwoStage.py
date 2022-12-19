@@ -42,7 +42,7 @@ analysis_type = 'SP' # 'EV', 'EEV' , 'SP'         expected value probem, expecta
 sheet_name_scenarios = 'three_scenarios_new' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
 # risk parameters
-cvar_coeff = 0.0    # \lambda: coefficient for CVaR in mean-CVaR objective
+cvar_coeff = 1.0    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.9    # \alpha:  indicates how far in the tail we care about risk
 #TODO: test if this is working
     
@@ -75,22 +75,42 @@ if __name__ == "__main__":
     #if not os.path.exists(r'Data/Instance_results_write_to_here/Instance'+instance_run):
     #    os.makedirs(r'Data/Instance_results_write_to_here/Instance'+instance_run)
         
-    
+    print("Reading data...")
     start = time.time()
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=True) #init_data is used to fix the mode-fuel mix in the first time period.
+    print("Done reading data.")
     print("Time used reading the base data:", time.time() - start)
 
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     
     init_model = None
     if analysis_type in['SP','EV']:
+        # define model instance
+        print("Defining init model instance...", end="")
         init_model = TranspModel(data=base_data, risk_info=risk_info)
-        init_model.construct_model()
-        init_model.solve_model()
+        print("done.")
 
+        # construct model
+        print("Constructing init model...", end="")
+        start = time.time()
+        init_model.construct_model()
+        print("done.")
+        print("Time used constructing the model:", time.time() - start)
+
+        # solve model
+        print("Solving init model...")
+        start = time.time()
+        init_model.solve_model()
+        print("Done solving the model.")
+        print("Time used solving the model:", time.time() - start)
+
+    print("Dumping data in pickle file...", end="")
     base_data.update_time_periods(init_data=False)
+    
     with open(r'Data\base_data', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
+    
+    print("done.")
     
     
     #with open(r'Data\base_data', 'rb') as data_file:
@@ -107,7 +127,7 @@ if __name__ == "__main__":
 
     #  --------- CONSTRUCT MODEL ---------     #
 
-
+    print("Constructing model...", end="")
     start = time.time()
     scenario_creator_kwargs = {'base_data':base_data, 'fix_first_time_period':fix_t0,'fix_first_stage':fix_first_stage, 'init_model_results':init_model, "risk_info":risk_info,}
     ef = sputils.create_EF(
@@ -116,17 +136,19 @@ if __name__ == "__main__":
         scenario_creator_kwargs = scenario_creator_kwargs,
         nonant_for_fixed_vars = True #  MAYBE FALSE FOR VSS? (bool--optional) – If True, enforces non-anticipativity constraints for all variables, including those which have been fixed. Default is True.
     ) 
+    print("done.")
     print("Time used constructing the model:", time.time() - start)
 
 
     #  ---------  SOLVE MODEL  ---------    #
 
-
+    print("Solving model...")
     start = time.time()
     #options = option_settings_ef()
     solver = pyo.SolverFactory('gurobi')  #options["solvername"]
     solver.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
     results = solver.solve(ef, tee= True)  #logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log',
+    print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
 
 
@@ -137,7 +159,9 @@ if __name__ == "__main__":
     output = OutputData(ef,base_data,instance_run,EV_problem)
 
     with open(r'Data\\' + file_string, 'wb') as output_file: 
+        print("Dumping output in pickle file...", end="")
         pickle.dump(output, output_file)
+        print("done.")
 
 
 
