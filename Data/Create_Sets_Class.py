@@ -244,9 +244,11 @@ class TransportSets():
         # ------- Timing --------
         # -----------------------
 
-        self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]
+        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #HARDCODED (OLD)
+        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] #HARDCODED
         self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
-        self.T_TIME_FIRST_STAGE = [2020,2025]
+        #self.T_TIME_FIRST_STAGE = [2020,2025]  #HARDCODED (OLD)
+        self.T_TIME_FIRST_STAGE = [2022,2026]
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
         
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
@@ -817,7 +819,6 @@ class TransportSets():
 
         #set active scenario
         self.active_scenario_name = scenario_name       
-        print(scenario_name)
         
         if self.active_scenario_name in self.scenario_information.scenario_names: #we are in an exising scenario           
             #Find associated active scenario number (only store temporarily)
@@ -868,12 +869,6 @@ class TransportSets():
                         for y in self.T_TIME_PERIODS:
                             self.R_TECH_READINESS_MATURITY[(m,f,y)] = cur_scen_bass_model.A(y)
 
-                        # print some stuff
-                        if m == "Rail" and f == "Battery train":
-                            for y in self.T_TIME_PERIODS:
-                                print(f"A_{m},{f},{y} = ", self.R_TECH_READINESS_MATURITY[(m,f,y)])
-                        print("")
-                        
 
 
         else: #we should be in the benchmark scenario

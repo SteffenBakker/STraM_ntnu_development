@@ -2,21 +2,21 @@ REMEMBER: TEST CODE AFTER EVERY CHANGE
 
 - VSS = 0 (?). Need differences between SP and EEV 
     - Increase lead time                    STEFFEN
-    - Add uncertainty in t_0 (maturity)     DONE
+    - Add uncertainty in t_0 (maturity)     RUBEN - DONE
     - change emission target (zero in 2050) STEFFEN
     - last resort: extra investment opportunities
         - hydrogen/ammonia infrastructure 
         - hydrogen trucks filling infrastructure 
 
 
-- Add numbers to edge plot          RUBEN
+- Add labels to edge plot              RUBEN - DONE 
 
-- Change years to 2022, 2026, 2030, ... RUBEN 
+- Change years to 2022, 2026, 2030, ... RUBEN - DONE
     - Change data files 
     - Change T_TIME_PERIODS 
     - Change in plotting 
 
-- Scenario names: pessimistic, base, optimistic
+- Scenario names: pessimistic, base, optimistic     RUBEN
 
 - Debug risk aversion (no difference between Expectation and CVaR?)
     - check risk code           RUBEN

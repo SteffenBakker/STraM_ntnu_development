@@ -11,7 +11,7 @@ import pickle
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = 'EV' # EEV, 'SP
+analyses_type = "SP" #'EV' # EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
@@ -214,8 +214,10 @@ def plot_emission_results(output,base_data):
         Std=('weight', np.std))
     output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
 
-    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100
-    output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100
+    #output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
+    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
+    #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
+    output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
     goals = list(base_data.CO2_CAP.values())
     output.emission_stats['Goal'] = goals
     output.emission_stats['StdGoals'] = [0 for g in goals]       
