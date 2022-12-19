@@ -71,6 +71,20 @@ with open(r'Data\base_data', 'rb') as data_file:
     node_x, node_y = map(lons, lats)
     map.scatter(node_x, node_y, color=node_colors, zorder=100)
 
+    # draw labels on the map
+    #                0  1   2  3    4   5    6    7   8    9    10  11    12   13  14  
+    node_x_offset = [2, 2,  2, -18, 2,  -13, -12, 2,  -31, -27, 3,   2,   3,   2,  2]
+    node_y_offset = [3, -3, 3, 3,   -5, -6,  3,   -6, -6,  -6,  -4,  -5,  -4,  2,  0]
+    node_labels = copy.deepcopy(N_NODES)
+    node_labels[1] = " North\nSweden"
+    node_labels[5] = "World"
+    node_labels[6] = "Continental\n   shelf"
+    node_labels[10] = " South\nSweden"
+    node_labels[11] = "Europe"
+    
+    for i in range(len(N_NODES)):
+        plt.annotate(node_labels[i], (node_x[i] + 10000*node_x_offset[i], node_y[i] + 10000*node_y_offset[i]), zorder = 1000)
+    
 
     ##########################
     # c. Plot edges in the map
@@ -146,4 +160,8 @@ with open(r'Data\base_data', 'rb') as data_file:
         plt.savefig(filename)
     #show figure
     if show_fig:
+        for i in range(len(node_labels)):
+            print(i, ": ", node_labels[i])
         plt.show()    
+
+    
