@@ -11,7 +11,7 @@ import pickle
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = 'SP' # EEV, 'SP
+analyses_type = 'EV' # EEV, 'EV' 'SP
 
 #---------------------------------------------------------#
 #       Output data
