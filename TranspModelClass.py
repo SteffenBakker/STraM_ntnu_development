@@ -279,7 +279,7 @@ class TranspModel:
         #Num expansions
         def ExpansionLimitRule(model,i,j,m,r):
             e = (i,j,m,r)
-            return (sum(self.model.epsilon_edge[(e,t)] for t in self.data.T_TIME_PERIODS_NOT_NOW) <= 1)
+            return (sum(self.model.epsilon_edge[(e,t)] for t in self.data.T_TIME_PERIODS) <= 1)
         if len(self.data.T_TIME_PERIODS)>1:
             self.model.ExpansionCap = Constraint(self.data.E_EDGES_RAIL, rule = ExpansionLimitRule)
         
@@ -288,12 +288,12 @@ class TranspModel:
             return(sum(self.model.h_path[k, p, t] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.PT[c]) + 
                    sum(self.model.h_path[k, p, t] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.PT[c]) +
                    sum(self.model.h_path[k,p,t] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.PT[c]) <= 
-                   self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.nu_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= (t-self.data.LEAD_TIME_NODE[i,c,m])))
+                   self.data.Q_NODE_BASE[i,c,m]+self.data.Q_NODE[i,c,m]*sum(self.model.nu_node[i,c,m,tau] for tau in self.data.T_TIME_PERIODS if tau <= (t-self.data.LEAD_TIME_NODE[i,c,m])))
         self.model.TerminalCap = Constraint(self.data.NCMT, rule = TerminalCapRule)
         
         #Num expansions of terminal NEW -- how many times you can perform a step-wise increase of the capacity
         def TerminalCapExpRule(model, i, c,m):
-            return(sum(self.model.nu_node[i,c,m,t] for t in self.data.T_TIME_PERIODS_NOT_NOW) <= 1) # THIS WAS AT 4 .... self.data.INV_NODE[i,m,c])
+            return(sum(self.model.nu_node[i,c,m,t] for t in self.data.T_TIME_PERIODS) <= 1) # THIS WAS AT 4 .... self.data.INV_NODE[i,m,c])
         if len(self.data.T_TIME_PERIODS)>1:
             self.model.TerminalCapExp = Constraint(self.data.NCM, rule = TerminalCapExpRule)
 
@@ -303,7 +303,7 @@ class TranspModel:
             return (sum(self.model.x_flow[a,f,p, t] for p in self.data.P_PRODUCTS
                        for a in self.data.AE_ARCS[e]) + sum(self.model.b_flow[a,f,v, t] for a in self.data.AE_ARCS[e] 
                         for v in self.data.VEHICLE_TYPES_M[m]) <= self.data.Q_CHARGE_BASE[(e,f)] +
-                   sum(self.model.y_charge[(e,f,tau)] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)])))
+                   sum(self.model.y_charge[(e,f,tau)] for tau in self.data.T_TIME_PERIODS if tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)])))
         self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE, rule=ChargingCapArcRule)
         #AIM also looked into charging infrastructure in NODES
 
@@ -311,7 +311,7 @@ class TranspModel:
         def InvestmentInfraRule(model,i,j,m,r,f,t):
             e = (i,j,m,r)
             return (sum(self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS for a in self.data.AE_ARCS[e])
-                    <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau] for tau in self.data.T_TIME_PERIODS_NOT_NOW if tau <= (t-self.data.LEAD_TIME_UPGRADE[(e,f)])))
+                    <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau] for tau in self.data.T_TIME_PERIODS if tau <= (t-self.data.LEAD_TIME_UPGRADE[(e,f)])))
         self.model.InvestmentInfra = Constraint(self.data.UT_UPG, rule = InvestmentInfraRule)
     
         #-----------------------------------------------#

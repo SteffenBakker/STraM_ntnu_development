@@ -25,8 +25,8 @@ MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
 EMISSION_VIOLATION_PENALTY = SCALING_FACTOR/10**2  # TO DO: depend on scaling factor
 #THIS WAS 500    #CO2 Cap is at most 4E7, while obj function is now around 7E12, so I believe this penalty should be higher! Maybe 1-1.5E5
-MAX_TRANSPORT_AMOUNT_PENALTY = 200  #TO DO: more testing needed
-MAX_TRANSPORT_AMOUNT_PENALTY = MAX_TRANSPORT_AMOUNT_PENALTY*10**6/SCALING_FACTOR
+MAX_TRANSPORT_AMOUNT_PENALTY = 10  #TO DO: more testing needed
+MAX_TRANSPORT_AMOUNT_PENALTY = MAX_TRANSPORT_AMOUNT_PENALTY*10**8/SCALING_FACTOR
 
 
 #the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)

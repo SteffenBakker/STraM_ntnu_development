@@ -6,6 +6,10 @@ REMEMBER: TEST CODE AFTER EVERY CHANGE
     - extra investment opportunities
         - hydrogen/ammonia infrastructure           STEFFEN
     - technology development                        RUBEN
+    - Constrain the capacity expansion of charging infrastructure
+        - first have a look at how much is being build out
+
+- Investment costs  -> split the charging infrastructure costs (hydrogen, BET, biofuels)    STEFFEN
 
 - network plot -> legend
 
