@@ -42,7 +42,7 @@ analysis_type = 'SP' #, 'EV', 'EEV' , 'SP'         expected value probem, expect
 sheet_name_scenarios = 'three_scenarios_new' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
 # risk parameters
-cvar_coeff = 1.0    # \lambda: coefficient for CVaR in mean-CVaR objective
+cvar_coeff = 0.0    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.9    # \alpha:  indicates how far in the tail we care about risk
 #TODO: test if this is working
     

@@ -244,15 +244,26 @@ class TransportSets():
         # ------- Timing --------
         # -----------------------
 
-        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #HARDCODED (OLD)
-        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] #HARDCODED
+        #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
+        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
+        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] 
         self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
-        #self.T_TIME_FIRST_STAGE = [2020,2025]  #HARDCODED (OLD)
-        self.T_TIME_FIRST_STAGE = [2022,2026]
+        self.T_YEARLY_TIME_PERIODS = [*range(self.T_TIME_PERIODS[0], self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] #all years from 2022 up to 2050
+        #self.T_TIME_FIRST_STAGE = [2020,2025]  #(OLD)
+        self.T_TIME_FIRST_STAGE = [2022,2026] 
+        self.T_YEARLY_TIME_FIRST_STAGE = [*range(self.T_TIME_PERIODS[0], 2030)]  #first-stage years
+        #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
+        self.T_YEARLY_TIME_SECOND_STAGE = [*range(2030, self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] 
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
         
+        self.T_YEARLY_TIME_FIRST_STAGE_ALL = self.T_YEARLY_TIME_FIRST_STAGE
+        self.T_YEARLY_TIME_FIRST_STAGE_INIT = self.T_YEARLY_TIME_FIRST_STAGE[0]
+        self.T_YEARLY_TIME_SECOND_STAGE_ALL = self.T_YEARLY_TIME_SECOND_STAGE
+        self.T_YEARLY_TIME_SECOND_STAGE_INIT = []
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
+        self.T_YEARLY_TIME_PERIODS_ALL = self.T_YEARLY_TIME_PERIODS
+        self.T_YEARLY_TIME_PERIODS_INIT = [self.T_YEARLY_TIME_PERIODS[0]]
                 
         self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
         t0 = self.T_TIME_PERIODS[0]
@@ -267,6 +278,14 @@ class TransportSets():
                 duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS[i-1]])
                 self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0 + j for j in range(duration_previous)]
 
+        self.T_MOST_RECENT_DECISION_PERIOD = {}
+        for ty in self.T_YEARLY_TIME_PERIODS: #loop over all (yearly) years
+            cur_most_recent_dec_period = self.T_TIME_PERIODS[0] #initialize at 2022
+            for t in self.T_TIME_PERIODS: # loop over all decision periods
+                if t <= ty:
+                    cur_most_recent_dec_period = t 
+            self.T_MOST_RECENT_DECISION_PERIOD[ty] = cur_most_recent_dec_period
+        
         
         # -----------------------
         # ------- Other--------
@@ -734,7 +753,7 @@ class TransportSets():
                 # if not mature, add bass diffusion model
                 self.tech_base_bass_model[(row['Mode'], row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
                 # set base bass model as active bass model
-                self.tech_active_bass_model[(m,f)] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
+                self.tech_active_bass_model[(row['Mode'] ,row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
                 # store variations
                 self.tech_scen_p_q_variation[(row['Mode'], row['Fuel'])] = row["p_q_variation"]
                 self.tech_scen_t_0_delay[(row['Mode'], row['Fuel'])] = row["t_0_delay"]
@@ -765,6 +784,7 @@ class TransportSets():
         for index, row in self.lifespan_data.iterrows():
             self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
 
+   
     def combined_sets(self):
 
         
@@ -804,13 +824,28 @@ class TransportSets():
                             for tau in self.T_TIME_PERIODS if tau <= t]
         self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] 
                                     for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+
+        self.MT = [(m,t) for m in self.M_MODES for t in self.T_TIME_PERIODS]
+
+        self.MFT_NEW = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS if not self.tech_is_mature[(m,f)]]
+        self.MFT_NEW_YEARLY = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_PERIODS if not self.tech_is_mature[(m,f)]] #only new technologies (not mature yet)
+        self.MFT_NEW_YEARLY_FIRST_STAGE_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_FIRST_STAGE if (not self.tech_is_mature[(m,f)] and t!=self.T_YEARLY_TIME_FIRST_STAGE[0])]
+        self.MFT_NEW_YEARLY_SECOND_STAGE = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_SECOND_STAGE if not self.tech_is_mature[(m,f)]]
+
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
+    #TODO: FIX THIS FOR THE MATURITY PATHS
     def update_time_periods(self, init_data):
         if init_data==False:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL
+            self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_ALL
+            self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_ALL
+            self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_ALL
         else:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
+            self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_INIT
+            self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_INIT
+            self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_INIT
         self.combined_sets()
 
     #Function that updates all information that depends on the current scenario number
@@ -889,7 +924,12 @@ class TransportSets():
 
 
 print("Finished reading sets and classes.")
-                        
+
+base_data = TransportSets(sheet_name_scenarios='three_scenarios_new')
+
+base_data.MT
+
+
 
 
 #Testing:
@@ -915,3 +955,4 @@ plt.show()
 
 print("Finished testing")
 """
+

@@ -60,6 +60,13 @@ class TranspModel:
         self.model.q_transp_amount = Var(self.data.MFT, within=NonNegativeReals)
         self.model.q_max_transp_amount = Var(self.data.MF, within=NonNegativeReals)
 
+        # auxiliary transport amount for tracking diffusion paths:
+        self.model.q_aux_transp_amount = Var(self.data.MFT_NEW_YEARLY, within = NonNegativeReals) 
+        # total transport amount per mode
+        self.model.q_mode_total_transp_amount = Var(self.data.MT, within = NonNegativeReals) #note: only measured in decision years
+        
+        print(self.model.q_mode_total_transp_amount)
+
         MAX_TRANSP_PENALTY = MAX_TRANSPORT_AMOUNT_PENALTY
         if self.calculate_max_transp_amount_exact:
             self.model.chi_max_transp = Var(self.data.MFT, within = Binary)
@@ -164,10 +171,16 @@ class TranspModel:
         self.model.CvarPosPartConstr = Constraint(rule=CvarRule) # add to model
 
         # mean-CVaR:
-        def objfun(model):          
+        def objfun_risk_averse(model):          
             # scenario objective value for risk-averse (mean-CVaR) model:
             mean_cvar_scen_obj_value = ( (1 - self.risk_info.cvar_coeff) * self.model.ScenObjValue                                                            # expectation part
                                        + self.risk_info.cvar_coeff * (self.model.CvarAux + (1 - self.risk_info.cvar_alpha)**(-1) * self.model.CvarPosPart) )  # CVaR part
+            return mean_cvar_scen_obj_value
+
+        # pure CVaR:
+        def objfun_pure_cvar(model):          
+            # scenario objective value for risk-averse (mean-CVaR) model:
+            mean_cvar_scen_obj_value = self.model.CvarAux + (1 - self.risk_info.cvar_alpha)**(-1) * self.model.CvarPosPart  # CVaR part
             return mean_cvar_scen_obj_value
 
         # risk-neutral #NOTE: TEMPORARY
@@ -178,8 +191,8 @@ class TranspModel:
 
 
         # give objective function to model
-        #self.model.Obj = Objective(rule=objfun, sense=minimize)
-        self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
+        self.model.Obj = Objective(rule=objfun_risk_averse, sense=minimize) #risk-averse
+        #self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
         
 
         ###########
@@ -321,11 +334,48 @@ class TranspModel:
             return (self.model.q_transp_amount[m,f,t] == sum( self.data.AVG_DISTANCE[a]*self.model.x_flow[a,f,p,t] for p in self.data.P_PRODUCTS 
                                                             for a in self.data.AM_ARCS[m]))
         self.model.TotalTranspAmount = Constraint(self.data.MFT, rule = TotalTransportAmountRule)
+
+        #Auxiliary transport amount (q_aux equal to q in all decision periods t)
+        def AuxTransportAmountRule(model,m,f,t):
+            return (self.model.q_aux_transp_amount[m,f,t] == self.model.q_transp_amount[m,f,t]) #auxiliary q variable equal to "normal" q variable 
+        self.model.AuxTranspAmount = Constraint(self.data.MFT_NEW, rule = AuxTransportAmountRule) #note: only in decision periods
+
+        #Total mode transport amount (q_mode_total equal to sum over q_aux for all f in F[m], for decision periods)
+        def ModeTotalTransportAmountRule(model,m,t):
+            return (self.model.q_mode_total_transp_amount[m,t] == sum( self.model.q_transp_amount[m,f,t] for f in self.data.FM_FUEL[m] ))
+        self.model.ModeTotalTransportAmount = Constraint(self.data.MT, rule = ModeTotalTransportAmountRule) 
+
+        print("==============================================")
+        print("==============================================")
+        print("==============================================")
+        print(self.data.MT)
+        print(self.data.MFT)
+        for mt in self.data.MT:
+            print(f'for index {mt} X[{mt}] is: {self.model.q_mode_total_transp_amount[mt].value}')
+        print("==============================================")
+        print("==============================================")
+        print("==============================================")
+
+
+
+        #Bass diffusion paths (1st stage): change in q is at most alpha * q_bar[t-1] 
+        def BassDiffusionRuleFirstStage(model,m,f,t):
+            return ( self.model.q_aux_transp_amount[m,f,t] - self.model.q_aux_transp_amount[m,f,t-1] <= self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1]])    
+        self.model.BassDiffusionFirstStage = Constraint(self.data.MFT_NEW_YEARLY_FIRST_STAGE_MIN0, rule = BassDiffusionRuleFirstStage)
+
+        # Bass diffusion paths (2nd stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]
+        def BassDiffusionRuleSecondStage(model,m,f,t):
+            return ( self.model.q_aux_transp_amount[m,f,t] - self.model.q_aux_transp_amount[m,f,t-1] <= self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1]] + self.data.tech_active_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1] )    # q(t) - q(t-1) <= alpha * q_bar(|_t-1_|) + beta * q(t-1)
+        self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE, rule = BassDiffusionRuleSecondStage)
+
         
+        #TODO: DELETE BELOW
+        """
         #Technology maturity limit
         def TechMaturityLimitRule(model, m, f, t):
             return (self.model.q_transp_amount[(m,f,t)] <= self.data.R_TECH_READINESS_MATURITY[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
+        """
 
         #Initialize the transport amounts (put an upper bound at first)
         def InitTranspAmountRule(model, m, f, t):

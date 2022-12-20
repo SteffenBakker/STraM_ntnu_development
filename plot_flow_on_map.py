@@ -368,7 +368,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"road":"dimgrey", "sea":"blue", "rail":"magenta", "total":"black"}
+    mode_color_dict = {"road":"dimgrey", "sea":"blue", "rail":"limegreen", "total":"black"}
     mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
     zorder_dict = {"road":30, "sea":20, "rail":40, "total":20}

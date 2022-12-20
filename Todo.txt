@@ -7,8 +7,6 @@ REMEMBER: TEST CODE AFTER EVERY CHANGE
         - hydrogen/ammonia infrastructure           STEFFEN
     - technology development                        RUBEN
 
-- network plot -> legend
-
 - Debug risk aversion (no difference between Expectation and CVaR?)
     - check risk code                               RUBEN
         - klein test model
