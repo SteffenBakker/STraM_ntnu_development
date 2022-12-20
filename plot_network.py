@@ -86,6 +86,7 @@ with open(r'Data\base_data', 'rb') as data_file:
         plt.annotate(node_labels[i], (node_x[i] + 10000*node_x_offset[i], node_y[i] + 10000*node_y_offset[i]), zorder = 1000)
     
 
+
     ##########################
     # c. Plot edges in the map
 
@@ -145,6 +146,8 @@ with open(r'Data\base_data', 'rb') as data_file:
             # add edge to plot
             plt.gca().add_patch(new_edge) 
 
+
+    
 
     ###############################
     # d. Show and save the figure
