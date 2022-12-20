@@ -117,7 +117,8 @@ num_fuels = length(all_fuels)
 fuel_dict = Dict(zip(all_fuels, 1:length(all_fuels)))
 
 #define years
-years = [2020, 2025, 2030, 2040, 2050] #HARDCODED
+#years = [2020, 2025, 2030, 2040, 2050] #HARDCODED (OLD: 2020)
+years = [2022, 2026, 2030, 2040, 2050] #HARDCODED (NEW: 2022)
 num_years = length(years)
 year_dict = Dict(zip(years, 1:num_years))
 

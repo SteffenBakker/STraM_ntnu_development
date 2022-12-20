@@ -44,12 +44,13 @@ class BassDiffusion():
     def plot_A(self, t_vec = range(2010, 2070), filename = "", show = True):
         A_vec = [self.A(t_vec[i]) for i in range(len(t_vec))]
         plt.plot(t_vec, A_vec)
-        for y in [2020, 2025, 2030, 2040, 2050]:
+        #for y in [2020, 2025, 2030, 2040, 2050]:
+        for y in [2022, 2026, 2030, 2040, 2050]:
             plt.plot([y,y], [0,self.m], color='k')
         if filename != "":
             plt.savefig(f"Plots/{filename}")
         if show:
             plt.show()
 
-bassie = BassDiffusion(0.2, 0.2, 100, 2020)
+bassie = BassDiffusion(0.2, 0.2, 100, 2022)
 

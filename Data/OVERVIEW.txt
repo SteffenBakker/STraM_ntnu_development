@@ -139,7 +139,7 @@ FM_FUEL:            dict of modes to corresponding fuel types
 NEW_MF_LIST:        list of all mode-fuel pairs
 NEW_F_LIST:         set of all fuels that occur in NEW_MF_LIST
 NM_LIST_CAP:        list of node-mode pairs corresponding to capacitated modes in Norwegian nodes
-T_TIME_PERIODS:     list of all time periods (2020, 2025, 2030, 2040, 2050)
+T_TIME_PERIODS:     list of all time periods (2020, 2025, 2030, 2040, 2050) #updated to: (2022, 2026, 2030, 2040, 2050)
 T_INTERVALS:        list of intervals between time periods
 P_PRODUCTS:         list of product types (commodities)
 TERMINAL_TYPE:      dict of capacitated modes to lists of terminal types

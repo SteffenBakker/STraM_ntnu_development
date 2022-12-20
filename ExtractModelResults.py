@@ -23,7 +23,7 @@ class OutputData():
         
         self.scenarios = []
         if EV_problem:
-            self.scenarios = ['MMM']
+            self.scenarios = ['BBB']
         else:
             for scen in sputils.ef_scenarios(ef):
                 self.scenarios.append(scen[0])
@@ -36,7 +36,7 @@ class OutputData():
         
         scenario_names_and_models = []
         if EV_problem:
-            scenario_names_and_models.append(('MMM',ef))
+            scenario_names_and_models.append(('BBB',ef))
         else:
             for scen in sputils.ef_scenarios(ef):
                 scenario_names_and_models.append((scen[0],scen[1]))

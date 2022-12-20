@@ -26,7 +26,7 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period):
     x_flow:           dataframe with flow of goods
     b_flow:           dataframe with balancing flow (empty vehicles)
     sel_scenario:     scenario name or "average"
-    sel_time_period:  time period in [2020, 2025, 2030, 2040, 2050]
+    sel_time_period:  time period in [2022, 2026, 2030, 2040, 2050]
     
     OUTPUT
     df_flow:          dataframe with aggregated flows   
