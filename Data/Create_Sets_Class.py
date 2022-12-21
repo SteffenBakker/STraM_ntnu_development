@@ -262,8 +262,8 @@ class TransportSets():
         self.T_YEARLY_TIME_SECOND_STAGE_INIT = []
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
-        self.T_YEARLY_TIME_PERIODS_ALL = self.T_YEARLY_TIME_PERIODS
-        self.T_YEARLY_TIME_PERIODS_INIT = [self.T_YEARLY_TIME_PERIODS[0]]
+        #self.T_YEARLY_TIME_PERIODS_ALL = self.T_YEARLY_TIME_PERIODS
+        #self.T_YEARLY_TIME_PERIODS_INIT = [self.T_YEARLY_TIME_PERIODS[0]]
                 
         self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
         t0 = self.T_TIME_PERIODS[0]
@@ -831,6 +831,7 @@ class TransportSets():
         self.MFT_NEW_YEARLY = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_PERIODS if not self.tech_is_mature[(m,f)]] #only new technologies (not mature yet)
         self.MFT_NEW_YEARLY_FIRST_STAGE_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_FIRST_STAGE if (not self.tech_is_mature[(m,f)] and t!=self.T_YEARLY_TIME_FIRST_STAGE[0])]
         self.MFT_NEW_YEARLY_SECOND_STAGE = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_SECOND_STAGE if not self.tech_is_mature[(m,f)]]
+        self.MFT_NEW_FIRST_PERIOD = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in [self.T_TIME_PERIODS[0]] if not self.tech_is_mature[(m,f)]]
 
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
@@ -838,14 +839,14 @@ class TransportSets():
     def update_time_periods(self, init_data):
         if init_data==False:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL
-            self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_ALL
-            self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_ALL
-            self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_ALL
+            #self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_ALL
+            #self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_ALL
+            #self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_ALL
         else:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
-            self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_INIT
-            self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_INIT
-            self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_INIT
+            #self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_INIT
+            #self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_INIT
+            #self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_INIT
         self.combined_sets()
 
     #Function that updates all information that depends on the current scenario number

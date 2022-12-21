@@ -420,7 +420,6 @@ output.q_transp_amount[output.q_transp_amount['time_period']==2050].sort_values(
 
 
 
-
 #---------------------------------------------------------#
 #       Depreciated
 #---------------------------------------------------------#
