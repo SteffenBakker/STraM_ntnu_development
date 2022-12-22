@@ -17,7 +17,7 @@ os.chdir('//home.ansatt.ntnu.no/egbertrv/Documents/GitHub/AIM_Norwegian_Freight_
 #I did this to avoid any errors due to potential hardcoding
 #The order of sets may not align with the order used in the other python files.
 
-T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050]
+T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] #HARDCODED
 
 M_MODES = ["Road", "Sea", "Rail"]
 

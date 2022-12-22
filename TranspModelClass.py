@@ -193,34 +193,6 @@ class TranspModel:
         #self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
         
 
-        ###########
-        #"""
-        # NEW: risk-averse
-        # risk measure: \rho(.) = (1 - \lambda) * E[.] + \lambda * CVaR_\alpha(.)
-        # so \rho(f(x,\xi)) = \min_u \E[ (1 - \lambda) * f + \lambda * (u + (1 - \alpha)**(-1) * z) ]
-        # with
-        # z \geq f - u
-        # z \geq 0
-        
-        # CVaR parameters:
-        #cvar_coeff = 0.20 # corresponds to \lambda (coefficient for CVaR, relative importance of CVaR). Set at e.g. 20%
-        #cvar_alpha = 0.10 # corresponds to \alpha (how far in the tail we're looking). Set at e.g. 10% (i.e., three worst scenarios)
-        
-        # CVaR variables:
-        #cvar_aux # corresponds to u (auxiliary variable for CVaR)
-        #cvar_pp # corresponds to z (positive part in CVaR)
-        
-        # CVaR constraints:
-        #cvar_pp >= f - cvar_aux     # z \geq f - u
-        #cvar_pp >= 0                # z \geq 0
-
-        # mean-CVaR objective: 
-        #(1 - cvar_coeff) * f + cvar_coeff * (cvar_aux + (1 - cvar_alpha)**(-1) * cvar_pp) # replace "f" by this
-
-        #"""
-        
-        ###########
-
 
         "CONSTRAINTS"
 
@@ -370,13 +342,10 @@ class TranspModel:
             self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE, rule = BassDiffusionRuleSecondStage)
 
             
-        #TODO: DELETE BELOW
-        """
-        #Technology maturity limit
+        #Technology maturity limit upper bound
         def TechMaturityLimitRule(model, m, f, t):
             return (self.model.q_transp_amount[(m,f,t)] <= self.data.R_TECH_READINESS_MATURITY[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
-        """
 
         #Initialize the transport amounts (put an upper bound at first)
         def InitTranspAmountRule(model, m, f, t):

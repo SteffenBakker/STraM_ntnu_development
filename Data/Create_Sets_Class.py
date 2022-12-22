@@ -864,7 +864,7 @@ class TransportSets():
                         cur_fg = self.scenario_information.mf_to_fg[(m,f)]
                         cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
                         # extract info from current base Bass model
-                        cur_base_bass = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                        cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
                         cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
                         cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
                                     
@@ -882,21 +882,38 @@ class TransportSets():
                             cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
 
                         # construct scenario bass model
-                        cur_scen_bass_model = BassDiffusion(cur_base_bass.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
-                                                            cur_base_bass.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
-                                                            cur_base_bass.m, 
-                                                            cur_base_bass.t_0 + cur_scen_t_0_delay)
+                        cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
+                                                            cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
+                                                            cur_base_bass_model.m, 
+                                                            cur_base_bass_model.t_0 + cur_scen_t_0_delay)
                         
                         # set as active bass model
                         self.tech_active_bass_model[(m,f)] = cur_scen_bass_model
 
+                        # find start of second stage
+                        for t in self.T_TIME_PERIODS:
+                            if t not in self.T_TIME_FIRST_STAGE:
+                                start_of_second_stage = t
+                                break
+
                         # fill R_TECH_READINESS_MATURITY based on current scenario bass model
-                        for y in self.T_TIME_PERIODS:
-                            self.R_TECH_READINESS_MATURITY[(m,f,y)] = cur_scen_bass_model.A(y)
+                        for t in self.T_TIME_PERIODS:
+                            if t in self.T_TIME_FIRST_STAGE:
+                                # first stage: follow base bass model
+                                self.R_TECH_READINESS_MATURITY[(m,f,t)] = cur_base_bass_model.A(t)
+                            else:
+                                # second stage: use scenario bass model, with starting point A(2030) from base bass model
+                                t_init = start_of_second_stage #initialize diffusion at start of second stage
+                                A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
+                                self.R_TECH_READINESS_MATURITY[(m,f,t)] = cur_scen_bass_model.A_from_starting_point(t,A_init,t_init)
 
 
-
-        else: #we should be in the benchmark scenario
+        else: 
+            raise Exception("The current scenario name is not in the scenario list")
+            
+            #OLD: (never used I think)
+            """
+            #we should be in the benchmark scenario
             if self.active_scenario_name == "benchmark":
                 #set C_TRANSP_COST to benchmark levels
                 self.C_TRANSP_COST = self.C_TRANSP_COST_BASE
@@ -910,15 +927,10 @@ class TransportSets():
                 
             else:
                 raise Exception("Active scenario name is not in scenario list, but also not equal to benchmark")
-
+            """
 
 
 print("Finished reading sets and classes.")
-
-base_data = TransportSets(sheet_name_scenarios='three_scenarios_new')
-
-base_data.MT
-
 
 
 
