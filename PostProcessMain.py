@@ -527,3 +527,6 @@ def cost_and_investment_table_old(base_data,output):
     print(round(output.all_costs_table,2))
 
     return output
+
+
+output.all_costs_table

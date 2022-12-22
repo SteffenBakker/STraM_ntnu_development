@@ -249,21 +249,15 @@ class TransportSets():
         self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] 
         self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
         self.T_YEARLY_TIME_PERIODS = [*range(self.T_TIME_PERIODS[0], self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] #all years from 2022 up to 2050
-        #self.T_TIME_FIRST_STAGE = [2020,2025]  #(OLD)
-        self.T_TIME_FIRST_STAGE = [2022,2026] 
+        #self.T_TIME_FIRST_STAGE = [2020, 2025]  #(OLD)
+        self.T_TIME_FIRST_STAGE = [2022, 2026] 
         self.T_YEARLY_TIME_FIRST_STAGE = [*range(self.T_TIME_PERIODS[0], 2030)]  #first-stage years
         #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
         self.T_YEARLY_TIME_SECOND_STAGE = [*range(2030, self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] 
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
         
-        self.T_YEARLY_TIME_FIRST_STAGE_ALL = self.T_YEARLY_TIME_FIRST_STAGE
-        self.T_YEARLY_TIME_FIRST_STAGE_INIT = self.T_YEARLY_TIME_FIRST_STAGE[0]
-        self.T_YEARLY_TIME_SECOND_STAGE_ALL = self.T_YEARLY_TIME_SECOND_STAGE
-        self.T_YEARLY_TIME_SECOND_STAGE_INIT = []
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
-        #self.T_YEARLY_TIME_PERIODS_ALL = self.T_YEARLY_TIME_PERIODS
-        #self.T_YEARLY_TIME_PERIODS_INIT = [self.T_YEARLY_TIME_PERIODS[0]]
                 
         self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
         t0 = self.T_TIME_PERIODS[0]
@@ -839,14 +833,8 @@ class TransportSets():
     def update_time_periods(self, init_data):
         if init_data==False:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL
-            #self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_ALL
-            #self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_ALL
-            #self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_ALL
         else:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
-            #self.T_YEARLY_TIME_PERIODS = self.T_YEARLY_TIME_PERIODS_INIT
-            #self.T_YEARLY_TIME_FIRST_STAGE = self.T_YEARLY_TIME_FIRST_STAGE_INIT
-            #self.T_YEARLY_TIME_SECOND_STAGE = self.T_YEARLY_TIME_SECOND_STAGE_INIT
         self.combined_sets()
 
     #Function that updates all information that depends on the current scenario number
@@ -865,8 +853,9 @@ class TransportSets():
                 for f in self.FM_FUEL[m]:
                     for p in self.P_PRODUCTS:
                         for y in self.T_TIME_PERIODS:
-                            #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
-                            self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
+                            if y not in self.T_TIME_FIRST_STAGE: #only update second-stage costs!
+                                #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
+                                self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
 
             #update R_TECH_READINESS_MATURITY based on scenario information
             for m in self.M_MODES:

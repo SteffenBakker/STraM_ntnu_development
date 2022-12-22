@@ -60,6 +60,7 @@ def scenario_creator(scenario_name, **kwargs):
                                          [model.h_path[:,:,t] for t in first_stage]+
                                          [model.h_path_balancing[:,:,t] for t in first_stage]+
                                          [model.q_transp_amount[:,:,t] for t in first_stage]+
+                                         [model.q_mode_total_transp_amount[:,t] for t in first_stage]+
                                          [model.q_aux_transp_amount[:,:,t_y] for t_y in first_stage_yearly] +
                                          [model.y_charge[:, :, :, :, :, t] for t in first_stage]+
                                          [model.epsilon_edge[:,:,:,:,t] for t in first_stage]+
@@ -67,6 +68,7 @@ def scenario_creator(scenario_name, **kwargs):
                                          [model.nu_node[:,:,:,t] for t in first_stage]+
                                          [model.z_emission[t] for t in first_stage] + 
                                          [model.total_emissions[t] for t in first_stage] +
+                                         #[model.StageCosts[t] for t in first_stage] +
                                          [model.CvarAux]   # this is also a first-stage variable; CvarPosPart is not: depends on scenario                                         
                                          )
 
