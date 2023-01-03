@@ -84,7 +84,7 @@ with open(r'Data\base_data', 'rb') as data_file:
         "Hamar": (2, 2),
         "Sør-Sverige": (3, -5),
         "Kristiansand": (-31, -6),
-        "Skien": (-16, -6),
+        "Skien": (-16, -2),
         "Oslo": (-15, -2),
         "Europa": (-23, 0),
         "Verden": (-12, 3),
@@ -187,7 +187,7 @@ with open(r'Data\base_data', 'rb') as data_file:
     #save figure
     if save_fig:
         filename = f"Plots/edge_plot.pdf"
-        plt.savefig(filename)
+        plt.savefig(filename,bbox_inches='tight')
     #show figure
     if show_fig:
         for i in range(len(node_labels)):
