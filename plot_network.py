@@ -22,7 +22,7 @@ with open(r'Data\base_data', 'rb') as data_file:
 
     # USER INPUT
     show_fig = True
-    save_fig = False
+    save_fig = True
 
 
     ####################################
@@ -78,15 +78,15 @@ with open(r'Data\base_data', 'rb') as data_file:
     node_xy_offset = {
         "Ålesund": (-18, 3),
         "Bodø": (-15, 1),
-        "Trondheim": (3, -4),
-        "Tromsø": (2, 0),
+        "Trondheim": (-30, 5),
+        "Tromsø": (-20, 2),
         "Bergen": (2, 3),
         "Hamar": (2, 2),
         "Sør-Sverige": (3, -5),
         "Kristiansand": (-31, -6),
-        "Skien": (1, -6),
-        "Oslo": (2, -5),
-        "Europa": (2, -5),
+        "Skien": (-16, -6),
+        "Oslo": (-15, -2),
+        "Europa": (-23, 0),
         "Verden": (-12, 3),
         "Stavanger": (-27, -6),
         "Kontinentalsokkelen": (-13, 3),
@@ -186,7 +186,7 @@ with open(r'Data\base_data', 'rb') as data_file:
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGHT SIZE
     #save figure
     if save_fig:
-        filename = f"Plots/edge_plot.png"
+        filename = f"Plots/edge_plot.pdf"
         plt.savefig(filename)
     #show figure
     if show_fig:
