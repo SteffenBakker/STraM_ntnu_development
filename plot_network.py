@@ -166,6 +166,18 @@ with open(r'Data\base_data', 'rb') as data_file:
             # add edge to plot
             plt.gca().add_patch(new_edge) 
 
+            if (cur_orig in ['Hamar','Trondheim']) and (cur_dest in ['Hamar','Trondheim']) and (m=='Rail'):
+                new_edge = patches.FancyArrowPatch(
+                            (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
+                            (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
+                            connectionstyle=f"arc3,rad={base_curvature * 2.2}", #curvature of the edge
+                            linewidth = line_width,
+                            linestyle=mode_linestyle_dict[cur_mode],
+                            color=cur_color,
+                            zorder = zorder_dict[cur_mode]
+                            ) 
+                plt.gca().add_patch(new_edge) 
+
     # add legend
 
     from matplotlib.lines import Line2D
