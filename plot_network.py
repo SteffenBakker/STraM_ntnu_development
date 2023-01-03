@@ -21,7 +21,7 @@ with open(r'Data\base_data', 'rb') as data_file:
 
     # USER INPUT
     show_fig = True
-    save_fig = False
+    save_fig = True
 
 
     ####################################
@@ -71,19 +71,49 @@ with open(r'Data\base_data', 'rb') as data_file:
     node_x, node_y = map(lons, lats)
     map.scatter(node_x, node_y, color=node_colors, zorder=100)
 
-    # draw labels on the map
-    #                0  1   2  3    4   5    6    7   8    9    10  11    12   13  14  
-    node_x_offset = [2, 2,  2, -18, 2,  -13, -12, 2,  -31, -27, 3,   2,   3,   2,  2]
-    node_y_offset = [3, -3, 3, 3,   -5, -6,  3,   -6, -6,  -6,  -4,  -5,  -4,  2,  0]
-    node_labels = copy.deepcopy(N_NODES)
-    node_labels[1] = " North\nSweden"
-    node_labels[5] = "World"
-    node_labels[6] = "Continental\n   shelf"
-    node_labels[10] = " South\nSweden"
-    node_labels[11] = "Europe"
     
+    
+    node_labels = copy.deepcopy(N_NODES)
+    
+    label_dict = {"Sør-Sverige":" South\nSweden", 
+        "Nord-Sverige":"North\nSweden", 
+        "Kontinentalsokkelen":"Continent.\n   shelf", 
+        "Europa":"Europe", 
+        "Verden":"World"}
+
+    for key,value in label_dict.items():
+        node_labels[node_labels.index(key)] = value
+
+    #node_labels[1] = " North\nSweden"
+    #node_labels[5] = "World"
+    #node_labels[6] = "Continental\n   shelf"
+    #node_labels[10] = " South\nSweden"
+    #node_labels[11] = "Europe"
+    
+
+    node_offsets = {" South\nSweden":(4,-4),
+                    'Oslo':(2,3),
+                    'Trondheim':(-30,6),
+                    "Continent.\n   shelf":(-12,4),
+                    'Bodø':(-18,0),
+                    'Kristiansand':(-30,-8),
+                    "Europe":(-24,1),
+                    "World":(-14,-7),
+                    'Bergen':(4,3),
+                    'Ålesund':(-22,2),
+                    'Hamar':(2,4),
+                    "North\nSweden":(2,2),
+                    'Tromsø':(-22,3),
+                    'Stavanger':(-30,-6),
+                    'Skien':(-18,-1)}
+    # draw labels on the map
+    #                0  1   2  3    4     5    6    7   8    9    10  11    12   13  14  
+    #node_x_offset = [2, 2, 2, 0,    -5,  0, -12, 2,  -31, -27, 3,   2,   3,   2,  2]
+    #node_y_offset = [3, 3, -1, 3,   0,   -3,  3,   -6, -6,  -6,  -4,  -5,  -4,  2,  0]
+
     for i in range(len(N_NODES)):
-        plt.annotate(node_labels[i], (node_x[i] + 10000*node_x_offset[i], node_y[i] + 10000*node_y_offset[i]), zorder = 1000)
+        node = node_labels[i]
+        plt.annotate(node, (node_x[i] + 10000*node_offsets[node][0], node_y[i] + 10000*node_offsets[node][1]), zorder = 1000)
     
 
 
@@ -153,13 +183,13 @@ with open(r'Data\base_data', 'rb') as data_file:
     # d. Show and save the figure
 
     #set size
-    scale = 1.3
+    scale = 1.2 #
     plot_width = 5 #in inches
     plot_height = scale * plot_width
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGHT SIZE
     #save figure
     if save_fig:
-        filename = f"Plots/edge_plot.png"
+        filename = f"Plots/edge_plot.pdf"
         plt.savefig(filename)
     #show figure
     if show_fig:
