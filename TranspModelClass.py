@@ -168,6 +168,12 @@ class TranspModel:
             return self.model.CvarPosPart >= self.model.ScenObjValue - self.model.CvarAux       # z \geq f - u
         self.model.CvarPosPartConstr = Constraint(rule=CvarRule) # add to model
 
+        # lower bound on auxiliary CVaR variable (needed to avoid numerical issues)
+        cvar_aux_lb = -1e10 # (hardcoded)
+        def CvarAuxLBRule(model):
+            return self.model.CvarAux >= cvar_aux_lb 
+        self.model.CvarAuxLBConstr = Constraint(rule=CvarAuxLBRule) # add to model
+
         # mean-CVaR:
         def objfun_risk_averse(model):          
             # scenario objective value for risk-averse (mean-CVaR) model:
@@ -187,10 +193,13 @@ class TranspModel:
             risk_neutral_scen_obj_value = self.model.ScenObjValue
             return risk_neutral_scen_obj_value
 
+        
+
+
 
         # give objective function to model
-        self.model.Obj = Objective(rule=objfun_risk_averse, sense=minimize) #risk-averse
-        #self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
+        #self.model.Obj = Objective(rule=objfun_risk_averse, sense=minimize) #risk-averse
+        self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
         
 
 
@@ -315,38 +324,6 @@ class TranspModel:
             return (self.model.q_mode_total_transp_amount[m,t] == sum( self.model.q_transp_amount[m,f,t] for f in self.data.FM_FUEL[m] ))
         self.model.ModeTotalTransportAmount = Constraint(self.data.MT, rule = ModeTotalTransportAmountRule) 
 
-        #Bass diffusion paths first period (initial values): q[t] <= (2022 - t_0)^+ * alpha * q_bar[t]
-        def BassDiffusionRuleFirstPeriod(model,m,f,t):
-            pos_part = max(self.data.T_TIME_PERIODS[0] - self.data.tech_active_bass_model[(m,f)].t_0, 0)
-            return ( self.model.q_transp_amount[m,f,t] <= pos_part * self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,t] )
-        self.model.BassDiffusionFirstPeriod = Constraint(self.data.MFT_NEW_FIRST_PERIOD, rule = BassDiffusionRuleFirstPeriod)
-
-        # only add remaining Bass diffusion constraints if we run the full model (not just first period in the initialization run)
-        if len(self.data.T_TIME_PERIODS) > 1:
-            #Bass diffusion paths (1st stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]    (based on pessimistic beta)
-            def BassDiffusionRuleFirstStage(model,m,f,t):
-                diff_has_started = (t >= self.data.tech_active_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
-                return ( self.model.q_aux_transp_amount[m,f,t] - self.model.q_aux_transp_amount[m,f,t-1] 
-                    <= diff_has_started * (self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1]]
-                    #+ (1 - self.data.tech_scen_p_q_variation[(m,f)]) * self.data.tech_active_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial pessimistic path
-                    + self.data.tech_active_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial base path
-            self.model.BassDiffusionFirstStage = Constraint(self.data.MFT_NEW_YEARLY_FIRST_STAGE_MIN0, rule = BassDiffusionRuleFirstStage)
-
-            # Bass diffusion paths (2nd stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]   (based on scenario beta)
-            def BassDiffusionRuleSecondStage(model,m,f,t):
-                diff_has_started = (t >= self.data.tech_active_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
-                return ( self.model.q_aux_transp_amount[m,f,t] - self.model.q_aux_transp_amount[m,f,t-1] 
-                    <= diff_has_started * ( self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1]] 
-                    + self.data.tech_active_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1] ) )  
-                    # q(t) - q(t-1) <= alpha * q_bar(|_t-1_|) + beta * q(t-1)
-            self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE, rule = BassDiffusionRuleSecondStage)
-
-            
-        #Technology maturity limit upper bound
-        def TechMaturityLimitRule(model, m, f, t):
-            return (self.model.q_transp_amount[(m,f,t)] <= self.data.R_TECH_READINESS_MATURITY[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
-        self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
-
         #Initialize the transport amounts (put an upper bound at first)
         def InitTranspAmountRule(model, m, f, t):
             return (self.model.q_transp_amount[(m,f,t)] <= self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
@@ -374,6 +351,43 @@ class TranspModel:
             factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
             return (decrease <= factor*self.model.q_max_transp_amount[m,f])
         self.model.FleetRenewal = Constraint(self.data.MFT_MIN0, rule = FleetRenewalRule)
+
+        
+        #-- Bass diffusion ----------------------
+
+        #Bass diffusion paths first period (initial values): q[t] <= (2022 - t_0)^+ * alpha * q_bar[t]
+        def BassDiffusionRuleFirstPeriod(model,m,f,t):
+            pos_part = max(self.data.T_TIME_PERIODS[0] - self.data.tech_active_bass_model[(m,f)].t_0, 0)
+            return ( self.model.q_transp_amount[m,f,t] <= pos_part * self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,t] )
+        self.model.BassDiffusionFirstPeriod = Constraint(self.data.MFT_NEW_FIRST_PERIOD, rule = BassDiffusionRuleFirstPeriod)
+
+        # only add remaining Bass diffusion constraints if we run the full model (not just first period in the initialization run)
+        if len(self.data.T_TIME_PERIODS) > 1:
+            #Bass diffusion paths (1st stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]    (based on pessimistic beta)
+            def BassDiffusionRuleFirstStage(model,m,f,t):
+                diff_has_started = (t >= self.data.tech_active_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
+                return ( self.model.q_aux_transp_amount[m,f,t] - self.model.q_aux_transp_amount[m,f,t-1] 
+                    <= diff_has_started * (self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1]]
+                    #+ (1 - self.data.tech_scen_p_q_variation[(m,f)]) * self.data.tech_active_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial pessimistic path
+                    + self.data.tech_active_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial base path
+            self.model.BassDiffusionFirstStage = Constraint(self.data.MFT_NEW_YEARLY_FIRST_STAGE_MIN0, rule = BassDiffusionRuleFirstStage)
+
+            # Bass diffusion paths (2nd stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]   (based on scenario beta)
+            def BassDiffusionRuleSecondStage(model,m,f,t):
+                diff_has_started = (t >= self.data.tech_active_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
+                return ( self.model.q_aux_transp_amount[m,f,t] - self.model.q_aux_transp_amount[m,f,t-1] 
+                    <= diff_has_started * ( self.data.tech_active_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1]] 
+                    + self.data.tech_active_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1] ) )  
+                    # q(t) - q(t-1) <= alpha * q_bar(|_t-1_|) + beta * q(t-1)
+            self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE, rule = BassDiffusionRuleSecondStage)
+
+            
+        #Technology maturity limit upper bound (which also comes from bass diffusion)
+        def TechMaturityLimitRule(model, m, f, t):
+            return (self.model.q_transp_amount[(m,f,t)] <= self.data.R_TECH_READINESS_MATURITY[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
+        self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY, rule = TechMaturityLimitRule)
+
+        
         
         #-----------------------------------------------#
         #    Specific constraints

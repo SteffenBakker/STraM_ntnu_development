@@ -38,6 +38,7 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period):
         b_flow[["from", "to", "mode", "fuel", "scenario", "time_period", "weight"]]
         ])
 
+
     #create lists that will store aggregate flows (these will be the columns of df_flow)
     arcs = []
     flows = []
@@ -356,7 +357,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     # c. Plot flow in the map
 
     #arrow settings
-    tail_width_dict = {"road":10, "rail":10, "sea":20, "all":20, "diff":10} #base tail width for different plotting variants
+    tail_width_dict = {"road":10, "rail":10, "sea":20, "all":10, "diff":10} #base tail width for different plotting variants
     min_tail_width = 1 #minimum width of any drawn edge
     #select maximum tail width:
     tail_width_base = 0 #initialize
@@ -368,7 +369,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"road":"dimgrey", "sea":"blue", "rail":"limegreen", "total":"black"}
+    mode_color_dict = {"road":"dimgrey", "sea":"blue", "rail":"red", "total":"black"}
     mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
     zorder_dict = {"road":30, "sea":20, "rail":40, "total":20}
@@ -549,7 +550,7 @@ with open(r'Data\base_data', 'rb') as data_file:
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period = 2025
+sel_time_period = 2026
 plot_overseas = True
 plot_up_north = True
 show_fig = True
@@ -565,7 +566,7 @@ if True:
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period_before = 2025
+sel_time_period_before = 2026
 sel_time_period_after = 2050
 plot_overseas = True
 plot_up_north = True
