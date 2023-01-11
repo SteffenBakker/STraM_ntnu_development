@@ -14,10 +14,11 @@ import matplotlib.pyplot as plt #for plotting on top of the background map
 import matplotlib.patches as patches #import library for fancy arrows/edges
 import copy
 
+
+
 # load base_data (which includes the network)
 with open(r'Data\base_data', 'rb') as data_file:
     base_data = pickle.load(data_file)
-
 
     # USER INPUT
     show_fig = True
@@ -71,6 +72,34 @@ with open(r'Data\base_data', 'rb') as data_file:
     node_x, node_y = map(lons, lats)
     map.scatter(node_x, node_y, color=node_colors, zorder=100)
 
+    # draw labels on the map
+
+
+    node_xy_offset = {
+        "Ålesund": (-18, 3),
+        "Bodø": (-15, 1),
+        "Trondheim": (-30, 5),
+        "Tromsø": (-20, 2),
+        "Bergen": (2, 3),
+        "Hamar": (2, 2),
+        "Sør-Sverige": (3, -5),
+        "Kristiansand": (-31, -6),
+        "Skien": (-16, -2),
+        "Oslo": (-15, -2),
+        "Europa": (-23, 0),
+        "Verden": (-12, 3),
+        "Stavanger": (-27, -6),
+        "Kontinentalsokkelen": (-13, 3),
+        "Nord-Sverige": (3, -2)
+        }
+
+    node_labels = copy.deepcopy(N_NODES)
+
+    # translate labels
+    translate_dict = {"Sør-Sverige":" South\nSweden", "Europa":"Europe", "Verden":"World", "Kontinentalsokkelen":"Continental\n   shelf", "Nord-Sverige":" North\nSweden"}
+    for i in range(len(N_NODES)):
+        if node_labels[i] in translate_dict:
+            node_labels[i] = translate_dict[node_labels[i]]
     
     
     node_labels = copy.deepcopy(N_NODES)
@@ -112,10 +141,10 @@ with open(r'Data\base_data', 'rb') as data_file:
     #node_y_offset = [3, 3, -1, 3,   0,   -3,  3,   -6, -6,  -6,  -4,  -5,  -4,  2,  0]
 
     for i in range(len(N_NODES)):
-        node = node_labels[i]
-        plt.annotate(node, (node_x[i] + 10000*node_offsets[node][0], node_y[i] + 10000*node_offsets[node][1]), zorder = 1000)
+        plt.annotate(node_labels[i], (node_x[i] + 10000*node_xy_offset[N_NODES[i]][0], node_y[i] + 10000*node_xy_offset[N_NODES[i]][1]), zorder = 1000)
     
-
+    for e in base_data.E_EDGES:
+        print(e)
 
     ##########################
     # c. Plot edges in the map
@@ -124,11 +153,11 @@ with open(r'Data\base_data', 'rb') as data_file:
     line_width = 1.2
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"Road":"dimgray", "Sea":"blue", "Rail":"magenta", "Total":"black"}
+    mode_color_dict = {"Road":"dimgray", "Sea":"blue", "Rail":"limegreen", "Total":"black"}
     #mode_linestyle_dict = {"Road":"-", "Sea":"--", "Rail":(0, (1, 5)), "Total":"-"}
     mode_linestyle_dict = {"Road":"-", "Sea":"-", "Rail":"-", "Total":"-"}
     curvature_fact_dict = {"Road":0, "Sea":-2, "Rail":+1, "Total":0}
-    zorder_dict = {"Road":30, "Sea":20, "Rail":40, "Total":20}
+    zorder_dict = {"Road":20, "Sea":30, "Rail":40, "Total":20}
 
     nodes_sea_order = ["Nord-Sverige", "Sør-Sverige", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
                             "Bergen", "Ålesund", "Trondheim", "Bodø", "Tromsø", "Europa", "Verden", "Kontinentalsokkelen"] #HARDCODED
@@ -176,7 +205,26 @@ with open(r'Data\base_data', 'rb') as data_file:
             # add edge to plot
             plt.gca().add_patch(new_edge) 
 
+            if (cur_orig in ['Hamar','Trondheim']) and (cur_dest in ['Hamar','Trondheim']) and (m=='Rail'):
+                new_edge = patches.FancyArrowPatch(
+                            (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
+                            (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
+                            connectionstyle=f"arc3,rad={base_curvature * 2.2}", #curvature of the edge
+                            linewidth = line_width,
+                            linestyle=mode_linestyle_dict[cur_mode],
+                            color=cur_color,
+                            zorder = zorder_dict[cur_mode]
+                            ) 
+                plt.gca().add_patch(new_edge) 
 
+    # add legend
+
+    from matplotlib.lines import Line2D
+    custom_lines = [Line2D([0], [0], color="dimgrey", lw=3),
+                    Line2D([0], [0], color="blue", lw=3),
+                    Line2D([0], [0], color="limegreen", lw=3)]
+
+    plt.legend(custom_lines, ['Road', 'Sea', 'Rail'])
     
 
     ###############################
@@ -190,11 +238,11 @@ with open(r'Data\base_data', 'rb') as data_file:
     #save figure
     if save_fig:
         filename = f"Plots/edge_plot.pdf"
-        plt.savefig(filename)
+        plt.savefig(filename,bbox_inches='tight')
     #show figure
     if show_fig:
         for i in range(len(node_labels)):
-            print(i, ": ", node_labels[i])
-        plt.show()    
+            print(i, ": ", node_labels[i]) 
+        plt.show()
 
     

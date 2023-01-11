@@ -244,11 +244,16 @@ class TransportSets():
         # ------- Timing --------
         # -----------------------
 
-        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #HARDCODED (OLD)
-        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] #HARDCODED
+        #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
+        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
+        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] 
         self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
-        #self.T_TIME_FIRST_STAGE = [2020,2025]  #HARDCODED (OLD)
-        self.T_TIME_FIRST_STAGE = [2022,2026]
+        self.T_YEARLY_TIME_PERIODS = [*range(self.T_TIME_PERIODS[0], self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] #all years from 2022 up to 2050
+        #self.T_TIME_FIRST_STAGE = [2020, 2025]  #(OLD)
+        self.T_TIME_FIRST_STAGE = [2022, 2026] 
+        self.T_YEARLY_TIME_FIRST_STAGE = [*range(self.T_TIME_PERIODS[0], 2030)]  #first-stage years
+        #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
+        self.T_YEARLY_TIME_SECOND_STAGE = [*range(2030, self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] 
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
         
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
@@ -267,6 +272,14 @@ class TransportSets():
                 duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS[i-1]])
                 self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0 + j for j in range(duration_previous)]
 
+        self.T_MOST_RECENT_DECISION_PERIOD = {}
+        for ty in self.T_YEARLY_TIME_PERIODS: #loop over all (yearly) years
+            cur_most_recent_dec_period = self.T_TIME_PERIODS[0] #initialize at 2022
+            for t in self.T_TIME_PERIODS: # loop over all decision periods
+                if t <= ty:
+                    cur_most_recent_dec_period = t 
+            self.T_MOST_RECENT_DECISION_PERIOD[ty] = cur_most_recent_dec_period
+        
         
         # -----------------------
         # ------- Other--------
@@ -734,7 +747,7 @@ class TransportSets():
                 # if not mature, add bass diffusion model
                 self.tech_base_bass_model[(row['Mode'], row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
                 # set base bass model as active bass model
-                self.tech_active_bass_model[(m,f)] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
+                self.tech_active_bass_model[(row['Mode'] ,row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
                 # store variations
                 self.tech_scen_p_q_variation[(row['Mode'], row['Fuel'])] = row["p_q_variation"]
                 self.tech_scen_t_0_delay[(row['Mode'], row['Fuel'])] = row["t_0_delay"]
@@ -765,6 +778,7 @@ class TransportSets():
         for index, row in self.lifespan_data.iterrows():
             self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
 
+   
     def combined_sets(self):
 
         
@@ -804,8 +818,18 @@ class TransportSets():
                             for tau in self.T_TIME_PERIODS if tau <= t]
         self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] 
                                     for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+
+        self.MT = [(m,t) for m in self.M_MODES for t in self.T_TIME_PERIODS]
+
+        self.MFT_NEW = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS if not self.tech_is_mature[(m,f)]]
+        self.MFT_NEW_YEARLY = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_PERIODS if not self.tech_is_mature[(m,f)]] #only new technologies (not mature yet)
+        self.MFT_NEW_YEARLY_FIRST_STAGE_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_FIRST_STAGE if (not self.tech_is_mature[(m,f)] and t!=self.T_YEARLY_TIME_FIRST_STAGE[0])]
+        self.MFT_NEW_YEARLY_SECOND_STAGE = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_SECOND_STAGE if not self.tech_is_mature[(m,f)]]
+        self.MFT_NEW_FIRST_PERIOD = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in [self.T_TIME_PERIODS[0]] if not self.tech_is_mature[(m,f)]]
+
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
+    #TODO: FIX THIS FOR THE MATURITY PATHS
     def update_time_periods(self, init_data):
         if init_data==False:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL
@@ -829,8 +853,9 @@ class TransportSets():
                 for f in self.FM_FUEL[m]:
                     for p in self.P_PRODUCTS:
                         for y in self.T_TIME_PERIODS:
-                            #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
-                            self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
+                            if y not in self.T_TIME_FIRST_STAGE: #only update second-stage costs!
+                                #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
+                                self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
 
             #update R_TECH_READINESS_MATURITY based on scenario information
             for m in self.M_MODES:
@@ -839,7 +864,7 @@ class TransportSets():
                         cur_fg = self.scenario_information.mf_to_fg[(m,f)]
                         cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
                         # extract info from current base Bass model
-                        cur_base_bass = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                        cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
                         cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
                         cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
                                     
@@ -857,21 +882,38 @@ class TransportSets():
                             cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
 
                         # construct scenario bass model
-                        cur_scen_bass_model = BassDiffusion(cur_base_bass.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
-                                                            cur_base_bass.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
-                                                            cur_base_bass.m, 
-                                                            cur_base_bass.t_0 + cur_scen_t_0_delay)
+                        cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
+                                                            cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
+                                                            cur_base_bass_model.m, 
+                                                            cur_base_bass_model.t_0 + cur_scen_t_0_delay)
                         
                         # set as active bass model
                         self.tech_active_bass_model[(m,f)] = cur_scen_bass_model
 
+                        # find start of second stage
+                        for t in self.T_TIME_PERIODS:
+                            if t not in self.T_TIME_FIRST_STAGE:
+                                start_of_second_stage = t
+                                break
+
                         # fill R_TECH_READINESS_MATURITY based on current scenario bass model
-                        for y in self.T_TIME_PERIODS:
-                            self.R_TECH_READINESS_MATURITY[(m,f,y)] = cur_scen_bass_model.A(y)
+                        for t in self.T_TIME_PERIODS:
+                            if t in self.T_TIME_FIRST_STAGE:
+                                # first stage: follow base bass model
+                                self.R_TECH_READINESS_MATURITY[(m,f,t)] = cur_base_bass_model.A(t)
+                            else:
+                                # second stage: use scenario bass model, with starting point A(2030) from base bass model
+                                t_init = start_of_second_stage #initialize diffusion at start of second stage
+                                A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
+                                self.R_TECH_READINESS_MATURITY[(m,f,t)] = cur_scen_bass_model.A_from_starting_point(t,A_init,t_init)
 
 
-
-        else: #we should be in the benchmark scenario
+        else: 
+            raise Exception("The current scenario name is not in the scenario list")
+            
+            #OLD: (never used I think)
+            """
+            #we should be in the benchmark scenario
             if self.active_scenario_name == "benchmark":
                 #set C_TRANSP_COST to benchmark levels
                 self.C_TRANSP_COST = self.C_TRANSP_COST_BASE
@@ -885,11 +927,11 @@ class TransportSets():
                 
             else:
                 raise Exception("Active scenario name is not in scenario list, but also not equal to benchmark")
-
+            """
 
 
 print("Finished reading sets and classes.")
-                        
+
 
 
 #Testing:
@@ -915,3 +957,4 @@ plt.show()
 
 print("Finished testing")
 """
+

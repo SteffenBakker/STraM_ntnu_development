@@ -36,6 +36,9 @@ def scenario_creator(scenario_name, **kwargs):
     model = model_instance.model
     
     first_stage = base_data.T_TIME_FIRST_STAGE 
+    first_stage_yearly = base_data.T_YEARLY_TIME_FIRST_STAGE
+    #OLD: RISK-NEUTRAL
+    """
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage),
                                          [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+
                                          [model.b_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
@@ -47,8 +50,28 @@ def scenario_creator(scenario_name, **kwargs):
                                          [model.upsilon_upg[:,:,:,:,:,t] for t in first_stage]+ 
                                          [model.nu_node[:,:,:,t] for t in first_stage]+
                                          [model.z_emission[t] for t in first_stage] + 
-                                         [model.total_emissions[t] for t in first_stage] #TO DO: check what happens if this is not included (AIM had this)
+                                         [model.total_emissions[t] for t in first_stage] 
                                          )
+    """                                     
+    #new: risk-averse
+    sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage) + risk_info.cvar_coeff * model.CvarAux,   #risk-averse first-stage objective part: c*x + \lambda * u
+                                         [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+
+                                         [model.b_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
+                                         [model.h_path[:,:,t] for t in first_stage]+
+                                         [model.h_path_balancing[:,:,t] for t in first_stage]+
+                                         [model.q_transp_amount[:,:,t] for t in first_stage]+
+                                         [model.q_mode_total_transp_amount[:,t] for t in first_stage]+
+                                         [model.q_aux_transp_amount[:,:,t_y] for t_y in first_stage_yearly] +
+                                         [model.y_charge[:, :, :, :, :, t] for t in first_stage]+
+                                         [model.epsilon_edge[:,:,:,:,t] for t in first_stage]+
+                                         [model.upsilon_upg[:,:,:,:,:,t] for t in first_stage]+ 
+                                         [model.nu_node[:,:,:,t] for t in first_stage]+
+                                         [model.z_emission[t] for t in first_stage] + 
+                                         [model.total_emissions[t] for t in first_stage] +
+                                         #[model.StageCosts[t] for t in first_stage] +
+                                         [model.CvarAux]   # this is also a first-stage variable; CvarPosPart is not: depends on scenario                                         
+                                         )
+
 
     ###### set scenario probabilties if they are not assumed equal######
     scenario_nr = base_data.scenario_information.scen_name_to_nr[scenario_name]

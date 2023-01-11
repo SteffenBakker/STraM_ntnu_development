@@ -39,6 +39,29 @@ class BassDiffusion():
     # Amount adopted at beginning of period t
     def A(self, t):
         return self.m * self.F(t)
+    
+    # Amount adopted at beginning of period t if we started with A_init at year t_init
+    def A_from_starting_point(self, t, A_init, t_init):
+        time_passed = max(t - t_init, 0) #time passed since t_init
+        #set a guaranteed lb and ub on t_init_proj
+        t_lb = self.t_0
+        t_ub = self.t_0
+        while self.A(t_ub) < A_init:
+            t_ub += 10
+        t_cur = (t_lb + t_ub)/2.0 # current time (this will be equal to t_init_projected)
+        deviation = self.A(t_cur) - A_init # devaiation between A(t_cur) and A_init
+        #bifurcating search to get t_init_proj:
+        while abs(deviation) > 0.001:
+            if deviation > 0: # t_cur too high
+                t_ub = t_cur
+            elif deviation < 0: #t_cur too low
+                t_lb = t_cur
+            t_cur = (t_lb + t_ub) / 2.0
+            deviation = self.A(t_cur) - A_init
+        t_init_proj = t_cur
+
+        return self.A(t_init_proj + time_passed)
+
 
     # Plot adoption amount over time
     def plot_A(self, t_vec = range(2010, 2070), filename = "", show = True):
@@ -51,6 +74,4 @@ class BassDiffusion():
             plt.savefig(f"Plots/{filename}")
         if show:
             plt.show()
-
-bassie = BassDiffusion(0.2, 0.2, 100, 2022)
-
+    

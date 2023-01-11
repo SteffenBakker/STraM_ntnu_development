@@ -420,7 +420,6 @@ output.q_transp_amount[output.q_transp_amount['time_period']==2050].sort_values(
 
 
 
-
 #---------------------------------------------------------#
 #       Depreciated
 #---------------------------------------------------------#
@@ -528,3 +527,8 @@ def cost_and_investment_table_old(base_data,output):
     print(round(output.all_costs_table,2))
 
     return output
+
+
+output.all_costs_table
+
+output.ob_function_value

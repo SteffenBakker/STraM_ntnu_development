@@ -11,11 +11,10 @@ REMEMBER: TEST CODE AFTER EVERY CHANGE
 
 - Investment costs  -> split the charging infrastructure costs (hydrogen, BET, biofuels)    STEFFEN
 
-- network plot -> legend
-
 - Debug risk aversion (no difference between Expectation and CVaR?)
     - check risk code                               RUBEN
         - klein test model
+        - lower bound on aux variable (find a right value)
 
 - Write scripts for experiments
     - Sensitivity analysis for decarbonization targets
