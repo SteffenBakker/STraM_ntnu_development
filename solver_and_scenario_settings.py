@@ -54,7 +54,7 @@ def scenario_creator(scenario_name, **kwargs):
                                          )
     """                                     
     #new: risk-averse
-    sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage) + risk_info.cvar_coeff * model.CvarAux,   #risk-averse first-stage objective part: c*x + \lambda * u
+    sputils.attach_root_node(model, model.FirstStageCosts + risk_info.cvar_coeff * model.CvarAux,   #risk-averse first-stage objective part: c*x + \lambda * u
                                          [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+
                                          [model.b_flow[:,:,:,:,:,:,t] for t in first_stage]+ 
                                          [model.h_path[:,:,t] for t in first_stage]+
@@ -69,6 +69,7 @@ def scenario_creator(scenario_name, **kwargs):
                                          [model.z_emission[t] for t in first_stage] + 
                                          [model.total_emissions[t] for t in first_stage] +
                                          #[model.StageCosts[t] for t in first_stage] +
+                                         [model.FirstStageCosts] +
                                          [model.CvarAux]   # this is also a first-stage variable; CvarPosPart is not: depends on scenario                                         
                                          )
 

@@ -157,19 +157,32 @@ class TranspModel:
             return (self.model.StageCosts[t] == (opex_costs + delta*investment_costs + EMISSION_VIOLATION_PENALTY*self.model.z_emission[t]))
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS, rule = StageCostsVar)
         
+     
+        # first-stage objective value variable
+        self.model.FirstStageCosts = Var(within = Reals)
+        def FirstStageCostsRule(model):
+            return self.model.FirstStageCosts == sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_FIRST_STAGE)
+        self.model.FirstStageCostsConstr = Constraint(rule = FirstStageCostsRule)
+
+        # second-stage objective value variable
+        self.model.SecondStageCosts = Var(within = Reals)
+        def SecondStageCostsRule(model):
+            return self.model.SecondStageCosts == sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_SECOND_STAGE) + self.model.MaxTranspPenaltyCost
+        self.model.SecondStageCostsConstr = Constraint(rule = SecondStageCostsRule)
+
         # scenario objective value variable (risk-neutral model would take expectation over this in the objective)
-        self.model.ScenObjValue = Var(within=Reals)
-        def ScenObjValue(model):
-            return self.model.ScenObjValue == sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS) +  self.model.MaxTranspPenaltyCost  # corresponds to f(x,\xi)
-        self.model.ScenObjValueConstr = Constraint(rule = ScenObjValue)
+        #self.model.ScenObjValue = Var(within=Reals)
+        #def ScenObjValue(model):
+        #    return self.model.ScenObjValue == sum(self.model.StageCosts[t] for t in self.data.T_TIME_PERIODS) +  self.model.MaxTranspPenaltyCost  # corresponds to f(x,\xi)
+        #self.model.ScenObjValueConstr = Constraint(rule = ScenObjValue)
         
         #CVaR positive part constraint
         def CvarRule(model):
-            return self.model.CvarPosPart >= self.model.ScenObjValue - self.model.CvarAux       # z \geq f - u
+            return self.model.CvarPosPart >= self.model.SecondStageCosts - self.model.CvarAux       # z \geq v - u
         self.model.CvarPosPartConstr = Constraint(rule=CvarRule) # add to model
 
         # lower bound on auxiliary CVaR variable (needed to avoid numerical issues)
-        cvar_aux_lb = -1e10 # (hardcoded)
+        cvar_aux_lb = -1e10 # (hardcoded). 10 seems to be more accurate than 11
         def CvarAuxLBRule(model):
             return self.model.CvarAux >= cvar_aux_lb 
         self.model.CvarAuxLBConstr = Constraint(rule=CvarAuxLBRule) # add to model
@@ -177,20 +190,20 @@ class TranspModel:
         # mean-CVaR:
         def objfun_risk_averse(model):          
             # scenario objective value for risk-averse (mean-CVaR) model:
-            mean_cvar_scen_obj_value = ( (1 - self.risk_info.cvar_coeff) * self.model.ScenObjValue                                                            # expectation part
-                                       + self.risk_info.cvar_coeff * (self.model.CvarAux + (1 - self.risk_info.cvar_alpha)**(-1) * self.model.CvarPosPart) )  # CVaR part
+            mean_cvar_scen_obj_value = self.model.FirstStageCosts + self.risk_info.cvar_coeff * self.model.CvarAux + (1 - self.risk_info.cvar_coeff) * self.model.SecondStageCosts + self.risk_info.cvar_coeff / (1 - self.risk_info.cvar_alpha) * self.model.CvarPosPart
+            #                          ####### c*x ##############   ############# lambda * u #####################   ####################### (1 - lambda) * q*y ##################   ############### lambda / (1 - alpha) * q*y #########################################                                                             
             return mean_cvar_scen_obj_value
 
         # pure CVaR:
         def objfun_pure_cvar(model):          
             # scenario objective value for risk-averse (mean-CVaR) model:
-            mean_cvar_scen_obj_value = self.model.CvarAux + (1 - self.risk_info.cvar_alpha)**(-1) * self.model.CvarPosPart  # CVaR part
-            return mean_cvar_scen_obj_value
+            cvar_scen_obj_value = self.model.FirstStageCosts + self.model.CvarAux + 1.0/(1 - self.risk_info.cvar_alpha) * self.model.CvarPosPart  
+            return cvar_scen_obj_value
 
         # risk-neutral #NOTE: TEMPORARY
         def objfun_risk_neutral(model):          
             # scenario objective value for risk-neutral model:
-            risk_neutral_scen_obj_value = self.model.ScenObjValue
+            risk_neutral_scen_obj_value = self.model.FirstStageCosts + self.model.SecondStageCosts
             return risk_neutral_scen_obj_value
 
         
@@ -198,8 +211,8 @@ class TranspModel:
 
 
         # give objective function to model
-        #self.model.Obj = Objective(rule=objfun_risk_averse, sense=minimize) #risk-averse
-        self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
+        self.model.Obj = Objective(rule=objfun_risk_averse, sense=minimize) #risk-averse
+        #self.model.Obj = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
         
 
 

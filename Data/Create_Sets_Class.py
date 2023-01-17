@@ -251,6 +251,7 @@ class TransportSets():
         self.T_YEARLY_TIME_PERIODS = [*range(self.T_TIME_PERIODS[0], self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] #all years from 2022 up to 2050
         #self.T_TIME_FIRST_STAGE = [2020, 2025]  #(OLD)
         self.T_TIME_FIRST_STAGE = [2022, 2026] 
+        self.T_TIME_SECOND_STAGE = [2030, 2040, 2050] 
         self.T_YEARLY_TIME_FIRST_STAGE = [*range(self.T_TIME_PERIODS[0], 2030)]  #first-stage years
         #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
         self.T_YEARLY_TIME_SECOND_STAGE = [*range(2030, self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] 
