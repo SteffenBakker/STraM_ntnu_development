@@ -2,6 +2,7 @@ from Data.settings import *
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+from matplotlib.transforms import Affine2D
 import numpy as np
 import pandas as pd
 
@@ -72,8 +73,11 @@ if result_q_max>1:
 #---------------------------------------------------------#
 #       COSTS
 #---------------------------------------------------------#
-def plot_costs(output,which_costs,ylabel,title):
+def plot_costs(output,which_costs,ylabel,filename):
 
+    #which_costs = opex_variables
+    #ylabel = 'Annual costs (GNOK)'
+    
     #indices = [i for i in output.all_costs_table.index if i not in ['discount_factor']]
     all_costs_table2 = output.all_costs_table.loc[which_costs]
 
@@ -82,16 +86,32 @@ def plot_costs(output,which_costs,ylabel,title):
     std_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='std']
     std_data = std_data.droplevel(1, axis=1)
     yerrors = std_data.to_numpy()
+    #fig, ax = plt.subplots()
     ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), 
         stacked = True,
         xlabel = 'time periods',
         ylabel = ylabel,
-        title = title,
+        #title = title,
         color = output.cost_var_colours
         )  
+    #print(ax.get_xticklabels())
+    # NOT WORKING WITH CATEGORICAL AXIS
+    #ax.vlines(60,0,50)
+    ax.axvline(x = 1.5, color = 'black',ls='--') 
+    ax.text(-0.2, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
+    ax.text(1.8, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+
+    if filename=='investment':
+        ax.legend(loc='upper right')  #upper left
+    else:
+        ax.legend(loc='lower right')  #upper left
+
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
-    fig = ax.get_figure()
-    #fig.savefig('/path/to/figure.pdf')
+    #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
+    #fig = ax.get_figure()
+    ax.get_figure().savefig(r"Data\\Figures\\costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
 
 def cost_and_investment_table(base_data,output):
 
@@ -159,12 +179,12 @@ def cost_and_investment_table(base_data,output):
 output = cost_and_investment_table(base_data,output)
 opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
 investment_variables = ['Edge', 'Node', 'Upg','Charge']
-plot_costs(output,opex_variables,'Annual costs (GNOK)',"Annual operational costs")
-plot_costs(output,investment_variables,'Investment costs (GNOK)',"(One-time) Investment costs")
+plot_costs(output,opex_variables,'Annual costs (GNOK)',"opex")
+plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
-
-if sum(output.z_emission_violation["weight"])>1:
-    raise Exception('We cannot decarbonize in time scenario:  -> z_emission_violation is non-negative')
+if False:
+    if sum(output.z_emission_violation["weight"])>1:
+        raise Exception('We cannot decarbonize in time scenario:  -> z_emission_violation is non-negative')
 
 #---------------------------------------------------------#
 #       EMISSIONS 
@@ -229,11 +249,25 @@ def plot_emission_results(output,base_data):
     ax = output.emission_stats[['AvgEmission_perc', 'Goal']].plot(kind='bar', 
                 xlabel = 'time periods',
                 ylabel = 'Relative emissions (%)',
-                title = "Emissions",
+                #title = "Emissions",
                 yerr=yerrors, alpha=0.5, 
                 error_kw=dict(ecolor='k'), stacked = False)
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
-    fig = ax.get_figure()
+    
+    ax.axvline(x = 1.5, color = 'black',ls='--') 
+    ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
+    ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+
+    ax.legend(loc='upper right')  #upper left
+    
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
+    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+    #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
+    #fig = ax.get_figure()
+    ax.get_figure().savefig(r"Data\\Figures\\emissions.pdf",dpi=300,bbox_inches='tight')
+    
+    #fig = ax.get_figure()
     #fig.savefig('/path/to/figure.pdf')
     
 #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
@@ -289,17 +323,56 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,absolute_transp_work=True, analy
 
         fig, ax = plt.subplots()
 
+        leftright = -0.15
         bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
         for f in base_data.FM_FUEL[m]:
             subset = TranspArbAvgScen[(TranspArbAvgScen['mode']==m)&(TranspArbAvgScen['fuel']==f)]
-            ax.bar(labels, subset[base_string].tolist(), width, yerr=subset[base_string+'_std'].tolist(), 
-                        bottom = bottom,label=f,color=color_dict[f])
+            yerror = subset[base_string+'_std'].tolist()
+            #print(yerror)
+
+            #https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html
+            
+            trans1 = Affine2D().translate(leftright, 0.0) + ax.transData
+
+            do_not_plot_lims = [False]*len(yerror)
+            for i in range(len(yerror)):
+                if yerror[i] > 0.001:
+                    do_not_plot_lims[i] = True
+            
+            #print(f,m)
+            #print(yerror)
+            #print(do_not_plot_lims)
+            #it does what it should, but xuplims does not work.. 
+
+            n_start = 5
+            for i in range(len(yerror)):
+                if yerror[i] > 0.001:
+                    n_start = i
+                    break
+            #this works! (preventing standard deviations to be plotted, when they are not there)
+
+            ax.bar(labels, subset[base_string].tolist(), 
+                        width, 
+                        yerr=yerror, 
+                        bottom = bottom,
+                        error_kw={#'elinewidth':6,'capsize':6,'capthick':6,'ecolor':'black',
+                            'capsize':2,
+                            'errorevery':(n_start,1),'transform':trans1, 
+                            #'xlolims':do_not_plot_lims,'xuplims':do_not_plot_lims
+                            },   #elinewidth, capthickfloat
+                        label=f,
+                        color=color_dict[f],)
             bottom = [subset[base_string].tolist()[i]+bottom[i] for i in range(len(bottom))]
+            leftright = leftright + 0.05
         ax.set_ylabel(ylabel)
-        ax.set_title(m + ' - ' + analysis_type)
+        #ax.set_title(m + ' - ' + analysis_type)
         ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
 
-        plt.show()
+        ax.axvline(x = 1.5, color = 'black',ls='--') 
+        #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
+        #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+        fig.savefig(r"Data\\Figures\\modemix"+m+".pdf",dpi=300,bbox_inches='tight')
+        
 
 
 #DO THE FOLLOWING FOR DOMESTIC AND INTERNATIONAL (remove nodes from and to europe and the world)
