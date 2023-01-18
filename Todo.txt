@@ -5,16 +5,10 @@ REMEMBER: TEST CODE AFTER EVERY CHANGE
     - change emission target (zero in 2050)         STEFFEN
     - extra investment opportunities
         - hydrogen/ammonia infrastructure           STEFFEN
-    - technology development                        RUBEN
     - Constrain the capacity expansion of charging infrastructure
         - first have a look at how much is being build out
 
 - Investment costs  -> split the charging infrastructure costs (hydrogen, BET, biofuels)    STEFFEN
-
-- Debug risk aversion (no difference between Expectation and CVaR?)
-    - check risk code                               RUBEN
-        - klein test model
-        - lower bound on aux variable (find a right value)
 
 - Write scripts for experiments
     - Sensitivity analysis for decarbonization targets
