@@ -39,11 +39,11 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'SP' #, 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'three_scenarios_new' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'scenarios_base' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
 # risk parameters
-cvar_coeff = 1.0    # \lambda: coefficient for CVaR in mean-CVaR objective
-cvar_alpha = 0.0    # \alpha:  indicates how far in the tail we care about risk
+cvar_coeff = 0.2    # \lambda: coefficient for CVaR in mean-CVaR objective
+cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 #TODO: test if this is working
     
 #################################################
