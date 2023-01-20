@@ -32,6 +32,7 @@ import cProfile
 import pstats
 
 
+
 #################################################
 #                   user input                  #
 #################################################
@@ -109,6 +110,7 @@ if __name__ == "__main__":
     
     print("done.")
     
+    sys.stdout.flush()
     
     #with open(r'Data\base_data', 'rb') as data_file:
     #    base_data = pickle.load(data_file)
@@ -124,7 +126,7 @@ if __name__ == "__main__":
 
     #  --------- CONSTRUCT MODEL ---------     #
 
-    print("Constructing model...", end="")
+    print("Constructing model...", end="", flush=True)
     start = time.time()
     scenario_creator_kwargs = {'base_data':base_data, 'fix_first_time_period':fix_t0,'fix_first_stage':fix_first_stage, 'init_model_results':init_model, "risk_info":risk_info,}
     ef = sputils.create_EF(
@@ -133,8 +135,8 @@ if __name__ == "__main__":
         scenario_creator_kwargs = scenario_creator_kwargs,
         nonant_for_fixed_vars = True #  MAYBE FALSE FOR VSS? (bool--optional) – If True, enforces non-anticipativity constraints for all variables, including those which have been fixed. Default is True.
     ) 
-    print("done.")
-    print("Time used constructing the model:", time.time() - start)
+    print("done.", flush=True)
+    print("Time used constructing the model:", time.time() - start, flush=True)
 
 
     #  ---------  SOLVE MODEL  ---------    #
