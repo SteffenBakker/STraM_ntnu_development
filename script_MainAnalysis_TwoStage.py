@@ -5,6 +5,9 @@ Created on Fri Jul 29 10:47:48 2022
 @author: steffejb
 """
 
+print("Hello, World!", flush=True)
+
+
 import os
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
