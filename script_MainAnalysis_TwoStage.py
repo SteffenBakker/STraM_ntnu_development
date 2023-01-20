@@ -5,7 +5,6 @@ Created on Fri Jul 29 10:47:48 2022
 @author: steffejb
 """
 
-print("Hello, World!", flush=True)
 
 
 import os
@@ -80,10 +79,10 @@ if __name__ == "__main__":
     #if not os.path.exists(r'Data/Instance_results_write_to_here/Instance'+instance_run):
     #    os.makedirs(r'Data/Instance_results_write_to_here/Instance'+instance_run)
         
-    print("Reading data...")
+    print("Reading data...", flush=True)
     start = time.time()
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=True) #init_data is used to fix the mode-fuel mix in the first time period.
-    print("Done reading data.")
+    print("Done reading data.", flush=True)
     print("Time used reading the base data:", time.time() - start)
     sys.stdout.flush()
 
