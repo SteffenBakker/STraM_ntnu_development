@@ -15,7 +15,7 @@ import os
 print("Hello, World!", flush=True)
 
 
-from TranspModelClass import TranspModel, RiskInformation
+#from TranspModelClass import TranspModel, RiskInformation
 #from ExtractModelResults import OutputData
 #from Data.Create_Sets_Class import TransportSets
 #from Data.settings import *
