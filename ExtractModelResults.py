@@ -19,6 +19,21 @@ class OutputData():
     #ef,base_data,instance_run,EV_problem
     def __init__(self,ef,base_data,instance_run,EV_problem):# or (self)
         
+        self.all_variables = None
+        self.costs = None
+        self.x_flow = None
+        self.b_flow=None
+        self.h_path=None
+        self.y_charging=None
+        self.nu_node=None
+        self.epsilon_edge=None
+        self.upsilon_upgrade= None
+        self.z_emission_violation=None
+        self.total_emissions=None
+        self.q_transp_amount=None
+        self.q_max_transp_amount=None
+
+
         self.instance_run = instance_run
         
         self.scenarios = []
@@ -30,6 +45,8 @@ class OutputData():
         self.ob_function_value = pyo.value(ef.EF_Obj)
         
         self.extract_model_results(base_data,ef,EV_problem)
+
+
 
         
     def extract_model_results(self,base_data,ef,EV_problem):  #currently only for extensive form

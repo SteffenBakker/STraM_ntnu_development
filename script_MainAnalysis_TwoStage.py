@@ -26,6 +26,7 @@ import mpisppy.scenario_tree as scenario_tree
 import time
 import sys
 import pickle
+import json #works across operating systems
 
 import cProfile
 import pstats
@@ -38,8 +39,8 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'SP' #, 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #EV_scenario, scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+analysis_type = 'EEV' #, 'EV', 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
 # risk parameters
 cvar_coeff = 0.2    # \lambda: coefficient for CVaR in mean-CVaR objective
@@ -92,17 +93,13 @@ if __name__ == "__main__":
 
         # construct model
         print("Constructing init model...", end="")
-        start = time.time()
         init_model.construct_model()
         print("done.")
-        print("Time used constructing the model:", time.time() - start)
 
         # solve model
         print("Solving init model...")
-        start = time.time()
         init_model.solve_model()
         print("Done solving the model.")
-        print("Time used solving the model:", time.time() - start)
 
     print("Dumping data in pickle file...", end="")
     base_data.update_time_periods(init_data=False)
@@ -164,7 +161,7 @@ if __name__ == "__main__":
         print("done.")
 
 
-
+    #when running the code in the cluster (linux) then pickle does not work anymore
 
 
     # if profiling:

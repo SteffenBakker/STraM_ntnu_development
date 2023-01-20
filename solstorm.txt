@@ -1,0 +1,110 @@
+Mye læring fra Asbjørn. Her er det en del ting å tenke over.
+Han synes det var artig å bli kjent med clusteret, men rart at det ikke finnes noe køsystem
+
+
+https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax
+
+
+1. Log på solstorm- 
+	host:solstorm-login.iot.ntnu.no     port:22
+
+(2). På min homedirectory ligger følgende fil: .bashrc
+	open filezilla og endre på dette dokumentet. Her kan man legge til commands som vil bli utført ved oppstart!
+	E.g. : module load Python/3.10.4-GCCcore-11.3.0
+	Hidden files in filezilla: Server -> Force showing hidden files
+
+3. screen
+	dette trenges bare å gjøre i hovedskriptet
+
+3.1 Bytt til node:		 ssh compute-6-41 
+
+4. Bytt til: 			cd /storage/users/steffejb/fomo
+						cd /storage/users/steffejb/fomo/analyses/steffen/num_sim_replications
+
+(5). Installer packages
+	pip3 install shapely numpy progress matplotlib tensorflow geopy pandas sklearn gurobipy jsonpickle bigquery
+6. Git
+	git init 				(make sure to initialize git)
+	git checkout -f   		(cleanup)
+	git checkout Bakker     (make sure to be on own branch. Bakker OR main OR djupdal)
+	git pull 				(get the most recent version)
+	git clean -fxd
+	git reset –-hard     (write this out to prevent error)
+	
+	git add "file or directory" 		STAGING                           
+	git commit -m "cluster_output"
+	git log
+	git push
+
+7. Create jobs
+	python create_runs_parameter_tuning.py 
+	it distributes all the tasks. Pick only nodes that have a load of less than 2%
+
+8. RUN CODE
+	run on all nodes		./run_all.sh
+	run specific			./run_all.sh -r 4 -n 1,2:4
+							./run_all.sh -r 4 -n 1,2:4   
+	get permission:			chmod +x ./run_all.sh        
+	choose nodes:			ssh compute-5-0
+	check availibility:		gstat -a		
+
+
+COMMANDS
+
+ls 				list files
+ls -lt 			sort files
+ls -la		    list files ALL (also hidden files)
+cat ......		read a file
+cd .. 			go back up
+....|more   #THIS SHOWS ALL TEXT.
+ wc  -l output.csv    #length of csv file
+
+who         who have logged onto the node?
+top			a list of top process that using the most memory or CPU or disk.
+press "q"   to quit
+
+##############
+%%% SCREEN %%%
+##############
+
+%if no screens do: 
+screen
+screen -S session_name
+
+%otherwise
+screen -list
+
+screen -dr SCREENID
+
+CTR SHIFT  ->  d  : Detach from screen
+
+CTRL A  ->  :quit
+
+
+
+
+##############################
+# gitrepository on solstorm ##
+###############################
+
+- SSH KEY: 
+	This has been done now. First on your machine generating the ssh key. Then adding it to github account
+	https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+	https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account
+	how to acces your public key:     cat ~/.ssh/id_rsa.pub
+
+- Then we clone the git repository:
+	git clone git@github.com:EECS-NTNU/fomo.git
+
+- Check which branch you are on:
+	git rev-parse --abbrev-ref HEAD
+
+- Change branche
+	git checkout Bakker     OR main OR djupdal
+
+- Update
+	git pull
+
+- Clean
+	git clean -df
+	git checkout -f
