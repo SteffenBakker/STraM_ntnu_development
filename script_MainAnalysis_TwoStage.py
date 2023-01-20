@@ -82,6 +82,7 @@ if __name__ == "__main__":
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=True) #init_data is used to fix the mode-fuel mix in the first time period.
     print("Done reading data.")
     print("Time used reading the base data:", time.time() - start)
+    sys.stdout.flush()
 
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     
