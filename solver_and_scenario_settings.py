@@ -30,7 +30,7 @@ def scenario_creator(scenario_name, **kwargs):
     if fix_first_time_period:
         model_instance.fix_variables_first_time_period(init_model_results)
     if fix_first_stage:
-        with open(r"Data\\output_data_EV", 'rb') as output_file:
+        with open(r'Data/output_data_EV', 'rb') as output_file:
             output_evp = pickle.load(output_file)
         model_instance.fix_variables_first_stage(output_evp)
     model = model_instance.model
