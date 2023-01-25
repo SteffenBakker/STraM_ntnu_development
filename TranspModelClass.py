@@ -1,12 +1,20 @@
+
+
 #Pyomo
 import pyomo.opt   # we need SolverFactory,SolverStatus,TerminationCondition
 import pyomo.opt.base as mobase
 from pyomo.environ import *
 import pyomo.environ as pyo
 from pyomo.util.infeasible import log_infeasible_constraints
+
 import logging
 from Data.settings import *
 from Data.Create_Sets_Class import TransportSets   #FreightTransportModel.Data.Create_Sets_Class
+from ExtractModelResults import OutputData
+import time
+
+
+
 import os
 import numpy as np
 
@@ -30,6 +38,9 @@ class TranspModel:
         self.risk_info = risk_info # stores parameters of the risk measure (i.e., lambda and alpha for mean-CVaR)
 
         self.calculate_max_transp_amount_exact = False
+
+        self.solve_base_year = False
+        
 
     def construct_model(self):
         
@@ -267,8 +278,8 @@ class TranspModel:
 
         # Emission limit
         def EmissionCapRule(model, t):
-            return self.model.total_emissions[t] <= self.data.CO2_CAP[t]/100*self.model.total_emissions[self.data.T_TIME_PERIODS[0]] + self.model.z_emission[t]
-        self.model.EmissionCap = Constraint(self.data.TS, rule=EmissionCapRule)
+            return self.model.total_emissions[t] <= self.data.EMISSION_CAP_RELATIVE[t]/100*self.data.EMISSION_CAP_ABSOLUTE_BASE_YEAR*1.01 + self.model.z_emission[t]
+        self.model.EmissionCap = Constraint(self.data.TS_NO_BASE_YEAR, rule=EmissionCapRule)
         
         #-----------------------------------------------#
         
@@ -348,7 +359,7 @@ class TranspModel:
             return (self.model.q_max_transp_amount[m,f] >= self.model.q_transp_amount[m,f,t])
         self.model.MaxTranspAmount = Constraint(self.data.MFT, rule = MaxTransportAmountRule)
         
-        if self.calculate_max_transp_amount_exact:
+        if self.calculate_max_transp_amount_exact:  #this goes much slower!
             def MaxTransportAmountRule2(model,m,f,t):
                 M = np.max(list(self.data.AVG_DISTANCE.values())) * self.data.D_DEMAND_AGGR[t]  #maybe we can use mean as well
                 return (self.model.q_max_transp_amount[m,f] <= self.model.q_transp_amount[m,f,t] + M*(1-self.model.chi_max_transp[m,f,t]))
@@ -413,19 +424,21 @@ class TranspModel:
                 GROWTH_ON_ROAD*sum(self.model.q_transp_amount[(m,f,self.data.T_TIME_PERIODS[0])] for f in self.data.FM_FUEL[m]))   
         self.model.RoadDevelopment = Constraint(self.data.T_TIME_PERIODS, rule = RoadDevelopmentRule)
 
-        def InitialModeSplitLower(model,m):
-            t0 = self.data.T_TIME_PERIODS[0]
-            total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-            modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0)] for f in self.data.FM_FUEL[m])
-            return ( INIT_MODE_SPLIT_LOWER[m]*total_transport_amount <= modal_transport_amount ) 
-        self.model.InitModeSplitLower = Constraint(self.data.M_MODES,rule = InitialModeSplitLower)
+        if self.solve_base_year:
 
-        def InitialModeSplitUpper(model,m):
-            t0 = self.data.T_TIME_PERIODS[0]
-            total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-            modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0)] for f in self.data.FM_FUEL[m])
-            return (modal_transport_amount <= INIT_MODE_SPLIT_UPPER[m]*total_transport_amount) 
-        self.model.InitModeSplitUpper = Constraint(self.data.M_MODES,rule = InitialModeSplitUpper)
+            def InitialModeSplitLower(model,m):
+                t0 = self.data.T_TIME_PERIODS[0]
+                total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+                modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0)] for f in self.data.FM_FUEL[m])
+                return ( INIT_MODE_SPLIT_LOWER[m]*total_transport_amount <= modal_transport_amount ) 
+            self.model.InitModeSplitLower = Constraint(self.data.M_MODES,rule = InitialModeSplitLower)
+
+            def InitialModeSplitUpper(model,m):
+                t0 = self.data.T_TIME_PERIODS[0]
+                total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+                modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0)] for f in self.data.FM_FUEL[m])
+                return (modal_transport_amount <= INIT_MODE_SPLIT_UPPER[m]*total_transport_amount) 
+            self.model.InitModeSplitUpper = Constraint(self.data.M_MODES,rule = InitialModeSplitUpper)
 
         #-----------------------------------------------#
 
@@ -442,9 +455,14 @@ class TranspModel:
         return self.model
     
 
-    def fix_variables_first_stage(self,output):
+    def fix_variables_first_stage(self,output_EV):
         
-        for index,row in output.all_variables[output.all_variables['time_period'].isin(self.data.T_TIME_FIRST_STAGE)].iterrows():
+        # for (i,j,m,r,f,p,t) in self.data.AFPT:    
+        #     a = (i,j,m,r)
+        #     if t in self.data.T_TIME_FIRST_STAGE:
+        #         self.model.x_flow[(a,f,p,t)].fix(0)
+        
+        for index,row in output_EV.all_variables[output_EV.all_variables['time_period'].isin(self.data.T_TIME_FIRST_STAGE)].iterrows():
             variable = row['variable']
             i = row['from']
             j = row['to']
@@ -460,12 +478,23 @@ class TranspModel:
             v = row['vehicle_type']
             k = row['path']
             c = row['terminal_type']
-            if variable == 'x_flow':
-                self.model.x_flow[(a,f,p,t)].fix(w)
-            elif variable == 'b_flow':
-                self.model.b_flow[(a,f,v,t)].fix(w)
-            elif variable == 'h_path':
-                self.model.h_path[(k,p,t)].fix(w)
+            
+            #fixing too much makes the problem somehow infeasible
+            #it works to only fix h_path + investment decisions     -> 500 seconds solving
+            #what about x_flow + investment decisions?              -> 389 seconds solving
+
+            if True:
+                pass 
+            elif variable == 'x_flow':
+                dev = 0.001
+                self.model.x_flow[(a,f,p,t)].ub((1+dev)*w)
+                self.model.x_flow[(a,f,p,t)].lb((1-dev)*w)
+            #elif variable == 'q_transp_amount':
+            #    self.model.q_transp_amount[(m, f, t)].fix(w)
+            #elif variable == 'b_flow':
+            #    self.model.b_flow[(a,f,v,t)].fix(w)
+            #elif variable == 'h_path':
+            #    self.model.h_path[(k,p,t)].fix(w)
             elif variable == 'epsilon_edge':
                 self.model.epsilon_edge[(e,t)].fix(w)
             elif variable == 'upsilon_upg':
@@ -474,16 +503,19 @@ class TranspModel:
                 self.model.nu_node[(i, c, m, t)].fix(w)
             elif variable == 'y_charging':
                 self.model.y_charge[(i,j,m,r,f,t)].fix(w)
-            elif variable == 'z_emission':
-                self.model.z_emission[t].fix(w)
-            elif variable == 'total_emissions':
-                self.model.total_emissions[t].fix(w)
-            elif variable == 'q_transp_amount':
-                self.model.q_transp_amount[(m, f, t)].fix(w)
-            elif variable == 'q_max_transp_amount':
-                self.model.q_max_transp_amount[(m, f)].fix(w)
+            #elif variable == 'z_emission':
+            #    self.model.z_emission[t].fix(w)
+            #elif variable == 'total_emissions':
+            #    self.model.total_emissions[t].fix(w)
+            #elif variable == 'q_max_transp_amount':
+            #    self.model.q_max_transp_amount[(m, f)].fix(w)
+        
+        #self.model.FirstStageCosts.fix(output_EV.FirstStageCosts)
+        #self.model.CvarAux.fix(output_EV.CvarAux)
 
-    def fix_variables_first_time_period(self,solved_init_model):
+        print('')
+        
+    def fix_variables_first_time_period(self,x_flow_base_period_init):
         
         # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
         #     #print("Variable",v)  
@@ -496,33 +528,17 @@ class TranspModel:
         #not providing a value in the fix operator leads to the following error:
         #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
 
-        for j in solved_init_model.model.q_transp_amount:
-            val = solved_init_model.model.q_transp_amount[j].value
-            if val >= 0:
-                self.model.q_transp_amount[j].fix(val)
+        # for (i,j,m,r,f,p,t) in self.data.AFPT:
+        #     a = (i,j,m,r)
+        #     if t in self.data.T_TIME_FIRST_STAGE:
+        #         self.model.x_flow[(a,f,p,t)].fix(0)
 
-        for j in solved_init_model.model.b_flow:
-            val = solved_init_model.model.b_flow[j].value
-            if val >= 0:
-                self.model.b_flow[j].fix(val)
-
-        for j in solved_init_model.model.x_flow:
-            val = solved_init_model.model.x_flow[j].value
-            if val >= 0:
-                self.model.x_flow[j].fix(val)
-        
-        for j in solved_init_model.model.h_path:
-            val = solved_init_model.model.h_path[j].value
-            if val >= 0:
-                self.model.h_path[j].fix(val)
-
-        for j in solved_init_model.model.total_emissions:
-            val = solved_init_model.model.total_emissions[j].value
-            if val >= 0:
-                self.model.total_emissions[j].fix(val)
+        for (a,f,p,t,weight)in x_flow_base_period_init:
+            (i,j,m,r) = a
+            self.model.x_flow[(a,f,p,t)].fix(weight)
 
 
-    def solve_model(self):
+    def solve_model(self):  #GENERAL way to solve a single deterministic model
 
         self.results = self.opt.solve(self.model, tee=True, symbolic_solver_labels=True,
                                       keepfiles=True)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)

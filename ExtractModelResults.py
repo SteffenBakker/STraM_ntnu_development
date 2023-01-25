@@ -17,7 +17,7 @@ from Data.settings import *
 
 class OutputData():
     #ef,base_data,instance_run,EV_problem
-    def __init__(self,ef,base_data,instance_run,EV_problem):# or (self)
+    def __init__(self,ef,base_data,EV_problem):# or (self)
         
         self.all_variables = None
         self.costs = None
@@ -32,9 +32,8 @@ class OutputData():
         self.total_emissions=None
         self.q_transp_amount=None
         self.q_max_transp_amount=None
+        self.FirstStageCosts = None
 
-
-        self.instance_run = instance_run
         
         self.scenarios = []
         if EV_problem:
@@ -178,6 +177,7 @@ class OutputData():
                         a_series = pd.Series([variable,m, f, weight, scen_name], index=q_max_transp_amount.columns)
                         q_max_transp_amount = pd.concat([q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
             
+
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
                         z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount],ignore_index=True)
 
@@ -207,6 +207,10 @@ class OutputData():
             self.total_emissions=total_emissions
             self.q_transp_amount=q_transp_amount
             self.q_max_transp_amount=q_max_transp_amount
+            
+            self.FirstStageCosts = modell.FirstStageCosts.value
+            self.CvarAux = modell.CvarAux.value
+            
 
             #return [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount]
 

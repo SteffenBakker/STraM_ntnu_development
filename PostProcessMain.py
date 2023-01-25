@@ -13,7 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "SP" #EV, EEV, 'SP
+analyses_type = "EEV" #EV, EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
@@ -240,7 +240,7 @@ def plot_emission_results(output,base_data):
     output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
     #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
     output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
-    goals = list(base_data.CO2_CAP.values())
+    goals = list(base_data.EMISSION_CAP_RELATIVE.values())
     output.emission_stats['Goal'] = goals
     output.emission_stats['StdGoals'] = [0 for g in goals]       
     print(output.emission_stats)

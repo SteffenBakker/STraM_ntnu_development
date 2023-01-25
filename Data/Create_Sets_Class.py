@@ -117,6 +117,7 @@ class TransportSets():
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
         self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios) #TODO: check performance of this
+        self.scenario_information_EV = ScenarioInformation(self.prefix,'EV_scenario') 
 
     def construct_pyomo_data(self):
 
@@ -257,6 +258,7 @@ class TransportSets():
         self.T_YEARLY_TIME_SECOND_STAGE = [*range(2030, self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] 
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
         
+        #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
                 
@@ -486,8 +488,9 @@ class TransportSets():
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
         self.emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
-        self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
-        #self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
+        self.EMISSION_CAP_RELATIVE = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
+        #self.EMISSION_CAP_RELATIVE = {year:round(cap/self.scaling_factor,0) for year,cap in self.EMISSION_CAP_RELATIVE.items()}   #this was max 4*10^13, now 4*10^7
+        self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']
@@ -795,6 +798,8 @@ class TransportSets():
         "Combined sets - time dependent"
 
         self.TS = [(t) for t in self.T_TIME_PERIODS]
+        self.TS_NO_BASE_YEAR = [(t) for t in self.T_TIME_PERIODS if t is not self.T_TIME_PERIODS[0]]
+
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
         self.AVT = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS] 
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
@@ -830,7 +835,7 @@ class TransportSets():
 
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
-    #TODO: FIX THIS FOR THE MATURITY PATHS
+    # TODO: FIX THIS FOR THE MATURITY PATHS
     def update_time_periods(self, init_data):
         if init_data==False:
             self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL

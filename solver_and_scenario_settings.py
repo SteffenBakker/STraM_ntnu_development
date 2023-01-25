@@ -16,23 +16,22 @@ def scenario_creator(scenario_name, **kwargs):
     
     base_data = kwargs.get('base_data')
     fix_first_time_period = kwargs.get('fix_first_time_period')
+    x_flow_base_period_init = kwargs.get('x_flow_base_period_init')
     risk_info = kwargs.get('risk_info')
 
     fix_first_stage = kwargs.get('fix_first_stage')
-    init_model_results = kwargs.get('init_model_results')
+    output_EV = kwargs.get('first_stage_variables')
 
-    base_data.update_scenario_dependent_parameters(scenario_name)
+    #base_data.update_scenario_dependent_parameters(scenario_name)
     
     #deepcopy is slower than repetitively constructing the models.
     #model_instance = TranspModel(data=base_data) #OLD
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
     model_instance.construct_model()
-    if fix_first_time_period:
-        model_instance.fix_variables_first_time_period(init_model_results)
+    if fix_first_time_period: #always do this
+        model_instance.fix_variables_first_time_period(x_flow_base_period_init)
     if fix_first_stage:
-        with open(r'Data/output_data_EV', 'rb') as output_file:
-            output_evp = pickle.load(output_file)
-        model_instance.fix_variables_first_stage(output_evp)
+        model_instance.fix_variables_first_stage(output_EV)
     model = model_instance.model
     
     first_stage = base_data.T_TIME_FIRST_STAGE 

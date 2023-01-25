@@ -8,7 +8,7 @@ https://docs.github.com/en/get-started/writing-on-github/getting-started-with-wr
 1. Log på solstorm- 
 	host:solstorm-login.iot.ntnu.no     port:22
 
-(2). På min homedirectory ligger følgende fil: .bashrc
+(2). På min homedirectory (/home/steffejb) ligger følgende fil: .bashrc
 	open filezilla og endre på dette dokumentet. Her kan man legge til commands som vil bli utført ved oppstart!
 	E.g. : module load Python/3.10.4-GCCcore-11.3.0
 	Hidden files in filezilla: Server -> Force showing hidden files
@@ -18,15 +18,22 @@ https://docs.github.com/en/get-started/writing-on-github/getting-started-with-wr
 
 3.1 Bytt til node:		 ssh compute-6-41 
 
-4. Bytt til: 			cd /storage/users/steffejb/fomo
-						cd /storage/users/steffejb/fomo/analyses/steffen/num_sim_replications
+4. Bytt til: 			cd /storage/users/steffejb/StratGods/AIM_Norwegian_Freight_Model
+
+module list
+module unload rocks-openmpi					
+THE ROCKS OPENMPI LEADS TO AN ERROR!! IT INTERFERES WITH MPI-SPPY
 
 (5). Installer packages
-	pip3 install shapely numpy progress matplotlib tensorflow geopy pandas sklearn gurobipy jsonpickle bigquery
+	or do pip3 install
+	pip install matplotlib networkx numpy pandas pyomo openpyxl mpi-sppy
 6. Git
 	git init 				(make sure to initialize git)
+	git branch	
 	git checkout -f   		(cleanup)
-	git checkout Bakker     (make sure to be on own branch. Bakker OR main OR djupdal)
+	git checkout Steffen (make sure to be on own branch. Bakker OR main OR djupdal)
+	
+
 	git pull 				(get the most recent version)
 	git clean -fxd
 	git reset –-hard     (write this out to prevent error)
@@ -37,7 +44,7 @@ https://docs.github.com/en/get-started/writing-on-github/getting-started-with-wr
 	git push
 
 7. Create jobs
-	python create_runs_parameter_tuning.py 
+	python script_MainAnalysis_TwoStage.py
 	it distributes all the tasks. Pick only nodes that have a load of less than 2%
 
 8. RUN CODE
@@ -94,7 +101,15 @@ CTRL A  ->  :quit
 	how to acces your public key:     cat ~/.ssh/id_rsa.pub
 
 - Then we clone the git repository:
-	git clone git@github.com:EECS-NTNU/fomo.git
+	git clone https://github.com/SteffenBakker/AIM_Norwegian_Freight_Model.git
+
+	UserName: SteffenBakker
+	Password -> personal acces token
+	https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
+	finegrainedaccestoken: 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
+	THIS WAS NOT WORKING
+
+	PUT THE REPOSITORY ON PUBLIC, THEN IT WORKS!!
 
 - Check which branch you are on:
 	git rev-parse --abbrev-ref HEAD
