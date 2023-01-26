@@ -7,7 +7,7 @@ Created on Fri Jul 29 10:47:48 2022
 
 import os
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
-# os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
+# os.chdir('C://Users//steffejb//OneDrive - NTNU//Work//GitHub//AIM_Norwegian_Freight_Model//AIM_Norwegian_Freight_Model')
 #os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
 
 from TranspModelClass import TranspModel, RiskInformation
@@ -220,7 +220,7 @@ if __name__ == "__main__":
     
     print("Dumping data in pickle file...", end="")
     
-    with open(r'Data\base_data', 'wb') as data_file: 
+    with open(r'Data//base_data', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
     
     print("done.")
