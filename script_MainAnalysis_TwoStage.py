@@ -47,14 +47,16 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
 # risk parameters
 cvar_coeff = 0.2    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 #TODO: test if this is working
-    
+
+NoBalancingTrips = False  #default at False
+
 #################################################
 #                   main code                   #
 #################################################
@@ -65,12 +67,12 @@ def solve_init_model(base_data,risk_info):
     #set the data to focus only on base year
 
     
-    
     base_data.init_data = True
     base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_INIT
     base_data.combined_sets()
 
     InitModel = TranspModel(data=base_data, risk_info=risk_info)
+    InitModel.NoBalancingTrips = NoBalancingTrips
     InitModel.solve_base_year = True
     print('solving initialization model')
     InitModel.construct_model()
@@ -101,7 +103,8 @@ def construct_model_template(base_data,risk_info, x_flow_base,fix_first_stage,fi
     scenario_creator_kwargs = {'base_data':base_data, 
                                 'fix_first_time_period':True,'x_flow_base_period_init':x_flow_base,
                                 'fix_first_stage':fix_first_stage, 'first_stage_variables':first_stage_variables,
-                                "risk_info":risk_info,}
+                                "risk_info":risk_info,
+                                'NoBalancingTrips':NoBalancingTrips}
 
     ef = sputils.create_EF(
         scenario_names,  #scenario_names
@@ -129,25 +132,26 @@ def solve_model_template(ef):
 
     return ef
 
-def solve_SP(base_data,risk_info):
+def solve_SP(base_data,risk_info, time_periods = None):
 
     #first solve the init model to initialize values
 
     x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
-    
-    base_data.init_data = False
-    base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL
-    base_data.combined_sets()
 
-    #  ---------  MODEL ---------     #
+    base_data.init_data = False
+    if time_periods = None:
+        base_data.update_time_periods(base_data.T_TIME_PERIODS)
+    else:
+        base_data.update_time_periods(time_periods)
 
     ef = construct_model_template(base_data,risk_info,x_flow_base_period_init,
                                 fix_first_stage=False,first_stage_variables=None,
                                 scenario_names=base_data.scenario_information.scenario_names)
     ef = solve_model_template(ef)
+    
     return ef
 
-def solve_EEV(base_data,risk_info):
+def solve_EEV(base_data,risk_info,time_periods=None):
 
     #first solve the init model to initialize values
 
@@ -156,8 +160,11 @@ def solve_EEV(base_data,risk_info):
     #focus on all data this time
         
     base_data.init_data = False
-    base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL
-    base_data.combined_sets()
+    
+    if time_periods = None:
+        base_data.update_time_periods(base_data.T_TIME_PERIODS)
+    else:
+        base_data.update_time_periods(time_periods)
 
     ####################################
     ####   Solve EV problem      #
@@ -220,22 +227,38 @@ if __name__ == "__main__":
     
     #     --------- MODEL  ---------   #
     
+    if True: #TESTING / DEBUGGING
 
-    # solve model
-    if analysis_type == "SP":
-        ef = solve_SP(base_data,risk_info)
-    elif analysis_type == "EEV":
-        ef = solve_EEV(base_data,risk_info)
-    
-    #  --------- SAVE OUTPUT ---------    #
+        x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+        #print(x_flow_base_period_init) #this seems to work, but maybe 
 
-    file_string = 'output_data_' + analysis_type 
-    output = OutputData(ef,base_data,EV_problem=False)
+        base_data.init_data = False
+        base_data.update_time_periods([2022,2026,2030,2040])  #[2022,2026]   base_data.T_TIME_PERIODS_INIT
 
-    with open(r'Data\\' + file_string, 'wb') as output_file: 
-        print("Dumping output in pickle file...", end="")
-        pickle.dump(output, output_file)
-        print("done.")
+        ef = construct_model_template(base_data,risk_info,x_flow_base_period_init,
+                                    fix_first_stage=False,first_stage_variables=None,
+                                    scenario_names=base_data.scenario_information.scenario_names)
+        ef = solve_model_template(ef)
+
+    else:
+
+        # solve model
+        if analysis_type == "SP":
+            ef = solve_SP(base_data,risk_info,time_periods=time_periods)
+        elif analysis_type == "EEV":
+            ef = solve_EEV(base_data,risk_info,time_periods=time_periods)
+        
+        #  --------- SAVE OUTPUT ---------    #
+
+        file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios 
+        if NoBalancingTrips:
+            file_string = file_string +'_NoBalancingTrips'
+        output = OutputData(ef,base_data,EV_problem=False)
+
+        with open(r'Data\\' + file_string, 'wb') as output_file: 
+            print("Dumping output in pickle file...", end="")
+            pickle.dump(output, output_file)
+            print("done.")
 
 
     #when running the code in the cluster (linux) then pickle does not work anymore -> NOT TRUE

@@ -13,14 +13,15 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "EEV" #EV, EEV, 'SP
+analyses_type = "SP" #EV, EEV, 'SP
 
 #---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
 
-
-with open(r'Data\\output_data_'+analyses_type, 'rb') as output_file:
+output_file = 'output_data_'+analyses_type
+output_file = output_file + '_NoBalancingTrips'
+with open(r'Data\\'+output_file, 'rb') as output_file:
     output = pickle.load(output_file)
 
 with open(r'Data\base_data', 'rb') as data_file:
@@ -75,45 +76,6 @@ if result_q_max>1:
 #---------------------------------------------------------#
 #       COSTS
 #---------------------------------------------------------#
-def plot_costs(output,which_costs,ylabel,filename):
-
-    #which_costs = opex_variables
-    #ylabel = 'Annual costs (GNOK)'
-    
-    #indices = [i for i in output.all_costs_table.index if i not in ['discount_factor']]
-    all_costs_table2 = output.all_costs_table.loc[which_costs]
-
-    mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
-    mean_data = mean_data.droplevel(1, axis=1)
-    std_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='std']
-    std_data = std_data.droplevel(1, axis=1)
-    yerrors = std_data.to_numpy()
-    #fig, ax = plt.subplots()
-    ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), 
-        stacked = True,
-        xlabel = 'time periods',
-        ylabel = ylabel,
-        #title = title,
-        color = output.cost_var_colours
-        )  
-    #print(ax.get_xticklabels())
-    # NOT WORKING WITH CATEGORICAL AXIS
-    #ax.vlines(60,0,50)
-    ax.axvline(x = 1.5, color = 'black',ls='--') 
-    ax.text(-0.2, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
-    ax.text(1.8, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
-
-    if filename=='investment':
-        ax.legend(loc='upper right')  #upper left
-    else:
-        ax.legend(loc='lower right')  #upper left
-
-    for spine in ['top', 'right']:
-        ax.spines[spine].set_visible(False)
-    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
-    #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
-    #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
 
 def cost_and_investment_table(base_data,output):
 
@@ -177,6 +139,46 @@ def cost_and_investment_table(base_data,output):
     print(round(output.all_costs_table,2))
 
     return output
+
+def plot_costs(output,which_costs,ylabel,filename):
+
+    #which_costs = opex_variables
+    #ylabel = 'Annual costs (GNOK)'
+    
+    #indices = [i for i in output.all_costs_table.index if i not in ['discount_factor']]
+    all_costs_table2 = output.all_costs_table.loc[which_costs]
+
+    mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
+    mean_data = mean_data.droplevel(1, axis=1)
+    std_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='std']
+    std_data = std_data.droplevel(1, axis=1)
+    yerrors = std_data.to_numpy()
+    #fig, ax = plt.subplots()
+    ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), 
+        stacked = True,
+        xlabel = 'time periods',
+        ylabel = ylabel,
+        #title = title,
+        color = output.cost_var_colours
+        )  
+    #print(ax.get_xticklabels())
+    # NOT WORKING WITH CATEGORICAL AXIS
+    #ax.vlines(60,0,50)
+    ax.axvline(x = 1.5, color = 'black',ls='--') 
+    ax.text(-0.2, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
+    ax.text(1.8, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+
+    if filename=='investment':
+        ax.legend(loc='upper right')  #upper left
+    else:
+        ax.legend(loc='lower right')  #upper left
+
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
+    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+    #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
+    #fig = ax.get_figure()
+    ax.get_figure().savefig(r"Data\\Figures\\costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
 
 output = cost_and_investment_table(base_data,output)
 opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']

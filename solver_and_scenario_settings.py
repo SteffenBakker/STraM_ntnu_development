@@ -22,11 +22,14 @@ def scenario_creator(scenario_name, **kwargs):
     fix_first_stage = kwargs.get('fix_first_stage')
     output_EV = kwargs.get('first_stage_variables')
 
+    NoBalancingTrips = kwargs.get('NoBalancingTrips')
+
     #base_data.update_scenario_dependent_parameters(scenario_name)
     
     #deepcopy is slower than repetitively constructing the models.
     #model_instance = TranspModel(data=base_data) #OLD
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
+    model_instance.NoBalancingTrips = NoBalancingTrips
     model_instance.construct_model()
     if fix_first_time_period: #always do this
         model_instance.fix_variables_first_time_period(x_flow_base_period_init)
@@ -37,6 +40,7 @@ def scenario_creator(scenario_name, **kwargs):
     first_stage = base_data.T_TIME_FIRST_STAGE 
     first_stage_yearly = base_data.T_YEARLY_TIME_FIRST_STAGE
     #OLD: RISK-NEUTRAL
+
     """
     sputils.attach_root_node(model, sum(model.StageCosts[t] for t in first_stage),
                                          [model.x_flow[:,:,:,:,:,:,t] for t in first_stage]+
@@ -69,9 +73,23 @@ def scenario_creator(scenario_name, **kwargs):
                                          [model.total_emissions[t] for t in first_stage] +
                                          #[model.StageCosts[t] for t in first_stage] +
                                          [model.FirstStageCosts] +
-                                         [model.CvarAux]   # this is also a first-stage variable; CvarPosPart is not: depends on scenario                                         
+                                         [model.CvarAux] +  # this is also a first-stage variable; CvarPosPart is not: depends on scenario                                         
+                                         [model.TranspOpexCost[t] for t in first_stage] + 
+                                         [model.TranspCO2Cost[t] for t in first_stage] + 
+                                         [model.TranspOpexCostB[t] for t in first_stage] + 
+                                         [model.TranspCO2CostB[t] for t in first_stage] + 
+                                         [model.TransfCost[t] for t in first_stage] + 
+                                         [model.EdgeCost[t] for t in first_stage] + 
+                                         [model.NodeCost[t] for t in first_stage] + 
+                                         [model.UpgCost[t] for t in first_stage] + 
+                                         [model.ChargeCost[t] for t in first_stage] 
                                          )
 
+
+
+    
+    
+    
 
     ###### set scenario probabilties if they are not assumed equal######
     scenario_nr = base_data.scenario_information.scen_name_to_nr[scenario_name]
@@ -87,7 +105,10 @@ def option_settings_ef():
     options = {}
     options["solvername"] = "gurobi"
     options["solver_options"] = {'MIPGap':MIPGAP}  # 'TimeLimit':600 (seconds)
-    #["NumericFocus"] = 3  #  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+    #["NumericFocus"] = 3 , 0 is automatic, 1 is low precision but fast #  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+    # "ScaleFlag" = 2  , geometric mean scaling  https://www.gurobi.com/documentation/10.0/refman/scaleflag.html#parameter:ScaleFlag
+    # https://www.gurobi.com/documentation/10.0/refman/objscale.html#parameter:ObjScale
+    # https://www.gurobi.com/documentation/10.0/refman/parameters.html
     
     return options
 

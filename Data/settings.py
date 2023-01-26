@@ -4,7 +4,7 @@ SETTINGS  / HARDCODED PARAMETERS
 
 # General settings
 
-#SCALING_FACTOR = 10000   THE OLD FACTOR, more intuitive with 10^6, However, 10**5 is a bit faster (10%)
+#SCALING_FACTOR = 10**4   THE OLD FACTOR, more intuitive with 10^6, However, 10**5 is a bit faster (10%)
 SCALING_FACTOR = 10**5 #for computational purposes, from TONNES -> MEGATONNES    and also then NOK-> MEGANOK
 #gurobi's tolerance is 10^-6
 #(minimum demand is now 3.3*10^3 tonnes, so should be OK)

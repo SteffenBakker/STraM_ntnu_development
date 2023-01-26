@@ -248,40 +248,17 @@ class TransportSets():
         #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
         #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
         self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] 
-        self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
-        self.T_YEARLY_TIME_PERIODS = [*range(self.T_TIME_PERIODS[0], self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] #all years from 2022 up to 2050
-        #self.T_TIME_FIRST_STAGE = [2020, 2025]  #(OLD)
-        self.T_TIME_FIRST_STAGE = [2022, 2026] 
-        self.T_TIME_SECOND_STAGE = [2030, 2040, 2050] 
-        self.T_YEARLY_TIME_FIRST_STAGE = [*range(self.T_TIME_PERIODS[0], 2030)]  #first-stage years
-        #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
-        self.T_YEARLY_TIME_SECOND_STAGE = [*range(2030, self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] 
-        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
+        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
+        self.T_TIME_FIRST_STAGE_BASE = [2022, 2026] 
+        self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] 
         
         #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
-                
-        self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
-        t0 = self.T_TIME_PERIODS[0]
-        num_periods = len(self.T_TIME_PERIODS)
-        
-        for i in range(num_periods):
-            t = self.T_TIME_PERIODS[i]
-            if i < num_periods-1:
-                tp1 = self.T_TIME_PERIODS[i+1]
-                self.Y_YEARS[t] = list(range(t-t0,tp1-t0))
-            elif i == (num_periods - 1):  #this is the last time period. Lasts only a year?? 
-                duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS[i-1]])
-                self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0 + j for j in range(duration_previous)]
 
-        self.T_MOST_RECENT_DECISION_PERIOD = {}
-        for ty in self.T_YEARLY_TIME_PERIODS: #loop over all (yearly) years
-            cur_most_recent_dec_period = self.T_TIME_PERIODS[0] #initialize at 2022
-            for t in self.T_TIME_PERIODS: # loop over all decision periods
-                if t <= ty:
-                    cur_most_recent_dec_period = t 
-            self.T_MOST_RECENT_DECISION_PERIOD[ty] = cur_most_recent_dec_period
+
+                
+        
         
         
         # -----------------------
@@ -786,6 +763,41 @@ class TransportSets():
     def combined_sets(self):
 
         
+        self.T_TIME_FIRST_STAGE = [t for t in self.T_TIME_FIRST_STAGE_BASE if t in self.T_TIME_PERIODS]  
+        self.T_TIME_SECOND_STAGE = [t for t in self.T_TIME_SECOND_STAGE_BASE if t in self.T_TIME_PERIODS]  
+
+        start = self.T_TIME_PERIODS[0]
+        #if len(self.T_TIME_PERIODS) == len(self.T_TIME_PERIODS_ALL):
+        end = self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1   #we only need to model the development until the end
+        #else:
+        #    end = 
+        self.T_YEARLY_TIME_PERIODS = [*range(start,end)] #all years from 2022 up to 2050
+        self.T_YEARLY_TIME_PERIODS_ALL = [*range(start,self.T_TIME_PERIODS_ALL[len(self.T_TIME_PERIODS_ALL)-1] + 1)] #all years from 2022 up to 2050
+        
+        self.T_YEARLY_TIME_FIRST_STAGE = [ty for ty in self.T_YEARLY_TIME_PERIODS if ty < self.T_TIME_SECOND_STAGE_BASE[0] ]
+        #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
+        self.T_YEARLY_TIME_SECOND_STAGE = [ty for ty in self.T_YEARLY_TIME_PERIODS if ty >= self.T_TIME_SECOND_STAGE_BASE[0] ]
+        
+        self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS_ALL}
+        t0 = self.T_TIME_PERIODS[0]
+        num_periods = len(self.T_TIME_PERIODS_ALL)
+        
+        for i in range(num_periods):
+            t = self.T_TIME_PERIODS_ALL[i]
+            if i < num_periods-1:
+                tp1 = self.T_TIME_PERIODS_ALL[i+1]
+                self.Y_YEARS[t] = list(range(t-t0,tp1-t0))
+            elif i == (num_periods - 1):  #this is the last time period. Lasts only a year?? 
+                duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS_ALL[i-1]])
+                self.Y_YEARS[t] = [self.T_TIME_PERIODS_ALL[i]-t0 + j for j in range(duration_previous)]
+
+        self.T_MOST_RECENT_DECISION_PERIOD = {}
+        for ty in self.T_YEARLY_TIME_PERIODS: #loop over all (yearly) years
+            cur_most_recent_dec_period = self.T_TIME_PERIODS[0] #initialize at 2022
+            for t in self.T_TIME_PERIODS: # loop over all decision periods
+                if t <= ty:
+                    cur_most_recent_dec_period = t 
+            self.T_MOST_RECENT_DECISION_PERIOD[ty] = cur_most_recent_dec_period
 
 
         #------------------------
@@ -835,13 +847,15 @@ class TransportSets():
 
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
 
+
+
     # TODO: FIX THIS FOR THE MATURITY PATHS
-    def update_time_periods(self, init_data):
-        if init_data==False:
-            self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL
-        else:
-            self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
+    def update_time_periods(self, time_periods):
+        self.T_TIME_PERIODS = time_periods
+        
         self.combined_sets()
+
+        
 
     #Function that updates all information that depends on the current scenario number
     #Currently: update transport costs based on fuel group scenarios

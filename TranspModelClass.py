@@ -41,6 +41,7 @@ class TranspModel:
 
         self.solve_base_year = False
         
+        self.NoBalancingTrips = False
 
     def construct_model(self):
         
@@ -55,7 +56,12 @@ class TranspModel:
         self.model.b_flow = Var(self.data.AFVT, within=NonNegativeReals)
         self.model.h_path = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
         self.model.h_path_balancing = Var(self.data.KVT, within=NonNegativeReals)# flow on paths K,p
-
+        if self.NoBalancingTrips:
+            for (i,j,m,r,f,v,t) in self.data.AFVT:
+                a = (i,j,m,r)
+                self.model.b_flow[(a,f,v,t)].fix(0)
+            for (k,v,t) in self.data.KVT:
+                self.model.h_path_balancing[(k,v,t)].fix(0)
         self.model.StageCosts = Var(self.data.T_TIME_PERIODS, within = NonNegativeReals)
         
         self.model.epsilon_edge = Var(self.data.ET_RAIL, within = Binary) #within = Binary
@@ -246,21 +252,23 @@ class TranspModel:
                 self.model.h_path[k, p, t] for k in self.data.KA_PATHS[a] )
         self.model.PathArcRel = Constraint(self.data.APT, rule=PathArcRule)
 
-        def PathArcRuleBalancing(model, i, j, m, r, v, t):
-            a= (i,j,m,r)
-            return sum(self.model.b_flow[a, f, v, t] for f in self.data.FM_FUEL[m]) == sum(
-                self.model.h_path_balancing[k, v, t] for k in self.data.KA_PATHS_UNIMODAL[a] )
-        self.model.PathArcRelBalance = Constraint(self.data.AVT, rule=PathArcRuleBalancing)
+        
+        if not self.NoBalancingTrips:
+            def PathArcRuleBalancing(model, i, j, m, r, v, t):
+                a= (i,j,m,r)
+                return sum(self.model.b_flow[a, f, v, t] for f in self.data.FM_FUEL[m]) == sum(
+                    self.model.h_path_balancing[k, v, t] for k in self.data.KA_PATHS_UNIMODAL[a] )
+            self.model.PathArcRelBalance = Constraint(self.data.AVT, rule=PathArcRuleBalancing)
 
-        # FLEET BALANCING
+            # FLEET BALANCING
 
-        def FleetBalance(model, n,m,f,v, t):
-            disbalance_in_node = (sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_IN[(n,m)] for p in self.data.PV_PRODUCTS[v]) - 
-                    sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_OUT[(n,m)] for p in self.data.PV_PRODUCTS[v]))  
-            empty_trips = (sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_OUT[(n,m)]) -
-                        sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_IN[(n,m)]))            
-            return (disbalance_in_node == empty_trips)
-        self.model.FleetBalance = Constraint(self.data.NMFVT, rule=FleetBalance)
+            def FleetBalance(model, n,m,f,v, t):
+                disbalance_in_node = (sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_IN[(n,m)] for p in self.data.PV_PRODUCTS[v]) - 
+                        sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_OUT[(n,m)] for p in self.data.PV_PRODUCTS[v]))  
+                empty_trips = (sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_OUT[(n,m)]) -
+                            sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_IN[(n,m)]))            
+                return (disbalance_in_node == empty_trips)
+            self.model.FleetBalance = Constraint(self.data.NMFVT, rule=FleetBalance)
 
         #-----------------------------------------------#
 
@@ -462,8 +470,20 @@ class TranspModel:
         #     if t in self.data.T_TIME_FIRST_STAGE:
         #         self.model.x_flow[(a,f,p,t)].fix(0)
         
+        #fixing those leads to infeasibility? 
+        for (i,j,m,r,f,p,t) in self.data.AFPT:
+            a = (i,j,m,r)
+            if t in self.data.T_TIME_PERIODS_FIRST_STAGE:
+
+                self.model.x_flow[(a,f,p,t)].fix(0)  
+
+                #self.model.x_flow[(a,f,p,t)].setlb(-1)
+                #self.model.x_flow[(a,f,p,t)].setub(5)
+        
         for index,row in output_EV.all_variables[output_EV.all_variables['time_period'].isin(self.data.T_TIME_FIRST_STAGE)].iterrows():
-            variable = row['variable']
+            
+            #start defining 
+            var_name = row['variable']
             i = row['from']
             j = row['to']
             m = row['mode']
@@ -479,29 +499,30 @@ class TranspModel:
             k = row['path']
             c = row['terminal_type']
             
-            #fixing too much makes the problem somehow infeasible
-            #it works to only fix h_path + investment decisions     -> 500 seconds solving
-            #what about x_flow + investment decisions?              -> 389 seconds solving
+            # fixing too much makes the problem somehow infeasible
+            # I believe it is a numerical issue. Giving x_flow some slack makes the problem feasible again
+            # TO DO: work on numerics. Check what the smallest parameter value is
 
-            if True:
-                pass 
-            elif variable == 'x_flow':
+
+            if var_name == 'x_flow':
+                self.model.x_flow[(a,f,p,t)].fixed = False
                 dev = 0.001
-                self.model.x_flow[(a,f,p,t)].ub((1+dev)*w)
-                self.model.x_flow[(a,f,p,t)].lb((1-dev)*w)
+                self.model.x_flow[(a,f,p,t)].setub((1+dev)*w)
+                self.model.x_flow[(a,f,p,t)].setlb((1-dev)*w)
+                #https://readthedocs.org/projects/pyomo/downloads/pdf/stable/
             #elif variable == 'q_transp_amount':
             #    self.model.q_transp_amount[(m, f, t)].fix(w)
             #elif variable == 'b_flow':
             #    self.model.b_flow[(a,f,v,t)].fix(w)
             #elif variable == 'h_path':
             #    self.model.h_path[(k,p,t)].fix(w)
-            elif variable == 'epsilon_edge':
+            elif var_name == 'epsilon_edge':
                 self.model.epsilon_edge[(e,t)].fix(w)
-            elif variable == 'upsilon_upg':
+            elif var_name == 'upsilon_upg':
                 self.model.upsilon_upg[(i,j,m,r,f,t)].fix(w)
-            elif variable == 'nu_node':
+            elif var_name == 'nu_node':
                 self.model.nu_node[(i, c, m, t)].fix(w)
-            elif variable == 'y_charging':
+            elif var_name == 'y_charging':
                 self.model.y_charge[(i,j,m,r,f,t)].fix(w)
             #elif variable == 'z_emission':
             #    self.model.z_emission[t].fix(w)
@@ -513,7 +534,7 @@ class TranspModel:
         #self.model.FirstStageCosts.fix(output_EV.FirstStageCosts)
         #self.model.CvarAux.fix(output_EV.CvarAux)
 
-        print('')
+
         
     def fix_variables_first_time_period(self,x_flow_base_period_init):
         
@@ -528,15 +549,28 @@ class TranspModel:
         #not providing a value in the fix operator leads to the following error:
         #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
 
-        # for (i,j,m,r,f,p,t) in self.data.AFPT:
-        #     a = (i,j,m,r)
-        #     if t in self.data.T_TIME_FIRST_STAGE:
-        #         self.model.x_flow[(a,f,p,t)].fix(0)
+        #fixing those leads to infeasibility? 
+        for (i,j,m,r,f,p,t) in self.data.AFPT:
+            a = (i,j,m,r)
+            if (a,f,p,t) not in [(aa,ff,pp,tt) for (aa,ff,pp,tt,ww) in x_flow_base_period_init]:
+                if t == self.data.T_TIME_PERIODS[0]:
+
+                    self.model.x_flow[(a,f,p,t)].fix(0)   #seems to be a little bit faster
+
+                    #self.model.x_flow[(a,f,p,t)].setlb(-1)
+                    #self.model.x_flow[(a,f,p,t)].setub(5)
+                    
 
         for (a,f,p,t,weight)in x_flow_base_period_init:
-            (i,j,m,r) = a
-            self.model.x_flow[(a,f,p,t)].fix(weight)
-
+            
+            #fixing this goes slower
+            #self.model.x_flow[(a,f,p,t)].fix(weight)
+            
+            self.model.x_flow[(a,f,p,t)].fixed = False
+            dev = 0.0001
+            self.model.x_flow[(a,f,p,t)].setub((1+dev)*weight)
+            self.model.x_flow[(a,f,p,t)].setlb((1-dev)*weight)
+            
 
     def solve_model(self):  #GENERAL way to solve a single deterministic model
 
