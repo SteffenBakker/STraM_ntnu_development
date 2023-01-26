@@ -14,17 +14,19 @@ import json
 #---------------------------------------------------------#
 
 analyses_type = "SP" #EV, EEV, 'SP
-
+scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
+noBalancingTrips = False
 #---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
 
-output_file = 'output_data_'+analyses_type
-output_file = output_file + '_NoBalancingTrips'
+output_file = 'output_data_'+analyses_type+'_'+scenarios
+if noBalancingTrips:
+    output_file = output_file + '_NoBalancingTrips'
 with open(r'Data\\'+output_file, 'rb') as output_file:
     output = pickle.load(output_file)
 
-with open(r'Data\base_data', 'rb') as data_file:
+with open(r'Data\base_data_'+scenarios, 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 

@@ -93,7 +93,6 @@ def solve_init_model(base_data,risk_info):
                 if weight > 0:
                     x_flow_base_period_init.append((a,f,p,t,weight))
     EMISSION_CAP_ABSOLUTE_BASE_YEAR = InitModel.model.total_emissions[base_data.T_TIME_PERIODS[0]].value
-    base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = EMISSION_CAP_ABSOLUTE_BASE_YEAR
 
     return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
 
@@ -141,7 +140,7 @@ def solve_SP(base_data,risk_info, time_periods = None):
 
     base_data.init_data = False
     if time_periods == None:
-        base_data.update_time_periods(base_data.T_TIME_PERIODS)
+        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
     else:
         base_data.update_time_periods(time_periods)
 
@@ -150,7 +149,7 @@ def solve_SP(base_data,risk_info, time_periods = None):
                                 scenario_names=base_data.scenario_information.scenario_names)
     ef = solve_model_template(ef)
     
-    return ef
+    return ef, base_data
 
 def solve_EEV(base_data,risk_info,time_periods=None):
 
@@ -197,7 +196,7 @@ def solve_EEV(base_data,risk_info,time_periods=None):
                                     scenario_names=base_data.scenario_information.scenario_names)
     ef = solve_model_template(ef)
 
-    return ef
+    return ef, base_data
 
 
 if __name__ == "__main__":
@@ -218,21 +217,14 @@ if __name__ == "__main__":
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     #add to the base_data class?
     
-    print("Dumping data in pickle file...", end="")
-    
-    with open(r'Data//base_data', 'wb') as data_file: 
-        pickle.dump(base_data, data_file)
-    
-    print("done.")
-    sys.stdout.flush()
     
     #     --------- MODEL  ---------   #
     
     # solve model
     if analysis_type == "SP":
-        ef = solve_SP(base_data,risk_info,time_periods=time_periods)
+        ef, base_data = solve_SP(base_data,risk_info,time_periods=time_periods)
     elif analysis_type == "EEV":
-        ef = solve_EEV(base_data,risk_info,time_periods=time_periods)
+        ef, base_data = solve_EEV(base_data,risk_info,time_periods=time_periods)
     
     #  --------- SAVE OUTPUT ---------    #
 
@@ -245,6 +237,14 @@ if __name__ == "__main__":
         print("Dumping output in pickle file...", end="")
         pickle.dump(output, output_file)
         print("done.")
+
+    print("Dumping data in pickle file...", end="")
+    
+    with open(r'Data//base_data_'+sheet_name_scenarios, 'wb') as data_file: 
+        pickle.dump(base_data, data_file)
+    
+    print("done.")
+    sys.stdout.flush()
 
 
     #when running the code in the cluster (linux) then pickle does not work anymore -> NOT TRUE
