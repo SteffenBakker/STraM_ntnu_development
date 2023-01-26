@@ -101,7 +101,7 @@ def construct_model_template(base_data,risk_info, x_flow_base,fix_first_stage,fi
     print("Constructing model...", end="", flush=True)
     start = time.time()
     scenario_creator_kwargs = {'base_data':base_data, 
-                                'fix_first_time_period':True,'x_flow_base_period_init':x_flow_base,
+                                'fix_first_time_period':not fix_first_stage,'x_flow_base_period_init':x_flow_base,
                                 'fix_first_stage':fix_first_stage, 'first_stage_variables':first_stage_variables,
                                 "risk_info":risk_info,
                                 'NoBalancingTrips':NoBalancingTrips}
@@ -162,7 +162,7 @@ def solve_EEV(base_data,risk_info,time_periods=None):
     base_data.init_data = False
     
     if time_periods == None:
-        base_data.update_time_periods(base_data.T_TIME_PERIODS)
+        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
     else:
         base_data.update_time_periods(time_periods)
 

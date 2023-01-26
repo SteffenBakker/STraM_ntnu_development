@@ -31,7 +31,7 @@ def scenario_creator(scenario_name, **kwargs):
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
     model_instance.NoBalancingTrips = NoBalancingTrips
     model_instance.construct_model()
-    if fix_first_time_period: #always do this
+    if fix_first_time_period: 
         model_instance.fix_variables_first_time_period(x_flow_base_period_init)
     if fix_first_stage:
         model_instance.fix_variables_first_stage(output_EV)
