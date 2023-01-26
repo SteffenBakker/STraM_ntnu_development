@@ -241,7 +241,7 @@ if __name__ == "__main__":
         file_string = file_string +'_NoBalancingTrips'
     output = OutputData(ef,base_data,EV_problem=False)
 
-    with open(r'Data\\' + file_string, 'wb') as output_file: 
+    with open(r"Data//" + file_string, 'wb') as output_file: 
         print("Dumping output in pickle file...", end="")
         pickle.dump(output, output_file)
         print("done.")

@@ -94,6 +94,20 @@ CTRL A  ->  :quit
 # gitrepository on solstorm ##
 ###############################
 
+
+" how to work with ssh config files and switch between ssh
+https://www.cyberciti.biz/faq/create-ssh-config-file-on-linux-unix/
+https://dylancastillo.co/how-to-use-github-deploy-keys/
+
+if config file is new do:
+	chmod 600 ~/.ssh/config
+
+
+clone@github:~/.ssh$ ~$ git clone git@github.com:SteffenBakker/AIM_Norwegian_Freight_Model.git
+
+------------------
+
+
 - SSH KEY: 
 	This has been done now. First on your machine generating the ssh key. Then adding it to github account
 	https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
@@ -115,7 +129,7 @@ CTRL A  ->  :quit
 	git rev-parse --abbrev-ref HEAD
 
 - Change branche
-	git checkout Bakker     OR main OR djupdal
+	git checkout Steffen    OR main 
 
 - Update
 	git pull
