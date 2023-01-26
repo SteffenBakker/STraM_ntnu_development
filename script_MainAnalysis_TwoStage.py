@@ -140,7 +140,7 @@ def solve_SP(base_data,risk_info, time_periods = None):
     x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
 
     base_data.init_data = False
-    if time_periods = None:
+    if time_periods == None:
         base_data.update_time_periods(base_data.T_TIME_PERIODS)
     else:
         base_data.update_time_periods(time_periods)
@@ -162,7 +162,7 @@ def solve_EEV(base_data,risk_info,time_periods=None):
         
     base_data.init_data = False
     
-    if time_periods = None:
+    if time_periods == None:
         base_data.update_time_periods(base_data.T_TIME_PERIODS)
     else:
         base_data.update_time_periods(time_periods)
