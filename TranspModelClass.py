@@ -473,7 +473,7 @@ class TranspModel:
         #fixing those leads to infeasibility? 
         for (i,j,m,r,f,p,t) in self.data.AFPT:
             a = (i,j,m,r)
-            if t in self.data.T_TIME_PERIODS_FIRST_STAGE:
+            if t in self.data.T_TIME_FIRST_STAGE:
 
                 self.model.x_flow[(a,f,p,t)].fix(0)  
 

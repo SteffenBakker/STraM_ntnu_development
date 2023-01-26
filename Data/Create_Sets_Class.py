@@ -852,7 +852,6 @@ class TransportSets():
     # TODO: FIX THIS FOR THE MATURITY PATHS
     def update_time_periods(self, time_periods):
         self.T_TIME_PERIODS = time_periods
-        
         self.combined_sets()
 
         
