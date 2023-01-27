@@ -13,9 +13,11 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "EEV" #EV, EEV, 'SP
+analyses_type = "SP" #EV, EEV, 'SP
 scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
 noBalancingTrips = False
+last_time_period = True
+
 #---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
@@ -23,6 +25,8 @@ noBalancingTrips = False
 output_file = 'output_data_'+analyses_type+'_'+scenarios
 if noBalancingTrips:
     output_file = output_file + '_NoBalancingTrips'
+if last_time_period:
+    output_file = output_file + '_last_period'
 with open(r'Data\\'+output_file, 'rb') as output_file:
     output = pickle.load(output_file)
 
@@ -32,6 +36,8 @@ with open(r'Data\base_data_'+scenarios, 'rb') as data_file:
 
 
 print('objective function value: ', output.ob_function_value*SCALING_FACTOR/10**9)
+#SHOULD REMOVE THE MISSION PENALTY: DOES NOT MAKE SENSE NOW
+
 #---------------------------------------------------------#
 #       Accuracy of Q MAX approximation due to penalty -> should become zero
 #---------------------------------------------------------#
@@ -191,7 +197,14 @@ plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
 #Total costs without emission penalty:
 
-#output.
+#output.ob_function_value
+
+##total_emission_penalty = sum(output.costs["EmissionCosts"].values())]
+#for t in base_data.T_TIME_PERIODS:
+#    for t in output.scenarios:
+
+#rather resolve the model. FIX EVERYTHING. But remove the penalty from objective...
+
 
 if False:
     if sum(output.z_emission_violation["weight"])>1:
@@ -246,7 +259,7 @@ def plot_emission_results(output,base_data):
     output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
 
     #output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
-    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
+    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR*100  #NEW: 2022
     #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
     output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
     goals = list(base_data.EMISSION_CAP_RELATIVE.values())

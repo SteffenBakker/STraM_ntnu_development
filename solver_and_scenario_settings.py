@@ -23,6 +23,7 @@ def scenario_creator(scenario_name, **kwargs):
     output_EV = kwargs.get('first_stage_variables')
 
     NoBalancingTrips = kwargs.get('NoBalancingTrips')
+    last_time_period = kwargs.get('last_time_period')
 
     #base_data.update_scenario_dependent_parameters(scenario_name)
     
@@ -30,6 +31,7 @@ def scenario_creator(scenario_name, **kwargs):
     #model_instance = TranspModel(data=base_data) #OLD
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
     model_instance.NoBalancingTrips = NoBalancingTrips
+    model_instance.last_time_period = last_time_period
     model_instance.construct_model()
     if fix_first_time_period: 
         model_instance.fix_variables_first_time_period(x_flow_base_period_init)

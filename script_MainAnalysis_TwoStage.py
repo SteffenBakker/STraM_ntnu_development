@@ -47,8 +47,8 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -96,15 +96,20 @@ def solve_init_model(base_data,risk_info):
 
     return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
 
-def construct_model_template(base_data,risk_info, x_flow_base,fix_first_stage,first_stage_variables,scenario_names):
+def construct_model_template(base_data,risk_info, 
+                            fix_first_time_period, x_flow_base,
+                            fix_first_stage,first_stage_variables,
+                            scenario_names,
+                            last_time_period=False):
 
     print("Constructing model...", end="", flush=True)
     start = time.time()
     scenario_creator_kwargs = {'base_data':base_data, 
-                                'fix_first_time_period':not fix_first_stage,'x_flow_base_period_init':x_flow_base,
+                                'fix_first_time_period':fix_first_time_period,'x_flow_base_period_init':x_flow_base,
                                 'fix_first_stage':fix_first_stage, 'first_stage_variables':first_stage_variables,
                                 "risk_info":risk_info,
-                                'NoBalancingTrips':NoBalancingTrips}
+                                'NoBalancingTrips':NoBalancingTrips,
+                                'last_time_period':last_time_period}
 
     ef = sputils.create_EF(
         scenario_names,  #scenario_names
@@ -144,9 +149,11 @@ def solve_SP(base_data,risk_info, time_periods = None):
     else:
         base_data.update_time_periods(time_periods)
 
-    ef = construct_model_template(base_data,risk_info,x_flow_base_period_init,
+    ef = construct_model_template(base_data,risk_info,
+                                fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
                                 fix_first_stage=False,first_stage_variables=None,
-                                scenario_names=base_data.scenario_information.scenario_names)
+                                scenario_names=base_data.scenario_information.scenario_names,
+                                last_time_period=False)
     ef = solve_model_template(ef)
     
     return ef, base_data
@@ -173,7 +180,8 @@ def solve_EEV(base_data,risk_info,time_periods=None):
     print('')
     print('SOLVING EV')
     print('')
-    ef = construct_model_template(base_data,risk_info,x_flow_base_period_init,
+    ef = construct_model_template(base_data,risk_info,
+                                fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
                                 fix_first_stage=False,first_stage_variables=None,
                                 scenario_names=['BBB'])
     ef = solve_model_template(ef)
@@ -191,7 +199,8 @@ def solve_EEV(base_data,risk_info,time_periods=None):
     print('')
     print('SOLVING EEV')
     print('')
-    ef = construct_model_template(base_data,risk_info,x_flow_base_period_init,
+    ef = construct_model_template(base_data,risk_info,
+                                    fix_first_time_period=False, x_flow_base=x_flow_base_period_init,
                                     fix_first_stage=True,first_stage_variables=output_EV,
                                     scenario_names=base_data.scenario_information.scenario_names)
     ef = solve_model_template(ef)
@@ -203,7 +212,7 @@ def main(analysis_type):
     print('----------------------------')
     print('Doing the following analysis: ', analysis_type)
     print('----------------------------')
-    
+
     #     --------- DATA  ---------   #
     
             
@@ -246,20 +255,45 @@ def main(analysis_type):
     print("done.")
     sys.stdout.flush()
 
-    #when running the code in the cluster (linux) then pickle does not work anymore -> NOT TRUE
+def last_time_period_run():
+    
+    risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
+    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+    base_data.init_data = False
+    base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
+    base_data.last_time_period = True
+    base_data.combined_sets()
 
+    ef = construct_model_template(base_data,risk_info,
+                                fix_first_time_period=False, x_flow_base=None,
+                                fix_first_stage=False,first_stage_variables=None,
+                                scenario_names=base_data.scenario_information.scenario_names,
+                                last_time_period=True)
+    ef = solve_model_template(ef)
 
-        # if profiling:
-        #     profiler = cProfile.Profile()
-        #     profiler.enable()
+    file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios +'_last_period' 
+    output = OutputData(ef,base_data,EV_problem=False)
+
+    with open(r"Data//" + file_string, 'wb') as output_file: 
+        print("Dumping output in pickle file...", end="")
+        pickle.dump(output, output_file)
+        print("done.")
 
 if __name__ == "__main__":
     
-    for analysis_type in ['SP','EEV']:
-        main(analysis_type=analysis_type)
+    #for analysis_type in ['SP','EEV']:
+    #    main(analysis_type=analysis_type)
     
-    # main(analysis_type=analysis_type)
+    #main(analysis_type=analysis_type)
+
+    last_time_period_run()
+
     
+
+    # if profiling:
+        #     profiler = cProfile.Profile()
+        #     profiler.enable()
         
 
 

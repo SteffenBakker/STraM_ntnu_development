@@ -106,7 +106,9 @@ class TransportSets():
             self.prefix = r'Data/'
         elif self.run_file =="sets":
             self.prefix = '' 
-        self.init_data = init_data
+        
+        self.init_data = init_data #set T_TIME_PERIODS to first period
+        self.last_time_period = False #only solve last time period -> remove all operational constraints for the other periods
 
         #read/construct data                
         self.construct_pyomo_data()
@@ -118,6 +120,8 @@ class TransportSets():
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
         self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios) #TODO: check performance of this
         self.scenario_information_EV = ScenarioInformation(self.prefix,'EV_scenario') 
+
+
 
     def construct_pyomo_data(self):
 
@@ -800,6 +804,10 @@ class TransportSets():
             self.T_MOST_RECENT_DECISION_PERIOD[ty] = cur_most_recent_dec_period
 
 
+        self.T_TIME_PERIODS_OPERATIONAL = self.T_TIME_PERIODS
+        if self.last_time_period:
+            self.T_TIME_PERIODS_OPERATIONAL = [self.T_TIME_PERIODS[-1]]
+
         #------------------------
         "Combined sets - time independent"
         #------------------------
@@ -810,10 +818,17 @@ class TransportSets():
         "Combined sets - time dependent"
 
         self.TS = [(t) for t in self.T_TIME_PERIODS]
+        self.TS_CONSTR = [(t) for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.TS_NO_BASE_YEAR = [(t) for t in self.T_TIME_PERIODS if t is not self.T_TIME_PERIODS[0]]
+        self.TS_NO_BASE_YEAR_CONSTR = [(t) for t in self.T_TIME_PERIODS_OPERATIONAL if t is not self.T_TIME_PERIODS[0]]
+
 
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
         self.AVT = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS] 
+        self.APT_CONSTR = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS_OPERATIONAL] 
+        self.AVT_CONSTR = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS_OPERATIONAL] 
+        
+        
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
         self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
@@ -822,15 +837,23 @@ class TransportSets():
         self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
         self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
+        self.EAT_RAIL_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
         self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS]
+        self.EFT_CHARGE_CONSTR = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
+        self.NCMT_CONSTR = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
                                     for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
+        self.NMFVT_CONSTR = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
+                                    for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.ODPTS = [odp + (t,) for odp in self.ODP for t in self.T_TIME_PERIODS]
+        self.ODPTS_CONSTR = [odp + (t,) for odp in self.ODP for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
         self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
+        self.MFT_MATURITY_CONSTR = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
+        self.MFT_CONSTR = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS_OPERATIONAL]
         
         self.MFTT = [(m,f,t,tau) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS 
                             for tau in self.T_TIME_PERIODS if tau <= t]
@@ -846,7 +869,7 @@ class TransportSets():
         self.MFT_NEW_FIRST_PERIOD = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in [self.T_TIME_PERIODS[0]] if not self.tech_is_mature[(m,f)]]
 
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
-
+        self.UT_UPG_CONSTR = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS_OPERATIONAL]  
 
 
     # TODO: FIX THIS FOR THE MATURITY PATHS

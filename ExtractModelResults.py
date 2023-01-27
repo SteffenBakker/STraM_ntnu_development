@@ -91,9 +91,10 @@ class OutputData():
                     for t in base_data.T_TIME_PERIODS:
                         for p in base_data.P_PRODUCTS:
                             weight = modell.x_flow[(a,f,p,t)].value
-                            if weight > 0:
-                                a_series = pd.Series([variable,i,j,m,r,f,p,t,weight, scen_name], index=x_flow.columns)
-                                x_flow = pd.concat([x_flow, a_series.to_frame().T],axis=0, ignore_index=True)
+                            if weight is not None: 
+                                if weight > 0:
+                                    a_series = pd.Series([variable,i,j,m,r,f,p,t,weight, scen_name], index=x_flow.columns)
+                                    x_flow = pd.concat([x_flow, a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'b_flow'
             for (i,j,m,r) in base_data.A_ARCS:
                 a = (i,j,m,r)
@@ -101,18 +102,20 @@ class OutputData():
                     for t in base_data.T_TIME_PERIODS:
                         for v in base_data.VEHICLE_TYPES_M[m]:
                             weight = modell.b_flow[(a,f,v,t)].value
-                            if weight > 0:
-                                a_series = pd.Series([variable,i,j,m,r,f,v,t,weight, scen_name], index=b_flow.columns)
-                                b_flow = pd.concat([b_flow, a_series.to_frame().T],axis=0, ignore_index=True)
+                            if weight is not None: 
+                                if weight > 0:
+                                    a_series = pd.Series([variable,i,j,m,r,f,v,t,weight, scen_name], index=b_flow.columns)
+                                    b_flow = pd.concat([b_flow, a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'h_path'
             for kk in base_data.K_PATHS:
                 #k = K_PATH_DICT[kk]
                 for t in base_data.T_TIME_PERIODS:
                     for p in base_data.P_PRODUCTS:
                         weight = modell.h_path[(kk, p, t)].value
-                        if weight > 0:
-                            a_series = pd.Series([variable,kk, p, t, weight, scen_name], index=h_path.columns)
-                            h_path = pd.concat([h_path,a_series.to_frame().T],axis=0, ignore_index=True)
+                        if weight is not None: 
+                            if weight > 0:
+                                a_series = pd.Series([variable,kk, p, t, weight, scen_name], index=h_path.columns)
+                                h_path = pd.concat([h_path,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'epsilon_edge'
             for t in base_data.T_TIME_PERIODS:
                 for i,j,m,r in base_data.E_EDGES_RAIL:
@@ -154,29 +157,35 @@ class OutputData():
             variable = 'z_emission'
             for t in base_data.T_TIME_PERIODS:
                 weight = modell.z_emission[t].value
+                if weight is None:
+                    weight = 0 
                 a_series = pd.Series([variable,t, weight, scen_name],index=z_emission_violation.columns)
                 z_emission_violation = pd.concat([z_emission_violation,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'total_emissions'
             for t in base_data.T_TIME_PERIODS:
-                weight5 = modell.total_emissions[t].value
-                a_series2 = pd.Series([variable,t, weight5, scen_name],index=total_emissions.columns)
+                weight = modell.total_emissions[t].value
+                if weight is None:
+                    weight = 0 
+                a_series2 = pd.Series([variable,t, weight, scen_name],index=total_emissions.columns)
                 total_emissions = pd.concat([total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)    
             variable = 'q_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
                     for t in base_data.T_TIME_PERIODS:
                         weight = modell.q_transp_amount[(m, f, t)].value
-                        if weight > 0:
-                            a_series = pd.Series([variable,m, f, t, weight, scen_name], index=q_transp_amount.columns)
-                            q_transp_amount = pd.concat([q_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
+                        if weight is not None:
+                            if weight > 0:
+                                a_series = pd.Series([variable,m, f, t, weight, scen_name], index=q_transp_amount.columns)
+                                q_transp_amount = pd.concat([q_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'q_max_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
                     weight = modell.q_max_transp_amount[(m, f)].value
-                    if weight > 0:
-                        a_series = pd.Series([variable,m, f, weight, scen_name], index=q_max_transp_amount.columns)
-                        q_max_transp_amount = pd.concat([q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
-            
+                    if weight is not None:
+                        if weight > 0:
+                            a_series = pd.Series([variable,m, f, weight, scen_name], index=q_max_transp_amount.columns)
+                            q_max_transp_amount = pd.concat([q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
+                
 
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
                         z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount],ignore_index=True)
