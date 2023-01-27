@@ -480,14 +480,18 @@ class TranspModel:
                 #self.model.x_flow[(a,f,p,t)].setlb(-1)
                 #self.model.x_flow[(a,f,p,t)].setub(5)
         for (i,j,m,r,t) in self.data.ET_RAIL:
-            e = (i,j,m,r)
-            self.model.epsilon_edge[(e,t)].fix(0)
+            if t in self.data.T_TIME_FIRST_STAGE:
+                e = (i,j,m,r)
+                self.model.epsilon_edge[(e,t)].fix(0)
         for (e,f,t) in self.data.UT_UPG:
-            self.model.upsilon_upg[(e,f,t)].fix(0)
+            if t in self.data.T_TIME_FIRST_STAGE:
+                self.model.upsilon_upg[(e,f,t)].fix(0)
         for (i,c,m,t) in self.data.NCMT:
-            self.model.nu_node[(i,c,m,t)].fix(0)
+            if t in self.data.T_TIME_FIRST_STAGE:
+                self.model.nu_node[(i,c,m,t)].fix(0)
         for (e,f,t) in self.data.EFT_CHARGE:
-            self.model.y_charge[(e,f,t)].fix(0)
+            if t in self.data.T_TIME_FIRST_STAGE:
+                self.model.y_charge[(e,f,t)].fix(0)
 
         
         for index,row in output_EV.all_variables[output_EV.all_variables['time_period'].isin(self.data.T_TIME_FIRST_STAGE)].iterrows():

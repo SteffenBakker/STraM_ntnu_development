@@ -188,6 +188,11 @@ investment_variables = ['Edge', 'Node', 'Upg','Charge']
 plot_costs(output,opex_variables,'Annual costs (GNOK)',"opex")
 plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
+
+#Total costs without emission penalty:
+
+#output.
+
 if False:
     if sum(output.z_emission_violation["weight"])>1:
         raise Exception('We cannot decarbonize in time scenario:  -> z_emission_violation is non-negative')

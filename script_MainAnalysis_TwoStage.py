@@ -200,6 +200,10 @@ def solve_EEV(base_data,risk_info,time_periods=None):
 
 def main(analysis_type):
     
+    print('----------------------------')
+    print('Doing the following analysis: ', analysis_type)
+    print('----------------------------')
+    
     #     --------- DATA  ---------   #
     
             
