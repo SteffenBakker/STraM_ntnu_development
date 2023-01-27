@@ -48,7 +48,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -179,7 +179,7 @@ def solve_EEV(base_data,risk_info,time_periods=None):
     ef = solve_model_template(ef)
 
     output_EV = OutputData(ef,base_data,EV_problem=True)
-    print(output_EV.FirstStageCosts)
+    
 
     # NEED TO SAVE SOME OUTPUT!!! THAT IS X_FLOW AND INVESTMENT DECISIONS!!!
 
@@ -198,15 +198,11 @@ def solve_EEV(base_data,risk_info,time_periods=None):
 
     return ef, base_data
 
-
-if __name__ == "__main__":
+def main(analysis_type):
     
-
     #     --------- DATA  ---------   #
     
-    instance_run = 'base'
-
-        
+            
     print("Reading data...", flush=True)
     start = time.time()
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
@@ -246,10 +242,21 @@ if __name__ == "__main__":
     print("done.")
     sys.stdout.flush()
 
-
     #when running the code in the cluster (linux) then pickle does not work anymore -> NOT TRUE
 
 
-    # if profiling:
-    #     profiler = cProfile.Profile()
-    #     profiler.enable()
+        # if profiling:
+        #     profiler = cProfile.Profile()
+        #     profiler.enable()
+
+if __name__ == "__main__":
+    
+    for analysis_type in ['SP','EEV']:
+        main(analysis_type=analysis_type)
+    
+    # main(analysis_type=analysis_type)
+    
+        
+
+
+        
