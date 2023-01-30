@@ -75,10 +75,13 @@ class OutputData():
         costs = {var:{(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in scenario_names} for var in vars}
         costs['MaxTranspPenaltyCost'] = {scen:0 for scen in scenario_names}
 
+        second_stage_costs = {scen_name:None for scen_name in scenario_names}
+        second_stage_emission_costs = {scen_name:None for scen_name in scenario_names}
         for (scen_name,scen_model) in scenario_names_and_models:
             # (scen_name,scen_model)=scenario_names_and_models[0]
             modell = scen_model
 
+            second_stage_costs[scen_name] = modell.SecondStageCosts.value
 
             #############
             # Variables #
@@ -167,7 +170,8 @@ class OutputData():
                 if weight is None:
                     weight = 0 
                 a_series2 = pd.Series([variable,t, weight, scen_name],index=total_emissions.columns)
-                total_emissions = pd.concat([total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)    
+                total_emissions = pd.concat([total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)
+            second_stage_emission_costs[scen_name] = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_SECOND_STAGE)
             variable = 'q_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
@@ -185,11 +189,7 @@ class OutputData():
                         if weight > 0:
                             a_series = pd.Series([variable,m, f, weight, scen_name], index=q_max_transp_amount.columns)
                             q_max_transp_amount = pd.concat([q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
-                
-
-            all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
-                        z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount],ignore_index=True)
-
+            
             #########
             # COSTS #
             #########
@@ -199,27 +199,53 @@ class OutputData():
                     costs[var][(t,scen_name)] = getattr(modell,str(var))[t].value
             costs['MaxTranspPenaltyCost'][scen_name] = modell.MaxTranspPenaltyCost.value
 
-            #########
-            # ----- #
-            #########
 
-            self.all_variables = all_variables
-            self.costs = costs
-            self.x_flow = x_flow
-            self.b_flow=b_flow
-            self.h_path=h_path
-            self.y_charging=y_charging
-            self.nu_node=nu_node
-            self.epsilon_edge=epsilon_edge
-            self.upsilon_upgrade= upsilon_upgrade
-            self.z_emission_violation=z_emission_violation
-            self.total_emissions=total_emissions
-            self.q_transp_amount=q_transp_amount
-            self.q_max_transp_amount=q_max_transp_amount
-            
-            self.FirstStageCosts = modell.FirstStageCosts.value
-            self.CvarAux = modell.CvarAux.value
-            
+            all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
+                        z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount],ignore_index=True)
+
+        
+
+        #########
+        # ----- #
+        #########
+
+        self.all_variables = all_variables
+        self.costs = costs
+        self.x_flow = x_flow
+        self.b_flow=b_flow
+        self.h_path=h_path
+        self.y_charging=y_charging
+        self.nu_node=nu_node
+        self.epsilon_edge=epsilon_edge
+        self.upsilon_upgrade= upsilon_upgrade
+        self.z_emission_violation=z_emission_violation
+        self.total_emissions=total_emissions
+        self.q_transp_amount=q_transp_amount
+        self.q_max_transp_amount=q_max_transp_amount
+        
+        #just take from the last run as it is a first stage decision
+        self.FirstStageCosts = modell.FirstStageCosts.value  
+        self.CvarAux = modell.CvarAux.value
+
+
+        ######################################
+        ### COSTS WITHOUT EMISSION PENALTY ###
+        
+        value_at_risk = np.quantile(second_stage_costs.values(), base_data.risk_information.cvar_alpha)     #0.8
+        
+        first_stage_emission_costs = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
+
+        #LAST PART = value_at_risk
+
+        total_emission_cost_contribution = (first_stage_emission_costs + 1/len(scenario_names)*sum(second_stage_emission_costs.values()) + 
+                                                LAST PART)
+        
+        #ssc_without_emission = {scen_name:None for scen_name in scenario_names}
+
+
+        base_data.risk_information.cvar_coeff       
+        base_data.risk_information.cvar_alpha 
+        second_stage_costs
 
             #return [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount]
 

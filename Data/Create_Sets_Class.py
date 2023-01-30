@@ -121,6 +121,7 @@ class TransportSets():
         self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios) #TODO: check performance of this
         self.scenario_information_EV = ScenarioInformation(self.prefix,'EV_scenario') 
 
+        self.risk_information = None
 
 
     def construct_pyomo_data(self):
