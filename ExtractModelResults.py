@@ -231,9 +231,9 @@ class OutputData():
         ######################################
         ### COSTS WITHOUT EMISSION PENALTY ###
         
-        value_at_risk = np.quantile(second_stage_costs.values(), base_data.risk_information.cvar_alpha)     #0.8
+        #value_at_risk = np.quantile(second_stage_costs.values(), base_data.risk_information.cvar_alpha)     #0.8
         
-        first_stage_emission_costs = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
+        #first_stage_emission_costs = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
 
         #LAST PART = value_at_risk
 
