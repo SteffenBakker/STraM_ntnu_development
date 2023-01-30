@@ -106,7 +106,9 @@ def scenario_denouement(rank, scenario_name, scenario):
 def option_settings_ef():   
     options = {}
     options["solvername"] = "gurobi"
-    options["solver_options"] = {'MIPGap':MIPGAP}  # 'TimeLimit':600 (seconds)
+    options["solver_options"] = {'MIPGap':MIPGAP,
+                                'Method':2, #https://www.gurobi.com/documentation/10.0/refman/method.html#parameter:Method
+                                }  # 'TimeLimit':600 (seconds)
     #["NumericFocus"] = 3 , 0 is automatic, 1 is low precision but fast #  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
     # "ScaleFlag" = 2  , geometric mean scaling  https://www.gurobi.com/documentation/10.0/refman/scaleflag.html#parameter:ScaleFlag
     # https://www.gurobi.com/documentation/10.0/refman/objscale.html#parameter:ObjScale
