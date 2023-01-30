@@ -38,9 +38,14 @@ THE ROCKS OPENMPI LEADS TO AN ERROR!! IT INTERFERES WITH MPI-SPPY
 	git clean -fxd
 	git reset –-hard     (write this out to prevent error)
 	
-	git add "file or directory" 		STAGING                           
+	git reset --hard HEAD~1
+
+
+	git add "file or directory" 		STAGING  
+	git reset HEAD -- FILE_NAME                          
+	
 	git commit -m "cluster_output"
-	git log
+	
 	git push
 
 7. Create jobs
