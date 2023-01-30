@@ -237,8 +237,8 @@ class OutputData():
 
         #LAST PART = value_at_risk
 
-        total_emission_cost_contribution = (first_stage_emission_costs + 1/len(scenario_names)*sum(second_stage_emission_costs.values()) + 
-                                                LAST PART)
+        #total_emission_cost_contribution = (first_stage_emission_costs + 1/len(scenario_names)*sum(second_stage_emission_costs.values()) + 
+        #                                        LAST PART)
         
         #ssc_without_emission = {scen_name:None for scen_name in scenario_names}
 
