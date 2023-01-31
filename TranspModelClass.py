@@ -580,12 +580,12 @@ class TranspModel:
         for (a,f,p,t,weight)in x_flow_base_period_init:
             
             #fixing this goes slower
-            #self.model.x_flow[(a,f,p,t)].fix(weight)
+            self.model.x_flow[(a,f,p,t)].fix(weight)
             
-            self.model.x_flow[(a,f,p,t)].fixed = False
-            dev = 0.0001
-            self.model.x_flow[(a,f,p,t)].setub((1+dev)*weight)
-            self.model.x_flow[(a,f,p,t)].setlb((1-dev)*weight)
+            # self.model.x_flow[(a,f,p,t)].fixed = False
+            # dev = 0.0001
+            # self.model.x_flow[(a,f,p,t)].setub((1+dev)*weight)
+            # self.model.x_flow[(a,f,p,t)].setlb((1-dev)*weight)
             
 
     def solve_model(self):  #GENERAL way to solve a single deterministic model

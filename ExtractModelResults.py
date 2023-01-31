@@ -232,20 +232,40 @@ class OutputData():
         ### COSTS WITHOUT EMISSION PENALTY ###
         
         #value_at_risk = np.quantile(second_stage_costs.values(), base_data.risk_information.cvar_alpha)     #0.8
-        
-        #first_stage_emission_costs = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
+        # do not use this -> can lead to errors with discrete distributions. Only works in continuous time
+
+
+        first_stage_emission_costs = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
 
         #LAST PART = value_at_risk
 
-        #total_emission_cost_contribution = (first_stage_emission_costs + 1/len(scenario_names)*sum(second_stage_emission_costs.values()) + 
-        #                                        LAST PART)
+        lambda_weight = base_data.risk_information.cvar_coeff  
+        alpha_tail = base_data.risk_information.cvar_alpha 
+
+        def calculate_cvar(costs_per_scenario,alpha):
+            prob_per_scenario = 1/len(costs_per_scenario.keys())
+            num_scenarios_worst = alpha
+            costs_per_scenario = dict(sorted(costs_per_scenario.items(), key=lambda x:x[1]))
+
+        footballers_goals = {'Eusebio': 120, 'Cruyff': 104, 'Pele': 150, 'Ronaldo': 132, 'Messi': 125}
+
+        sorted_footballers_by_goals = sorted(footballers_goals.items(), key=lambda x:x[1])
+        dict(sorted_footballers_by_goals)
+
+
+        second_stage_cost_with = 0
+        second_stage_cost_without = 0
+        cvar_difference = second_stage_cost_with - second_stage_cost_without
+
+        total_emission_cost_contribution = (first_stage_emission_costs + 
+                                            (1-lambda_weight)*1/len(scenario_names)*sum(second_stage_emission_costs.values()) + 
+                                            cvar_difference)
         
         #ssc_without_emission = {scen_name:None for scen_name in scenario_names}
 
 
-        base_data.risk_information.cvar_coeff       
-        base_data.risk_information.cvar_alpha 
-        second_stage_costs
+             
+        
 
             #return [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount]
 
