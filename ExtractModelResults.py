@@ -76,12 +76,13 @@ class OutputData():
         costs['MaxTranspPenaltyCost'] = {scen:0 for scen in scenario_names}
 
         second_stage_costs = {scen_name:None for scen_name in scenario_names}
+        second_stage_costs_no_emissions = {scen_name:None for scen_name in scenario_names}
         second_stage_emission_costs = {scen_name:None for scen_name in scenario_names}
         for (scen_name,scen_model) in scenario_names_and_models:
             # (scen_name,scen_model)=scenario_names_and_models[0]
             modell = scen_model
 
-            second_stage_costs[scen_name] = modell.SecondStageCosts.value
+            
 
             #############
             # Variables #
@@ -171,7 +172,6 @@ class OutputData():
                     weight = 0 
                 a_series2 = pd.Series([variable,t, weight, scen_name],index=total_emissions.columns)
                 total_emissions = pd.concat([total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)
-            second_stage_emission_costs[scen_name] = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_SECOND_STAGE)
             variable = 'q_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
@@ -203,7 +203,13 @@ class OutputData():
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
                         z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount],ignore_index=True)
 
-        
+
+            #SECOND STAGE COSTS
+            second_stage_costs[scen_name] = modell.SecondStageCosts.value
+            second_stage_emission_costs[scen_name] = sum(modell.z_emission[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_SECOND_STAGE)
+            second_stage_costs_no_emissions[scen_name] = second_stage_costs[scen_name] - second_stage_emission_costs[scen_name]
+
+        self.first_stage_emission_costs = sum(modell.z_emission[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
 
         #########
         # ----- #
@@ -235,37 +241,37 @@ class OutputData():
         # do not use this -> can lead to errors with discrete distributions. Only works in continuous time
 
 
-        first_stage_emission_costs = sum(modell.total_emissions[t].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
+        
 
         #LAST PART = value_at_risk
 
         lambda_weight = base_data.risk_information.cvar_coeff  
         alpha_tail = base_data.risk_information.cvar_alpha 
 
-        def calculate_cvar(costs_per_scenario,alpha):
-            prob_per_scenario = 1/len(costs_per_scenario.keys())
-            num_scenarios_worst = alpha
-            costs_per_scenario = dict(sorted(costs_per_scenario.items(), key=lambda x:x[1]))
+        def calculate_cvar(costs,alpha):  #costs is a list,  alpha is typically around 0.8, so we then take the 20% worst cases
+            prob_per_scenario = 1/len(costs)
+            fraction = (1-alpha)/prob_per_scenario   
+            num_scenarios_worst = np.floor(fraction)
+            remaining = fraction-num_scenarios_worst
+            costs.sort(reverse=True) #Reverse =True -> Descending
+            if 1-alpha > 0:
+                cvar = (sum(prob_per_scenario*costs[i] for i in range(int(num_scenarios_worst))) + 
+                        prob_per_scenario*remaining*costs[int(num_scenarios_worst)])/(1-alpha)
+            else:
+                cvar = 0
+            return cvar
+    
+        if not EV_problem:
 
-        footballers_goals = {'Eusebio': 120, 'Cruyff': 104, 'Pele': 150, 'Ronaldo': 132, 'Messi': 125}
-
-        sorted_footballers_by_goals = sorted(footballers_goals.items(), key=lambda x:x[1])
-        dict(sorted_footballers_by_goals)
-
-
-        second_stage_cost_with = 0
-        second_stage_cost_without = 0
-        cvar_difference = second_stage_cost_with - second_stage_cost_without
-
-        total_emission_cost_contribution = (first_stage_emission_costs + 
-                                            (1-lambda_weight)*1/len(scenario_names)*sum(second_stage_emission_costs.values()) + 
-                                            cvar_difference)
-        
-        #ssc_without_emission = {scen_name:None for scen_name in scenario_names}
-
-
-             
-        
+            second_stage_cost_with = calculate_cvar(list(second_stage_costs.values()),alpha_tail)
+            second_stage_cost_without = calculate_cvar(list(second_stage_costs_no_emissions.values()),alpha_tail)
+            cvar_difference = second_stage_cost_with - second_stage_cost_without
+            self.avg_second_stage_emission_costs = 1/len(scenario_names)*sum(second_stage_emission_costs.values())
+            self.total_emission_cost_contribution = (self.first_stage_emission_costs + 
+                                                (1-lambda_weight)*self.avg_second_stage_emission_costs + 
+                                                lambda_weight*cvar_difference)
+            self.ob_function_value_without_emission = self.ob_function_value - self.total_emission_cost_contribution 
+            
 
             #return [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount]
 

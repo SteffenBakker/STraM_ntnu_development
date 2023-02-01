@@ -47,8 +47,9 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sol_method = 'ef'
+analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -96,7 +97,7 @@ def solve_init_model(base_data,risk_info):
 
     return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
 
-def construct_model_template(base_data,risk_info, 
+def construct_model_template_ef(base_data,risk_info, 
                             fix_first_time_period, x_flow_base,
                             fix_first_stage,first_stage_variables,
                             scenario_names,
@@ -122,7 +123,7 @@ def construct_model_template(base_data,risk_info,
 
     return ef
 
-def solve_model_template(ef):
+def solve_model_template_ef(ef):
 
     #  ---------  SOLVE MODEL  ---------    #
 
@@ -149,12 +150,12 @@ def solve_SP(base_data,risk_info, time_periods = None):
     else:
         base_data.update_time_periods(time_periods)
 
-    ef = construct_model_template(base_data,risk_info,
+    ef = construct_model_template_ef(base_data,risk_info,
                                 fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
                                 fix_first_stage=False,first_stage_variables=None,
                                 scenario_names=base_data.scenario_information.scenario_names,
                                 last_time_period=False)
-    ef = solve_model_template(ef)
+    ef = solve_model_template_ef(ef)
     
     return ef, base_data
 
@@ -180,11 +181,11 @@ def solve_EEV(base_data,risk_info,time_periods=None):
     print('')
     print('SOLVING EV')
     print('')
-    ef = construct_model_template(base_data,risk_info,
+    ef = construct_model_template_ef(base_data,risk_info,
                                 fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
                                 fix_first_stage=False,first_stage_variables=None,
                                 scenario_names=['BBB'])
-    ef = solve_model_template(ef)
+    ef = solve_model_template_ef(ef)
 
     output_EV = OutputData(ef,base_data,EV_problem=True)
     
@@ -199,11 +200,11 @@ def solve_EEV(base_data,risk_info,time_periods=None):
     print('')
     print('SOLVING EEV')
     print('')
-    ef = construct_model_template(base_data,risk_info,
+    ef = construct_model_template_ef(base_data,risk_info,
                                     fix_first_time_period=False, x_flow_base=x_flow_base_period_init,
                                     fix_first_stage=True,first_stage_variables=output_EV,
                                     scenario_names=base_data.scenario_information.scenario_names)
-    ef = solve_model_template(ef)
+    ef = solve_model_template_ef(ef)
 
     return ef, base_data
 
@@ -231,13 +232,23 @@ def main(analysis_type):
     
     # solve model
     if analysis_type == "SP":
-        ef, base_data = solve_SP(base_data,risk_info,time_periods=time_periods)
+        if sol_method == 'ef':
+            ef, base_data = solve_SP(base_data,risk_info,time_periods=time_periods)
+        elif sol_method == 'ph':
+            pass
     elif analysis_type == "EEV":
         ef, base_data = solve_EEV(base_data,risk_info,time_periods=time_periods)
     
     #  --------- SAVE OUTPUT ---------    #
 
-    file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios 
+    with open(r'Data//base_data_'+sheet_name_scenarios, 'wb') as data_file: 
+        pickle.dump(base_data, data_file)
+
+    #-----------------------------------
+
+    print("Dumping data in pickle file...", end="")
+
+    file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
     if NoBalancingTrips:
         file_string = file_string +'_NoBalancingTrips'
     output = OutputData(ef,base_data,EV_problem=False)
@@ -246,11 +257,6 @@ def main(analysis_type):
         print("Dumping output in pickle file...", end="")
         pickle.dump(output, output_file)
         print("done.")
-
-    print("Dumping data in pickle file...", end="")
-    
-    with open(r'Data//base_data_'+sheet_name_scenarios, 'wb') as data_file: 
-        pickle.dump(base_data, data_file)
     
     print("done.")
     sys.stdout.flush()
@@ -265,12 +271,12 @@ def last_time_period_run():
     base_data.last_time_period = True
     base_data.combined_sets()
 
-    ef = construct_model_template(base_data,risk_info,
+    ef = construct_model_template_ef(base_data,risk_info,
                                 fix_first_time_period=False, x_flow_base=None,
                                 fix_first_stage=False,first_stage_variables=None,
                                 scenario_names=base_data.scenario_information.scenario_names,
                                 last_time_period=True)
-    ef = solve_model_template(ef)
+    ef = solve_model_template_ef(ef)
 
     file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios +'_last_period' 
     output = OutputData(ef,base_data,EV_problem=False)

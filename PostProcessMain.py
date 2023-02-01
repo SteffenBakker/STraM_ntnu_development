@@ -13,10 +13,10 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "SP" #EV, EEV, 'SP
+analyses_type = "EEV" #EV, EEV, 'SP
 scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
 noBalancingTrips = False
-last_time_period = True
+last_time_period = False
 
 #---------------------------------------------------------#
 #       Output data
@@ -450,9 +450,32 @@ output = mode_mix_calculations(output,base_data)
 # factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
 # return (decrease <= factor*self.model.q_max_transp_amount[m,f,t])
 
+
+#---------------------------------------------------------#
+#       COST AND EMISSION TRADE-OFF
+#---------------------------------------------------------#
+print('--------------------------')
+
+output.emission_stats = output.total_emissions.groupby('time_period').agg(
+        AvgEmission=('weight', np.mean),
+        Std=('weight', np.std))
+output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
+print('Average emissions (in Million TonnesCo2):')
+print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR/10**9) #this becomes Million TonnesCO2         
+
+print('objective function value: ')
+print(output.ob_function_value*SCALING_FACTOR/10**9)
+print('objective function value without emission penalty (Billion NOK): ')
+print(output.ob_function_value_without_emission*SCALING_FACTOR/10**9) #without emission penalty
+
+#2000NOK per Tonne CO2 is this in line? Do the comparison for
+
 #---------------------------------------------------------#
 #       DEMAND ANALYSIS
 #---------------------------------------------------------#
+
+print('--------------------------')
+
 
 base_data.D_DEMAND_AGGR
 total_demand = {t:0 for t in base_data.T_TIME_PERIODS}
