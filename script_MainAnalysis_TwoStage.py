@@ -17,6 +17,8 @@ from Data.settings import *
 
 import mpisppy.utils.sputils as sputils
 from solver_and_scenario_settings import scenario_creator
+from mpisppy.opt.ph import PH
+
 
 #Pyomo
 import pyomo.opt   # we need SolverFactory,SolverStatus,TerminationCondition
@@ -47,8 +49,8 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-sol_method = 'ef'
-analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+solution_method = 'ef'   #ef or ph
+analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -159,6 +161,88 @@ def solve_SP(base_data,risk_info, time_periods = None):
     
     return ef, base_data
 
+
+def solve_SP_ph(base_data,risk_info, time_periods = None):
+
+    #first solve the init model to initialize values
+
+    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+
+    base_data.init_data = False
+    if time_periods == None:
+        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
+    else:
+        base_data.update_time_periods(time_periods)
+
+    if True:
+        #AIM
+        options = {}
+        options["asynchronousPH"] = False
+        options["solvername"] = "gurobipersistent"   #or gurobipersistent
+        options["PHIterLimit"] = 4    #TO DO: INCREASE
+        options["defaultPHrho"] = 1
+        options["convthresh"] = 0.0001
+        options["subsolvedirectives"] = None
+        options["verbose"] = True
+        options["display_timing"] = True
+        options["display_progress"] = True
+        options["iter0_solver_options"] = None
+        options["iterk_solver_options"] = None
+        
+        # options["xhat_specific_options"] = {"xhat_solver_options":
+        #                                       options["iterk_solver_options"],
+        #                                       "xhat_scenario_dict": \
+        #                                       {"ROOT": "Scen1",
+        #                                        "ROOT_0": "Scen1",
+        #                                        "ROOT_1": "Scen4",
+        #                                        "ROOT_2": "Scen7"},
+        #                                       "csvname": "specific.csv"}
+
+    else:
+        #EXAMPLE: https://mpi-sppy.readthedocs.io/en/latest/examples.html#aircond
+        options = {
+            "solver_name": "gurobi_persistent",
+            "PHIterLimit": 15,
+            "defaultPHrho": 10,
+            "convthresh": 1e-7,
+            "verbose": False,
+            "display_progress": False,
+            "display_timing": False,
+            "iter0_solver_options": dict(),
+            "iterk_solver_options": dict(),
+        }
+
+    scenario_creator_kwargs = {'base_data':base_data, 
+                                'fix_first_time_period':True,'x_flow_base_period_init':x_flow_base_period_init,
+                                'fix_first_stage':False, 'first_stage_variables':None,
+                                "risk_info":risk_info,
+                                'NoBalancingTrips':NoBalancingTrips,
+                                'last_time_period':False}
+
+    ph = PH(
+        options = options,
+        all_scenario_names = base_data.scenario_information.scenario_names,
+        scenario_creator= scenario_creator,
+        scenario_creator_kwargs = scenario_creator_kwargs
+    )
+
+    ph.ph_main()
+    print(ph)
+
+    # ef = construct_model_template_ef(base_data,risk_info,
+    #                             fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
+    #                             fix_first_stage=False,first_stage_variables=None,
+    #                             scenario_names=base_data.scenario_information.scenario_names,
+    #                             last_time_period=False)
+    # ef = solve_model_template_ef(ef)
+    
+    return ph, base_data
+
+
+
+    
+
+
 def solve_EEV(base_data,risk_info,time_periods=None):
 
     #first solve the init model to initialize values
@@ -229,13 +313,13 @@ def main(analysis_type):
     base_data.risk_information = risk_info
     
     #     --------- MODEL  ---------   #
-    
+    ef=ph=None
     # solve model
     if analysis_type == "SP":
-        if sol_method == 'ef':
+        if solution_method == 'ef':
             ef, base_data = solve_SP(base_data,risk_info,time_periods=time_periods)
-        elif sol_method == 'ph':
-            pass
+        elif solution_method == 'ph':
+            ph, base_data = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
     elif analysis_type == "EEV":
         ef, base_data = solve_EEV(base_data,risk_info,time_periods=time_periods)
     
@@ -246,20 +330,21 @@ def main(analysis_type):
 
     #-----------------------------------
 
-    print("Dumping data in pickle file...", end="")
+    if True:
+        print("Dumping data in pickle file...", end="")
 
-    file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
-    if NoBalancingTrips:
-        file_string = file_string +'_NoBalancingTrips'
-    output = OutputData(ef,base_data,EV_problem=False)
+        file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
+        if NoBalancingTrips:
+            file_string = file_string +'_NoBalancingTrips'
+        output = OutputData(ef,ph,base_data,solution_method,EV_problem=False)
 
-    with open(r"Data//" + file_string, 'wb') as output_file: 
-        print("Dumping output in pickle file...", end="")
-        pickle.dump(output, output_file)
+        with open(r"Data//" + file_string, 'wb') as output_file: 
+            print("Dumping output in pickle file...", end="")
+            pickle.dump(output, output_file)
+            print("done.")
+        
         print("done.")
-    
-    print("done.")
-    sys.stdout.flush()
+        sys.stdout.flush()
 
 def last_time_period_run():
     

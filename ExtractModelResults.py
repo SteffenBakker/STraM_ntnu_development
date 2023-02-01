@@ -17,7 +17,7 @@ from Data.settings import *
 
 class OutputData():
     #ef,base_data,instance_run,EV_problem
-    def __init__(self,ef,base_data,EV_problem):# or (self)
+    def __init__(self,ef,ph,base_data,solution_method,EV_problem):# or (self)
         
         self.all_variables = None
         self.costs = None
@@ -39,23 +39,35 @@ class OutputData():
         if EV_problem:
             self.scenarios = ['BBB']
         else:
-            for scen in sputils.ef_scenarios(ef):
+            if solution_method == 'ef':
+                scenarios = sputils.ef_scenarios(ef)
+                self.ob_function_value = pyo.value(ef.EF_Obj)
+            elif solution_method == 'ph':
+                scenarios = ph.local_subproblems
+                self.ob_function_value = pyo.value(ef.EF_Obj)
+            for scen in scenarios:
                 self.scenarios.append(scen[0])
-        self.ob_function_value = pyo.value(ef.EF_Obj)
+            
         
-        self.extract_model_results(base_data,ef,EV_problem)
+        
+        self.extract_model_results(base_data,ef,ph,solution_method, EV_problem)
 
 
 
         
-    def extract_model_results(self,base_data,ef,EV_problem):  #currently only for extensive form
+    def extract_model_results(self,base_data,ef,ph,solution_method, EV_problem):  #currently only for extensive form
         
         scenario_names_and_models = []
         if EV_problem:
             scenario_names_and_models.append(('BBB',ef))
         else:
-            for scen in sputils.ef_scenarios(ef):
+            if solution_method == 'ef':
+                scenarios = sputils.ef_scenarios(ef)
+            elif solution_method == 'ph':
+                scenarios = ph.local_subproblems
+            for scen in scenarios:
                 scenario_names_and_models.append((scen[0],scen[1]))
+
         scenario_names = [snm[0] for snm in scenario_names_and_models]
 
 
