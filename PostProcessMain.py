@@ -13,7 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "EEV" #EV, EEV, 'SP
+analyses_type = "SP" #EV, EEV, 'SP
 scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
 noBalancingTrips = False
 last_time_period = False

@@ -56,7 +56,7 @@ class TranspModel:
         self.model.x_flow = Var(self.data.AFPT, within=NonNegativeReals)
         self.model.b_flow = Var(self.data.AFVT, within=NonNegativeReals)
         self.model.h_path = Var(self.data.KPT, within=NonNegativeReals)# flow on paths K,p
-        self.model.h_path_balancing = Var(self.data.KVT, within=NonNegativeReals)# flow on paths K,p
+        self.model.h_path_balancing = Var(self.data.KVT, within=NonNegativeReals,initialize=1)# flow on paths K,p
         if self.NoBalancingTrips:
             for (i,j,m,r,f,v,t) in self.data.AFVT:
                 a = (i,j,m,r)
@@ -263,13 +263,17 @@ class TranspModel:
 
             # FLEET BALANCING
 
-            def FleetBalance(model, n,m,f,v, t):
+            deviation = 1
+
+            def FleetBalance1(model, n,m,f,v, t):
                 disbalance_in_node = (sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_IN[(n,m)] for p in self.data.PV_PRODUCTS[v]) - 
                         sum(self.model.x_flow[(a, f, p, t)] for a in self.data.ANM_ARCS_OUT[(n,m)] for p in self.data.PV_PRODUCTS[v]))  
                 empty_trips = (sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_OUT[(n,m)]) -
                             sum(self.model.b_flow[(a, f, v, t)] for a in self.data.ANM_ARCS_IN[(n,m)]))            
-                return (disbalance_in_node == empty_trips)
-            self.model.FleetBalance = Constraint(self.data.NMFVT_CONSTR, rule=FleetBalance)
+                return  (-deviation, disbalance_in_node - empty_trips,deviation)  
+            self.model.FleetBalance1 = Constraint(self.data.NMFVT_CONSTR, rule=FleetBalance1)
+
+
 
         #-----------------------------------------------#
 

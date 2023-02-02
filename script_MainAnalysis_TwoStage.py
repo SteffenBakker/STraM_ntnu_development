@@ -26,6 +26,7 @@ import pyomo.opt.base as mobase
 from pyomo.environ import *
 import pyomo.environ as pyo
 from pyomo.util.infeasible import log_infeasible_constraints
+from pyomo.solvers.plugins.solvers.persistent_solver import PersistentSolver
 
 import pyomo.environ as pyo
 import numpy as np
@@ -51,7 +52,7 @@ distribution_on_cluster = False  #is the code to be run on the cluster using the
 
 solution_method = 'ef'   #ef or ph
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -161,7 +162,6 @@ def solve_SP(base_data,risk_info, time_periods = None):
     
     return ef, base_data
 
-
 def solve_SP_ph(base_data,risk_info, time_periods = None):
 
     #first solve the init model to initialize values
@@ -178,25 +178,25 @@ def solve_SP_ph(base_data,risk_info, time_periods = None):
         #AIM
         options = {}
         options["asynchronousPH"] = False
-        options["solvername"] = "gurobipersistent"   #or gurobipersistent
-        options["PHIterLimit"] = 4    #TO DO: INCREASE
+        options["solvername"] = "gurobi"   #gurobi or gurobi_persistent
+        options["PHIterLimit"] = 10    #TO DO: INCREASE
         options["defaultPHrho"] = 1
         options["convthresh"] = 0.0001
         options["subsolvedirectives"] = None
-        options["verbose"] = True
+        options["verbose"] = False
         options["display_timing"] = True
         options["display_progress"] = True
-        options["iter0_solver_options"] = None
-        options["iterk_solver_options"] = None
+        options["iter0_solver_options"] = None   #"dict() or None
+        options["iterk_solver_options"] = None  #dict() or None
         
-        # options["xhat_specific_options"] = {"xhat_solver_options":
-        #                                       options["iterk_solver_options"],
-        #                                       "xhat_scenario_dict": \
-        #                                       {"ROOT": "Scen1",
-        #                                        "ROOT_0": "Scen1",
-        #                                        "ROOT_1": "Scen4",
-        #                                        "ROOT_2": "Scen7"},
-        #                                       "csvname": "specific.csv"}
+        options["xhat_specific_options"] = {"xhat_solver_options":
+                                              options["iterk_solver_options"],
+                                              "xhat_scenario_dict": \
+                                              {"ROOT": "Scen1",
+                                               "ROOT_0": "Scen1",
+                                               "ROOT_1": "Scen4",
+                                               "ROOT_2": "Scen7"},
+                                              "csvname": "specific.csv"}
 
     else:
         #EXAMPLE: https://mpi-sppy.readthedocs.io/en/latest/examples.html#aircond
@@ -218,7 +218,7 @@ def solve_SP_ph(base_data,risk_info, time_periods = None):
                                 "risk_info":risk_info,
                                 'NoBalancingTrips':NoBalancingTrips,
                                 'last_time_period':False}
-
+    
     ph = PH(
         options = options,
         all_scenario_names = base_data.scenario_information.scenario_names,
@@ -226,8 +226,18 @@ def solve_SP_ph(base_data,risk_info, time_periods = None):
         scenario_creator_kwargs = scenario_creator_kwargs
     )
 
-    ph.ph_main()
-    print(ph)
+    (conv,Eobj,trivial_bound) = ph.ph_main()
+    print('Eobj: ', Eobj, trivial_bound)
+    print('Trivial bound: ', trivial_bound)
+
+    # The convergence value (not easily interpretable).
+    # Eobj (float or `None`): If `finalize=True`, this is the expected, weighted  objective value with the proximal term included. 
+    # Trivial_bound (float):                     The "trivial bound", computed by solving the model with nononanticipativity constraints (immediately after iter 0).
+
+    #print(ph)
+    #print(dir(ph))
+    #print(pyo.value(ph.Eobjective))
+    
 
     # ef = construct_model_template_ef(base_data,risk_info,
     #                             fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
@@ -236,7 +246,7 @@ def solve_SP_ph(base_data,risk_info, time_periods = None):
     #                             last_time_period=False)
     # ef = solve_model_template_ef(ef)
     
-    return ph, base_data
+    return ph, base_data, Eobj
 
 
 
@@ -318,8 +328,9 @@ def main(analysis_type):
     if analysis_type == "SP":
         if solution_method == 'ef':
             ef, base_data = solve_SP(base_data,risk_info,time_periods=time_periods)
+            Eobj=None
         elif solution_method == 'ph':
-            ph, base_data = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
+            ph, base_data, Eobj = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
     elif analysis_type == "EEV":
         ef, base_data = solve_EEV(base_data,risk_info,time_periods=time_periods)
     
@@ -336,7 +347,7 @@ def main(analysis_type):
         file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
         if NoBalancingTrips:
             file_string = file_string +'_NoBalancingTrips'
-        output = OutputData(ef,ph,base_data,solution_method,EV_problem=False)
+        output = OutputData(ef,ph,base_data,solution_method,EV_problem=False, Eobj=Eobj)
 
         with open(r"Data//" + file_string, 'wb') as output_file: 
             print("Dumping output in pickle file...", end="")

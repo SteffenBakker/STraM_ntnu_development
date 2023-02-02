@@ -17,7 +17,7 @@ from Data.settings import *
 
 class OutputData():
     #ef,base_data,instance_run,EV_problem
-    def __init__(self,ef,ph,base_data,solution_method,EV_problem):# or (self)
+    def __init__(self,ef,ph,base_data,solution_method,EV_problem,Eobj=None):# or (self)
         
         self.all_variables = None
         self.costs = None
@@ -42,11 +42,13 @@ class OutputData():
             if solution_method == 'ef':
                 scenarios = sputils.ef_scenarios(ef)
                 self.ob_function_value = pyo.value(ef.EF_Obj)
+                for scen in scenarios:
+                    self.scenarios.append(scen[0])
             elif solution_method == 'ph':
                 scenarios = ph.local_subproblems
-                self.ob_function_value = pyo.value(ef.EF_Obj)
-            for scen in scenarios:
-                self.scenarios.append(scen[0])
+                self.ob_function_value = Eobj  #pyo.value(ph.EF_Obj)
+                for scen in scenarios:
+                    self.scenarios.append(scen)
             
         
         
@@ -63,10 +65,18 @@ class OutputData():
         else:
             if solution_method == 'ef':
                 scenarios = sputils.ef_scenarios(ef)
+                for scen in scenarios:
+                    scenario_names_and_models.append((scen[0],scen[1]))   #scenario, model
             elif solution_method == 'ph':
                 scenarios = ph.local_subproblems
-            for scen in scenarios:
-                scenario_names_and_models.append((scen[0],scen[1]))
+                for scen in scenarios:
+                    modell = ph.local_subproblems[scen]
+                    scenario_names_and_models.append((scen,modell))
+
+        for e in ph.local_subproblems:
+            modell = ph.local_subproblems[e]
+
+        modell = ph.local_subproblems[e]
 
         scenario_names = [snm[0] for snm in scenario_names_and_models]
 
