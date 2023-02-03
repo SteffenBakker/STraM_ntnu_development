@@ -25,7 +25,7 @@ def scenario_creator(scenario_name, **kwargs):
     NoBalancingTrips = kwargs.get('NoBalancingTrips')
     last_time_period = kwargs.get('last_time_period')
 
-    #base_data.update_scenario_dependent_parameters(scenario_name)
+    base_data.update_scenario_dependent_parameters(scenario_name)
     
     #deepcopy is slower than repetitively constructing the models.
     #model_instance = TranspModel(data=base_data) #OLD

@@ -50,9 +50,9 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-solution_method = 'ef'   #ef or ph
+solution_method = 'ph'   #ef or ph
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -178,7 +178,7 @@ def solve_SP_ph(base_data,risk_info, time_periods = None):
         #AIM
         options = {}
         options["asynchronousPH"] = False
-        options["solvername"] = "gurobi"   #gurobi or gurobi_persistent
+        options["solvername"] = "gurobi_persistent"   #gurobi or gurobi_persistent, both seem to work
         options["PHIterLimit"] = 10    #TO DO: INCREASE
         options["defaultPHrho"] = 1
         options["convthresh"] = 0.0001
@@ -189,14 +189,16 @@ def solve_SP_ph(base_data,risk_info, time_periods = None):
         options["iter0_solver_options"] = None   #"dict() or None
         options["iterk_solver_options"] = None  #dict() or None
         
-        options["xhat_specific_options"] = {"xhat_solver_options":
-                                              options["iterk_solver_options"],
-                                              "xhat_scenario_dict": \
-                                              {"ROOT": "Scen1",
-                                               "ROOT_0": "Scen1",
-                                               "ROOT_1": "Scen4",
-                                               "ROOT_2": "Scen7"},
-                                              "csvname": "specific.csv"}
+        #The following options do not seem to do much. I get the same results
+
+        # options["xhat_specific_options"] = {"xhat_solver_options":
+        #                                       options["iterk_solver_options"],
+        #                                       "xhat_scenario_dict": \
+        #                                       {"ROOT": "Scen1",
+        #                                        "ROOT_0": "Scen1",
+        #                                        "ROOT_1": "Scen4",
+        #                                        "ROOT_2": "Scen7"},
+        #                                       "csvname": "specific.csv"}
 
     else:
         #EXAMPLE: https://mpi-sppy.readthedocs.io/en/latest/examples.html#aircond
