@@ -35,7 +35,7 @@ THE ROCKS OPENMPI LEADS TO AN ERROR!! IT INTERFERES WITH MPI-SPPY
 	
 
 	git pull 				(get the most recent version)
-	git clean -fxd
+	git clean -fxd         (this one removes the files, useful)
 	git reset –-hard     (write this out to prevent error)
 	
 	git reset --hard HEAD~1

@@ -50,7 +50,6 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-solution_method = 'ph'   #ef or ph
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
@@ -71,7 +70,6 @@ def solve_init_model(base_data,risk_info):
         
     #set the data to focus only on base year
 
-    
     base_data.init_data = True
     base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_INIT
     base_data.combined_sets()
@@ -79,9 +77,18 @@ def solve_init_model(base_data,risk_info):
     InitModel = TranspModel(data=base_data, risk_info=risk_info)
     InitModel.NoBalancingTrips = NoBalancingTrips
     InitModel.solve_base_year = True
-    print('solving initialization model')
+    print('-----------------')
+    print('constructing initialization model')
+    start = time.time()
     InitModel.construct_model()
+    print("Time used constructing the model:", time.time() - start)
+    print('-----------------')
+
+    print('solving initialization model')
+    start = time.time()
     result = InitModel.opt.solve(InitModel.model, tee=True, symbolic_solver_labels=True, keepfiles=False)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)
+    print("Time used solving the model:", time.time() - start)
+    print('-----------------')
 
     if result.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
         print('the model is infeasible')
@@ -93,167 +100,74 @@ def solve_init_model(base_data,risk_info):
         a = (i,j,m,r)
         for f in base_data.FM_FUEL[m]:
             for p in base_data.P_PRODUCTS:
-                weight = InitModel.model.x_flow[(a,f,p,t)].value
-                if weight > 0:
-                    x_flow_base_period_init.append((a,f,p,t,weight))
-    EMISSION_CAP_ABSOLUTE_BASE_YEAR = InitModel.model.total_emissions[base_data.T_TIME_PERIODS[0]].value
+                for s in base_data.S_SCENARIOS:
+                    weight = InitModel.model.x_flow[(a,f,p,t,s)].value
+                    if weight > 0:
+                        x_flow_base_period_init.append((a,f,p,t,s,weight))
+        EMISSION_CAP_ABSOLUTE_BASE_YEAR = InitModel.model.total_emissions[base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0]].value  #same emissions across all scenarios!
 
     return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
 
-def construct_model_template_ef(base_data,risk_info, 
-                            fix_first_time_period, x_flow_base,
-                            fix_first_stage,first_stage_variables,
-                            scenario_names,
-                            last_time_period=False):
+def construct_and_solve_ef(base_data,
+                            risk_info, 
+                            last_time_period=False,
+                            time_periods = None):
+    # ------ SOLVE INIT MODEL ----------#
+    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+
+    # ------ CHANGE DATA BACK TO STANDARD ----------#
+
+    base_data.init_data = False
+    if time_periods == None:
+        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
+    else:
+        base_data.update_time_periods(time_periods)
+
+    # ------ CONSTRUCT MODEL ----------#
 
     print("Constructing model...", end="", flush=True)
+
     start = time.time()
-    scenario_creator_kwargs = {'base_data':base_data, 
-                                'fix_first_time_period':fix_first_time_period,'x_flow_base_period_init':x_flow_base,
-                                'fix_first_stage':fix_first_stage, 'first_stage_variables':first_stage_variables,
-                                "risk_info":risk_info,
-                                'NoBalancingTrips':NoBalancingTrips,
-                                'last_time_period':last_time_period}
+    model_instance = TranspModel(data=base_data, risk_info=risk_info)
+    model_instance.NoBalancingTrips = NoBalancingTrips
+    model_instance.last_time_period = last_time_period
+    model_instance.construct_model()
+    model_instance.fix_variables_first_time_period(x_flow_base_period_init)
+    
+    #if fix_first_stage:
+    #    model_instance.fix_variables_first_stage(output_EV)
 
-    ef = sputils.create_EF(
-        scenario_names,  #scenario_names
-        scenario_creator,
-        scenario_creator_kwargs = scenario_creator_kwargs,
-        nonant_for_fixed_vars = True #  MAYBE FALSE FOR VSS? (bool--optional) – If True, enforces non-anticipativity constraints for all variables, including those which have been fixed. Default is True.
-    ) 
-    print("done.", flush=True)
-    print("Time used constructing the model:", time.time() - start, flush=True)
+    print("Done constructing model.")
+    print("Time used constructing the model:", time.time() - start)
+    print("----------", end="", flush=True)
 
-    return ef
-
-def solve_model_template_ef(ef):
 
     #  ---------  SOLVE MODEL  ---------    #
 
     print("Solving model...")
     start = time.time()
     #options = option_settings_ef()
-    solver = pyo.SolverFactory('gurobi')  #options["solvername"]
-    solver.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
-    solver.solve(ef, tee= True)  #logfile= r'Data/Instance_results_write_to_here/Instance'+instance_run+'/logfile'+instance_run+'.log',
+    model_instance.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
+    result = model_instance.opt.solve(model_instance.model, 
+                                    tee=True, 
+                                    symbolic_solver_labels=True, 
+                                    keepfiles=False)  
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
+    print("----------", end="", flush=True)
 
-    return ef
+    return model_instance,result
 
-def solve_SP(base_data,risk_info, time_periods = None):
+def construct_and_solve_EEV(base_data,risk_info):
 
-    #first solve the init model to initialize values
-
-    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
-
-    base_data.init_data = False
-    if time_periods == None:
-        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
-    else:
-        base_data.update_time_periods(time_periods)
-
-    ef = construct_model_template_ef(base_data,risk_info,
-                                fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
-                                fix_first_stage=False,first_stage_variables=None,
-                                scenario_names=base_data.scenario_information.scenario_names,
-                                last_time_period=False)
-    ef = solve_model_template_ef(ef)
+    #1: set scenario data to EV
     
-    return ef, base_data
+    #2: solve init model
 
-def solve_SP_ph(base_data,risk_info, time_periods = None):
+    #3: solve EV
 
-    #first solve the init model to initialize values
-
-    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
-
-    base_data.init_data = False
-    if time_periods == None:
-        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
-    else:
-        base_data.update_time_periods(time_periods)
-
-    if True:
-        #AIM
-        options = {}
-        options["asynchronousPH"] = False
-        options["solvername"] = "gurobi_persistent"   #gurobi or gurobi_persistent, both seem to work
-        options["PHIterLimit"] = 10    #TO DO: INCREASE
-        options["defaultPHrho"] = 1
-        options["convthresh"] = 0.0001
-        options["subsolvedirectives"] = None
-        options["verbose"] = False
-        options["display_timing"] = True
-        options["display_progress"] = True
-        options["iter0_solver_options"] = None   #"dict() or None
-        options["iterk_solver_options"] = None  #dict() or None
-        
-        #The following options do not seem to do much. I get the same results
-
-        # options["xhat_specific_options"] = {"xhat_solver_options":
-        #                                       options["iterk_solver_options"],
-        #                                       "xhat_scenario_dict": \
-        #                                       {"ROOT": "Scen1",
-        #                                        "ROOT_0": "Scen1",
-        #                                        "ROOT_1": "Scen4",
-        #                                        "ROOT_2": "Scen7"},
-        #                                       "csvname": "specific.csv"}
-
-    else:
-        #EXAMPLE: https://mpi-sppy.readthedocs.io/en/latest/examples.html#aircond
-        options = {
-            "solver_name": "gurobi_persistent",
-            "PHIterLimit": 15,
-            "defaultPHrho": 10,
-            "convthresh": 1e-7,
-            "verbose": False,
-            "display_progress": False,
-            "display_timing": False,
-            "iter0_solver_options": dict(),
-            "iterk_solver_options": dict(),
-        }
-
-    scenario_creator_kwargs = {'base_data':base_data, 
-                                'fix_first_time_period':True,'x_flow_base_period_init':x_flow_base_period_init,
-                                'fix_first_stage':False, 'first_stage_variables':None,
-                                "risk_info":risk_info,
-                                'NoBalancingTrips':NoBalancingTrips,
-                                'last_time_period':False}
-    
-    ph = PH(
-        options = options,
-        all_scenario_names = base_data.scenario_information.scenario_names,
-        scenario_creator= scenario_creator,
-        scenario_creator_kwargs = scenario_creator_kwargs
-    )
-
-    (conv,Eobj,trivial_bound) = ph.ph_main()
-    print('Eobj: ', Eobj, trivial_bound)
-    print('Trivial bound: ', trivial_bound)
-
-    # The convergence value (not easily interpretable).
-    # Eobj (float or `None`): If `finalize=True`, this is the expected, weighted  objective value with the proximal term included. 
-    # Trivial_bound (float):                     The "trivial bound", computed by solving the model with nononanticipativity constraints (immediately after iter 0).
-
-    #print(ph)
-    #print(dir(ph))
-    #print(pyo.value(ph.Eobjective))
-    
-
-    # ef = construct_model_template_ef(base_data,risk_info,
-    #                             fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
-    #                             fix_first_stage=False,first_stage_variables=None,
-    #                             scenario_names=base_data.scenario_information.scenario_names,
-    #                             last_time_period=False)
-    # ef = solve_model_template_ef(ef)
-    
-    return ph, base_data, Eobj
-
-
-
-    
-
+    #4: solve EEV
+    x=2
 
 def solve_EEV(base_data,risk_info,time_periods=None):
 
@@ -325,14 +239,11 @@ def main(analysis_type):
     base_data.risk_information = risk_info
     
     #     --------- MODEL  ---------   #
-    ef=ph=None
     # solve model
     if analysis_type == "SP":
-        if solution_method == 'ef':
-            ef, base_data = solve_SP(base_data,risk_info,time_periods=time_periods)
-            Eobj=None
-        elif solution_method == 'ph':
-            ph, base_data, Eobj = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
+        model_instance,result = construct_and_solve_ef(base_data,risk_info,time_periods=time_periods)
+        #elif solution_method == 'ph':   #OTHER BRANCH
+        #    ph, base_data, Eobj = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
     elif analysis_type == "EEV":
         ef, base_data = solve_EEV(base_data,risk_info,time_periods=time_periods)
     
@@ -340,16 +251,17 @@ def main(analysis_type):
 
     with open(r'Data//base_data_'+sheet_name_scenarios, 'wb') as data_file: 
         pickle.dump(base_data, data_file)
+    print("Dumping data in pickle file...", end="")
 
     #-----------------------------------
 
     if True:
-        print("Dumping data in pickle file...", end="")
+        
 
         file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
         if NoBalancingTrips:
             file_string = file_string +'_NoBalancingTrips'
-        output = OutputData(ef,ph,base_data,solution_method,EV_problem=False, Eobj=Eobj)
+        output = OutputData(model_instance,base_data)
 
         with open(r"Data//" + file_string, 'wb') as output_file: 
             print("Dumping output in pickle file...", end="")
@@ -358,6 +270,9 @@ def main(analysis_type):
         
         print("done.")
         sys.stdout.flush()
+
+
+
 
 def last_time_period_run():
     
@@ -394,13 +309,6 @@ if __name__ == "__main__":
     #last_time_period_run()
 
     
-
-
-
-
-
-
-
 
 
     # if profiling:

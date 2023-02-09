@@ -110,12 +110,6 @@ class TransportSets():
         self.init_data = init_data #set T_TIME_PERIODS to first period
         self.last_time_period = False #only solve last time period -> remove all operational constraints for the other periods
 
-        #read/construct data                
-        self.construct_pyomo_data()
-        if init_data:
-            self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
-        self.combined_sets()
-
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
         self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios) #TODO: check performance of this
@@ -123,6 +117,11 @@ class TransportSets():
 
         self.risk_information = None
 
+        #read/construct data                
+        self.construct_pyomo_data()
+        if init_data:
+            self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
+        self.combined_sets()
 
     def construct_pyomo_data(self):
 
@@ -135,7 +134,7 @@ class TransportSets():
         self.scaling_factor = SCALING_FACTOR #10E-5
         self.precision_digits = 6
 
-
+        self.S_SCENARIOS = self.scenario_information.scenario_names
 
         self.M_MODES = ["Road", "Rail", "Sea"]
 
@@ -522,8 +521,8 @@ class TransportSets():
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/Tkm
         self.E_EMISSIONS_NORMALIZED = {(m,f,p,t): 1000000 for m in self.M_MODES for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
-        self.C_TRANSP_COST = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
-                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
+        self.C_TRANSP_COST = {(i,j,m,r, f, p, t,s): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+                              for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS for s in self.S_SCENARIOS}   #UNIT: NOK/T
         self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
         self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
@@ -541,12 +540,22 @@ class TransportSets():
                         self.E_EMISSIONS_NORMALIZED[(m,f,p,y)] = row['Emissions (gCO2/Tkm)']
                         #compute base cost
                         self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)]), 2) 
-                        #initially, set scenario-dependent cost equal to base cost (will be changed by separate function later)
-                        self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] #(using same indices as above)
                         #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
                         self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * row['Emissions (gCO2/Tkm)'], 1)
                         #CO2 costs per tonne:
                         self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
+
+        for (i, j, m, r) in self.A_ARCS:
+                for f in self.FM_FUEL[m]:
+                    for p in self.P_PRODUCTS:
+                        for y in self.T_TIME_PERIODS:
+                            for s in self.S_SCENARIOS:
+                                if y in self.T_TIME_FIRST_STAGE_BASE: #only update second-stage costs!
+                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)] 
+                                elif y in self.T_TIME_SECOND_STAGE_BASE:
+                                #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
+                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)] 
+
 
         
         #find the "cheapest" product group per vehicle type. 
@@ -733,21 +742,23 @@ class TransportSets():
                 # if not mature, add bass diffusion model
                 self.tech_base_bass_model[(row['Mode'], row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
                 # set base bass model as active bass model
-                self.tech_active_bass_model[(row['Mode'] ,row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
+                #self.tech_active_bass_model[(row['Mode'] ,row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
                 # store variations
                 self.tech_scen_p_q_variation[(row['Mode'], row['Fuel'])] = row["p_q_variation"]
                 self.tech_scen_t_0_delay[(row['Mode'], row['Fuel'])] = row["t_0_delay"]
         
         self.R_TECH_READINESS_MATURITY = {} # contains the active maturity path (number between 0 and 100)
         # initialize R_TECH_READINESS_MATURITY at base path
-        for (m,f) in self.tech_is_mature:
-            if self.tech_is_mature[(m,f)]:
-                for year in self.T_TIME_PERIODS:    
-                    self.R_TECH_READINESS_MATURITY[(m, f, year)] = 100 # assumption: all mature technologies have 100% market potential
-            else:
-                for year in self.T_TIME_PERIODS:
-                    self.R_TECH_READINESS_MATURITY[(m, f, year)] = self.tech_base_bass_model[(m,f)].A(year) # compute maturity level based on base Bass diffusion model 
-        
+        for s in self.S_SCENARIOS:
+            for (m,f) in self.tech_is_mature:
+                if self.tech_is_mature[(m,f)]:
+                    for year in self.T_TIME_PERIODS:    
+                        self.R_TECH_READINESS_MATURITY[(m, f, year,s)] = 100 # assumption: all mature technologies have 100% market potential
+                else:
+                    for year in self.T_TIME_PERIODS:
+                        #we can remove this one!
+                        self.R_TECH_READINESS_MATURITY[(m, f, year,s)] = self.tech_base_bass_model[(m,f)].A(year) # compute maturity level based on base Bass diffusion model 
+            
 
         #Initializing transport work share in base year
         self.init_transport_share = pd.read_excel(self.prefix+r'init_mode_fuel_mix.xlsx',sheet_name="InitMix")
@@ -764,7 +775,61 @@ class TransportSets():
         for index, row in self.lifespan_data.iterrows():
             self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
 
-   
+          
+        #update R_TECH_READINESS_MATURITY based on scenario information
+        for s in self.S_SCENARIOS:
+            active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
+            for m in self.M_MODES:
+                for f in self.FM_FUEL[m]:
+                    if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
+                        cur_fg = self.scenario_information.mf_to_fg[(m,f)]
+                        cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
+                        # extract info from current base Bass model
+                        cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                        cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
+                        cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
+                                    
+                        # find current scenario's level of variation for q and p and delay for t_0 from base case
+                        cur_scen_p_q_variation = 0.0 
+                        cur_scen_t_0_delay = 0.0
+                        if cur_path_name == "base":
+                            cur_scen_p_q_variation = 0.0
+                            cur_scen_t_0_delay = 0.0
+                        if cur_path_name == "fast":
+                            cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
+                            cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
+                        elif cur_path_name == "slow":
+                            cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
+                            cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
+
+                        # construct scenario bass model
+                        cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
+                                                            cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
+                                                            cur_base_bass_model.m, 
+                                                            cur_base_bass_model.t_0 + cur_scen_t_0_delay)
+                        
+                        # set as active bass model
+                        self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
+
+                        # find start of second stage
+                        for t in self.T_TIME_PERIODS:
+                            if t not in self.T_TIME_FIRST_STAGE_BASE:
+                                start_of_second_stage = t
+                                break
+
+                        # fill R_TECH_READINESS_MATURITY based on current scenario bass model
+                        for t in self.T_TIME_PERIODS:
+                            if t in self.T_TIME_FIRST_STAGE_BASE:
+                                # first stage: follow base bass model
+                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = cur_base_bass_model.A(t)
+                            else:
+                                # second stage: use scenario bass model, with starting point A(2030) from base bass model
+                                t_init = start_of_second_stage #initialize diffusion at start of second stage
+                                A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
+                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = cur_scen_bass_model.A_from_starting_point(t,A_init,t_init)
+
+
+
     def combined_sets(self):
 
         
@@ -809,6 +874,10 @@ class TransportSets():
         if self.last_time_period:
             self.T_TIME_PERIODS_OPERATIONAL = [self.T_TIME_PERIODS[-1]]
 
+        #
+        #       WITHOUT SCENARIOS
+        #
+        
         #------------------------
         "Combined sets - time independent"
         #------------------------
@@ -818,10 +887,10 @@ class TransportSets():
 
         "Combined sets - time dependent"
 
-        self.TS = [(t) for t in self.T_TIME_PERIODS]
-        self.TS_CONSTR = [(t) for t in self.T_TIME_PERIODS_OPERATIONAL]
-        self.TS_NO_BASE_YEAR = [(t) for t in self.T_TIME_PERIODS if t is not self.T_TIME_PERIODS[0]]
-        self.TS_NO_BASE_YEAR_CONSTR = [(t) for t in self.T_TIME_PERIODS_OPERATIONAL if t is not self.T_TIME_PERIODS[0]]
+        self.TS = [(t,) for t in self.T_TIME_PERIODS]
+        self.TS_CONSTR = [(t,) for t in self.T_TIME_PERIODS_OPERATIONAL]
+        self.TS_NO_BASE_YEAR = [(t,) for t in self.T_TIME_PERIODS if t is not self.T_TIME_PERIODS[0]]
+        self.TS_NO_BASE_YEAR_CONSTR = [(t,) for t in self.T_TIME_PERIODS_OPERATIONAL if t is not self.T_TIME_PERIODS[0]]
 
 
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
@@ -830,10 +899,10 @@ class TransportSets():
         self.AVT_CONSTR = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS_OPERATIONAL] 
         
         
-        self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
-                         self.T_TIME_PERIODS]
+        self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,)  for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
+                         self.T_TIME_PERIODS ]
         self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
-                         self.T_TIME_PERIODS]  
+                         self.T_TIME_PERIODS ]  
         self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
         self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
@@ -872,6 +941,55 @@ class TransportSets():
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
         self.UT_UPG_CONSTR = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS_OPERATIONAL]  
 
+        #
+        #       WITH SCENARIOS
+        #
+
+        def combinations(list_of_tuples, list):
+            list_of_tuples2 = []
+            for tpl in list_of_tuples:
+                for l in list:
+                    tpl2 = tpl + (l,)
+                    list_of_tuples2.append(tpl2) 
+            return list_of_tuples2
+
+        self.AFPT_S =          combinations(self.AFPT,self.S_SCENARIOS)
+        self.APT_CONSTR_S =    combinations(self.APT_CONSTR,self.S_SCENARIOS)
+        self.AFVT_S =          combinations(self.AFVT,self.S_SCENARIOS)
+        self.AVT_CONSTR_S =    combinations(self.AVT_CONSTR,self.S_SCENARIOS)
+        self.EAT_RAIL_CONSTR_S = combinations(self.EAT_RAIL_CONSTR,self.S_SCENARIOS)
+        self.E_EDGES_RAIL_S = combinations(self.E_EDGES_RAIL,self.S_SCENARIOS)
+        self.EFT_CHARGE_S = combinations(self.EFT_CHARGE,self.S_SCENARIOS)
+        self.EFT_CHARGE_CONSTR_S = combinations(self.EFT_CHARGE_CONSTR,self.S_SCENARIOS)
+        self.ET_RAIL_S = combinations(self.ET_RAIL,self.S_SCENARIOS)
+        self.KPT_S = combinations(self.KPT,self.S_SCENARIOS)
+        self.KVT_S = combinations(self.KVT,self.S_SCENARIOS)
+        self.NCMT_S = combinations(self.NCMT,self.S_SCENARIOS)
+        self.MFT_S = combinations(self.MFT,self.S_SCENARIOS)
+        self.MFT_MATURITY_CONSTR_S = combinations(self.MFT_MATURITY_CONSTR,self.S_SCENARIOS)
+        self.MFT_NEW_YEARLY_S = combinations(self.MFT_NEW_YEARLY,self.S_SCENARIOS)
+        self.MFT_NEW_S = combinations(self.MFT_NEW,self.S_SCENARIOS)
+        self.MFT_MIN0_S = combinations(self.MFT_MIN0,self.S_SCENARIOS)
+        self.MFT_INIT_TRANSP_SHARE_S = combinations(self.MFT_INIT_TRANSP_SHARE,self.S_SCENARIOS)
+        self.MFT_NEW_FIRST_PERIOD_S = combinations(self.MFT_NEW_FIRST_PERIOD,self.S_SCENARIOS)
+        self.MFT_NEW_YEARLY_FIRST_STAGE_MIN0_S = combinations(self.MFT_NEW_YEARLY_FIRST_STAGE_MIN0,self.S_SCENARIOS)
+        self.MFT_NEW_YEARLY_SECOND_STAGE_S = combinations(self.MFT_NEW_YEARLY_SECOND_STAGE,self.S_SCENARIOS)
+        self.MF_S = combinations(self.MF,self.S_SCENARIOS)
+        self.MT_S = combinations(self.MT,self.S_SCENARIOS)
+        self.MFT_CONSTR_S = combinations(self.MFT_CONSTR,self.S_SCENARIOS)
+        self.M_MODES_S = combinations([(m,) for m in self.M_MODES],self.S_SCENARIOS)
+        self.NCM_S = combinations(self.NCM,self.S_SCENARIOS)
+        self.NCMT_CONSTR_S = combinations(self.NCMT_CONSTR,self.S_SCENARIOS)
+        self.NMFVT_CONSTR_S = combinations(self.NMFVT_CONSTR,self.S_SCENARIOS)
+        self.ODPTS_CONSTR_S = combinations(self.ODPTS_CONSTR,self.S_SCENARIOS)
+        self.TS_S = combinations(self.TS,self.S_SCENARIOS)
+        self.TS_CONSTR_S = combinations(self.TS_CONSTR,self.S_SCENARIOS)
+        self.TS_NO_BASE_YEAR_CONSTR_S = combinations(self.TS_NO_BASE_YEAR_CONSTR,self.S_SCENARIOS)
+        self.T_TIME_PERIODS_S = combinations([(t,) for t in self.T_TIME_PERIODS],self.S_SCENARIOS)
+        self.UT_UPG_S = combinations(self.UT_UPG,self.S_SCENARIOS)
+        self.UT_UPG_CONSTR_S = combinations(self.UT_UPG_CONSTR,self.S_SCENARIOS)
+
+
 
     # TODO: FIX THIS FOR THE MATURITY PATHS
     def update_time_periods(self, time_periods):
@@ -880,98 +998,7 @@ class TransportSets():
 
         
 
-    #Function that updates all information that depends on the current scenario number
-    #Currently: update transport costs based on fuel group scenarios
-    def update_scenario_dependent_parameters(self,scenario_name):
-
-        #set active scenario
-        self.active_scenario_name = scenario_name       
-        
-        if self.active_scenario_name in self.scenario_information.scenario_names: #we are in an exising scenario           
-            #Find associated active scenario number (only store temporarily)
-            active_scenario_nr = self.scenario_information.scen_name_to_nr[self.active_scenario_name]
-
-            #update C_TRANSP_COST based on scenario information
-            for (i, j, m, r) in self.A_ARCS:
-                for f in self.FM_FUEL[m]:
-                    for p in self.P_PRODUCTS:
-                        for y in self.T_TIME_PERIODS:
-                            if y not in self.T_TIME_FIRST_STAGE: #only update second-stage costs!
-                                #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
-                                self.C_TRANSP_COST[(i, j, m, r, f, p, y)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[active_scenario_nr][(m,f)] 
-
-            #update R_TECH_READINESS_MATURITY based on scenario information
-            for m in self.M_MODES:
-                for f in self.FM_FUEL[m]:
-                    if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
-                        cur_fg = self.scenario_information.mf_to_fg[(m,f)]
-                        cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
-                        # extract info from current base Bass model
-                        cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
-                        cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
-                        cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
-                                    
-                        # find current scenario's level of variation for q and p and delay for t_0 from base case
-                        cur_scen_p_q_variation = 0.0 
-                        cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "base":
-                            cur_scen_p_q_variation = 0.0
-                            cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "fast":
-                            cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
-                            cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
-                        elif cur_path_name == "slow":
-                            cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
-                            cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
-
-                        # construct scenario bass model
-                        cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
-                                                            cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
-                                                            cur_base_bass_model.m, 
-                                                            cur_base_bass_model.t_0 + cur_scen_t_0_delay)
-                        
-                        # set as active bass model
-                        self.tech_active_bass_model[(m,f)] = cur_scen_bass_model
-
-                        # find start of second stage
-                        for t in self.T_TIME_PERIODS:
-                            if t not in self.T_TIME_FIRST_STAGE:
-                                start_of_second_stage = t
-                                break
-
-                        # fill R_TECH_READINESS_MATURITY based on current scenario bass model
-                        for t in self.T_TIME_PERIODS:
-                            if t in self.T_TIME_FIRST_STAGE:
-                                # first stage: follow base bass model
-                                self.R_TECH_READINESS_MATURITY[(m,f,t)] = cur_base_bass_model.A(t)
-                            else:
-                                # second stage: use scenario bass model, with starting point A(2030) from base bass model
-                                t_init = start_of_second_stage #initialize diffusion at start of second stage
-                                A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
-                                self.R_TECH_READINESS_MATURITY[(m,f,t)] = cur_scen_bass_model.A_from_starting_point(t,A_init,t_init)
-
-
-        else: 
-            raise Exception("The current scenario name is not in the scenario list")
-            
-            #OLD: (never used I think)
-            """
-            #we should be in the benchmark scenario
-            if self.active_scenario_name == "benchmark":
-                #set C_TRANSP_COST to benchmark levels
-                self.C_TRANSP_COST = self.C_TRANSP_COST_BASE
-                #set R_TECH_READINESS_MATURITY to benchmark levels
-                cur_path_name = "base" #HARDCODED: use base path
-                for m in self.M_MODES:
-                    for f in self.FM_FUEL[m]:
-                        for y in self.T_TIME_PERIODS:
-                            #self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.maturity_paths[(m,f,cur_path_name, y)] #OLD
-                            self.R_TECH_READINESS_MATURITY[(m,f,y)] = self.tech_base_bass_model[(m,f)].A(y)
-                
-            else:
-                raise Exception("Active scenario name is not in scenario list, but also not equal to benchmark")
-            """
-
+    
 
 print("Finished reading sets and classes.")
 
