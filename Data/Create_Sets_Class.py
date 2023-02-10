@@ -552,7 +552,7 @@ class TransportSets():
                         for y in self.T_TIME_PERIODS:
                             for s in self.S_SCENARIOS:
                                 if y in self.T_TIME_FIRST_STAGE_BASE: #only update second-stage costs!
-                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)] 
+                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 1 
                                 elif y in self.T_TIME_SECOND_STAGE_BASE:
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)] 

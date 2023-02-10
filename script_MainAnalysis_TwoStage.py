@@ -50,7 +50,7 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -156,7 +156,7 @@ def construct_and_solve_SP(base_data,
     print("Time used solving the model:", time.time() - start)
     print("----------", end="", flush=True)
 
-    return model_instance,result
+    return model_instance,base_data
 
 def construct_and_solve_EEV(base_data,risk_info):
 
@@ -192,7 +192,9 @@ def construct_and_solve_EEV(base_data,risk_info):
     start = time.time()
     model_instance_EV = TranspModel(data=base_data, risk_info=risk_info)
     model_instance_EV.NoBalancingTrips = NoBalancingTrips
+    #constructing
     model_instance_EV.construct_model()
+    #fixing variables
     model_instance_EV.fix_variables_first_time_period(x_flow_base_period_init)
 
     print("Done constructing EV model.")
@@ -204,15 +206,13 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     print("Solving EV model...")
     start = time.time()
-    #options = option_settings_ef()
-    model_instance_EV.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
     result = model_instance_EV.opt.solve(model_instance_EV.model, 
                                     tee=True, 
                                     symbolic_solver_labels=True, 
                                     keepfiles=False)  
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
-    print("----------", end="", flush=True)
+    print("----------",  flush=True)
 
 
         ############################
@@ -224,7 +224,7 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     # ------ CONSTRUCT MODEL ----------#
 
-    print("Constructing EV model...", end="", flush=True)
+    print("Constructing EEV model...", flush=True)
 
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
@@ -235,14 +235,14 @@ def construct_and_solve_EEV(base_data,risk_info):
     #if fix_first_stage:
     #    model_instance.fix_variables_first_stage(output_EV)
 
-    print("Done constructing EV model.")
+    print("Done constructing EEV model.")
     print("Time used constructing the model:", time.time() - start)
-    print("----------", end="", flush=True)
+    print("----------",  flush=True)
 
 
     #  ---------  SOLVE MODEL  ---------    #
 
-    print("Solving EV model...")
+    print("Solving EEV model...")
     start = time.time()
     #options = option_settings_ef()
     model_instance.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
@@ -252,8 +252,9 @@ def construct_and_solve_EEV(base_data,risk_info):
                                     keepfiles=False)  
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
-    print("----------", end="", flush=True)
+    print("----------",  flush=True)
 
+    return model_instance, base_data
 
 
 def main(analysis_type):
@@ -279,35 +280,32 @@ def main(analysis_type):
     #     --------- MODEL  ---------   #
     # solve model
     if analysis_type == "SP":
-        model_instance,result = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
+        model_instance,base_data = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
         #elif solution_method == 'ph':   #OTHER BRANCH
         #    ph, base_data, Eobj = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
     elif analysis_type == "EEV":
-        ef, base_data = solve_EEV(base_data,risk_info,time_periods=time_periods)
+        model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
     
     #  --------- SAVE OUTPUT ---------    #
 
+    print("Dumping data in pickle file...", end="")
     with open(r'Data//base_data_'+sheet_name_scenarios, 'wb') as data_file: 
         pickle.dump(base_data, data_file)
-    print("Dumping data in pickle file...", end="")
+    print("done.")
 
     #-----------------------------------
 
-    if True:
-        
+    file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
+    if NoBalancingTrips:
+        file_string = file_string +'_NoBalancingTrips'
+    output = OutputData(model_instance.model,base_data)
 
-        file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
-        if NoBalancingTrips:
-            file_string = file_string +'_NoBalancingTrips'
-        output = OutputData(model_instance.model,base_data)
-
-        with open(r"Data//" + file_string, 'wb') as output_file: 
-            print("Dumping output in pickle file...", end="")
-            pickle.dump(output, output_file)
-            print("done.")
-        
+    with open(r"Data//" + file_string, 'wb') as output_file: 
+        print("Dumping output in pickle file.....", end="")
+        pickle.dump(output, output_file)
         print("done.")
-        sys.stdout.flush()
+    
+    sys.stdout.flush()
 
 
 
