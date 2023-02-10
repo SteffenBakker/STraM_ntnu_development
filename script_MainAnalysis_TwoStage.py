@@ -293,7 +293,7 @@ def construct_and_solve_SP_warm_start(base_data,
 def main(analysis_type):
     
     print('----------------------------')
-    print('Doing the following analysis: ', analysis_type)
+    print('Doing the following analysis: ', analysis_type, sheet_name_scenarios)
     print('----------------------------')
 
     #     --------- DATA  ---------   #

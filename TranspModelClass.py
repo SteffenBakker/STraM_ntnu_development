@@ -790,7 +790,7 @@ class TranspModel:
 
     def solve_model(self, warmstart=False):  #GENERAL way to solve a single deterministic model
 
-        self.results = self.opt.solve(self.model, warmstart, tee=True, symbolic_solver_labels=True,
+        self.results = self.opt.solve(self.model, warmstart=warmstart, tee=True, symbolic_solver_labels=True,
                                       keepfiles=True)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)
 
         if (self.results.solver.status == pyomo.opt.SolverStatus.ok) and (
