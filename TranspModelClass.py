@@ -399,26 +399,27 @@ class TranspModel:
             
             #-- Bass diffusion ----------------------
 
+            #most likely not needed
             #Bass diffusion paths first period (initial values): q[t] <= (2022 - t_0)^+ * alpha * q_bar[t]
             def BassDiffusionRuleFirstPeriod(model,m,f,t,s):
-                pos_part = max(self.data.T_TIME_PERIODS[0] - self.data.tech_active_bass_model[(m,f,s)].t_0, 0)
-                return ( self.model.q_transp_amount[m,f,t,s] <= pos_part * self.data.tech_active_bass_model[(m,f,s)].p * self.model.q_mode_total_transp_amount[m,t,s] )
+                pos_part = max(self.data.T_TIME_PERIODS[0] - self.data.tech_base_bass_model[(m,f)].t_0, 0)
+                return ( self.model.q_transp_amount[m,f,t,s] <= pos_part * self.data.tech_base_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,t,s] )
             self.model.BassDiffusionFirstPeriod = Constraint(self.data.MFT_NEW_FIRST_PERIOD_S, rule = BassDiffusionRuleFirstPeriod)
 
             # only add remaining Bass diffusion constraints if we run the full model (not just first period in the initialization run)
             if len(self.data.T_TIME_PERIODS) > 1:
                 #Bass diffusion paths (1st stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]    (based on pessimistic beta)
                 def BassDiffusionRuleFirstStage(model,m,f,t,s):
-                    diff_has_started = (t >= self.data.tech_active_bass_model[(m,f,s)].t_0) # boolean indicating whether diffusion process has started at time t
+                    diff_has_started = (t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
                     return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
-                        <= diff_has_started * (self.data.tech_active_bass_model[(m,f,s)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s]
+                        <= diff_has_started * (self.data.tech_base_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s]
                         #+ (1 - self.data.tech_scen_p_q_variation[(m,f)]) * self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial pessimistic path
-                        + self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ))   #initial base path
+                        + self.data.tech_base_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ))   #initial base path
                 self.model.BassDiffusionFirstStage = Constraint(self.data.MFT_NEW_YEARLY_FIRST_STAGE_MIN0_S, rule = BassDiffusionRuleFirstStage)
 
                 # Bass diffusion paths (2nd stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]   (based on scenario beta)
                 def BassDiffusionRuleSecondStage(model,m,f,t,s):
-                    diff_has_started = (t >= self.data.tech_active_bass_model[(m,f,s)].t_0) # boolean indicating whether diffusion process has started at time t
+                    diff_has_started = (t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
                     return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
                         <= diff_has_started * ( self.data.tech_active_bass_model[(m,f,s)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s] 
                         + self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ) )  
@@ -663,6 +664,40 @@ class TranspModel:
 
         return self.model
     
+    def fix_variables_first_time_period(self,x_flow_base_period_init):
+        
+        # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
+        #     #print("Variable",v)  
+        #     for index in v:
+        #         if v[index].value is not None:
+        #             #print ("   ",index, pyo.value(v[index]))
+        #             var_big_model = getattr(self.model,str(v))
+        #             var_big_model[index].fix(v[index].value)  
+
+        #not providing a value in the fix operator leads to the following error:
+        #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
+
+        #fixing those leads to infeasibility? 
+        for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
+            a = (i,j,m,r)
+            if (a,f,p,t,s) not in [(aa,ff,pp,tt,ss) for (aa,ff,pp,tt,ss,ww) in x_flow_base_period_init]:
+                if t == self.data.T_TIME_PERIODS[0]:
+
+                    self.model.x_flow[(a,f,p,t,s)].fix(0)   #seems to be a little bit faster
+
+                    #self.model.x_flow[(a,f,p,t)].setlb(-1)
+                    #self.model.x_flow[(a,f,p,t)].setub(5)
+                    
+
+        for (a,f,p,t,s,weight)in x_flow_base_period_init:
+            
+            #fixing this goes slower
+            #self.model.x_flow[(a,f,p,t)].fix(weight)
+            
+            self.model.x_flow[(a,f,p,t,s)].fixed = False
+            dev = 0.0001
+            self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
+            self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
 
     def fix_variables_first_stage(self,model_ev):  #this is the EV model that is input.
         
@@ -680,14 +715,15 @@ class TranspModel:
             if t in self.data.T_TIME_FIRST_STAGE:
                 weight = model_ev.x_flow[(a,f,p,t,base_scenario)].value
                 if weight is not None:
-                    if weight > 0.05:
-                        dev = 0.1
+                    if weight > 0: #weight > 9:
+                        dev = 0.001
                         self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
                         self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
                         #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
-                    #else:
-                    #   self.model.x_flow[(a,f,p,t,s)].setlb(-1)
-                    #   self.model.x_flow[(a,f,p,t,s)].setub(1)
+                    else:
+                        #self.model.x_flow[(a,f,p,t,s)].fix(0) 
+                        self.model.x_flow[(a,f,p,t,s)].setlb(-1)
+                        self.model.x_flow[(a,f,p,t,s)].setub(1)
                 else:
                     pass #this does not happen
 
@@ -728,59 +764,49 @@ class TranspModel:
                         self.model.y_charge[(e,f,t,s)].fix(0)
         
         
-    def fix_variables_first_time_period(self,x_flow_base_period_init):
+    def unfix_variables_first_stage(self):
         
-        # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
-        #     #print("Variable",v)  
-        #     for index in v:
-        #         if v[index].value is not None:
-        #             #print ("   ",index, pyo.value(v[index]))
-        #             var_big_model = getattr(self.model,str(v))
-        #             var_big_model[index].fix(v[index].value)  
-
-        #not providing a value in the fix operator leads to the following error:
-        #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
-
-        #fixing those leads to infeasibility? 
         for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
             a = (i,j,m,r)
-            if (a,f,p,t,s) not in [(aa,ff,pp,tt,ss) for (aa,ff,pp,tt,ss,ww) in x_flow_base_period_init]:
-                if t == self.data.T_TIME_PERIODS[0]:
-
-                    self.model.x_flow[(a,f,p,t,s)].fix(0)   #seems to be a little bit faster
-
-                    #self.model.x_flow[(a,f,p,t)].setlb(-1)
-                    #self.model.x_flow[(a,f,p,t)].setub(5)
-                    
-
-        for (a,f,p,t,s,weight)in x_flow_base_period_init:
-            
-            #fixing this goes slower
-            #self.model.x_flow[(a,f,p,t)].fix(weight)
-            
             self.model.x_flow[(a,f,p,t,s)].fixed = False
-            dev = 0.0001
-            self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
-            self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
+            if t in self.data.T_TIME_FIRST_STAGE:
+                self.model.x_flow[(a,f,p,t,s)].setlb(-1)
+                self.model.x_flow[(a,f,p,t,s)].setub(10**10/SCALING_FACTOR)   #maximum value is below 1000
+
+        for (i,j,m,r,t,s) in self.data.ET_RAIL_S:
+            self.model.epsilon_edge[(e,t,s)].fixed = False
+        
+        for (e,f,t,s) in self.data.UT_UPG_S:
+            self.model.upsilon_upg[(e,f,t,s)].fixed = False
+
+        for (i,c,m,t,s) in self.data.NCMT_S:
+            self.model.nu_node[(i,c,m,t,s)].fixed = False
+
+        for (e,f,t,s) in self.data.EFT_CHARGE_S:
+            self.model.y_charge[(e,f,t,s)].fixed = False
+                    
+    
             
 
-    def solve_model(self):  #GENERAL way to solve a single deterministic model
+    def solve_model(self, warmstart=False):  #GENERAL way to solve a single deterministic model
 
-        self.results = self.opt.solve(self.model, tee=True, symbolic_solver_labels=True,
+        self.results = self.opt.solve(self.model, warmstart, tee=True, symbolic_solver_labels=True,
                                       keepfiles=True)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)
 
         if (self.results.solver.status == pyomo.opt.SolverStatus.ok) and (
                 self.results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal):
             print('the solution is feasible and optimal')
         elif self.results.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
-            print('the model is infeasible')
+            #print('the model is infeasible')
+            raise Exception('the model is infeasible')
             #log_infeasible_constraints(self.model,log_expression=True, log_variables=True)
             #logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
             #print(value(model.z))
 
         else:
-            print('Solver Status: '), self.results.solver.status
-            print('Termination Condition: '), self.results.solver.termination_condition
+            raise Exception('Solver Status: ', self.results.solver.status, 'Termination Condition: ', self.results.solver.termination_condition )
+            #print('Solver Status: '), self.results.solver.status
+            #print('Termination Condition: '), self.results.solver.termination_condition
 
         print('Solution time: ' + str(self.results.solver.time))
         

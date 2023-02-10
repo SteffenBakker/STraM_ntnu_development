@@ -50,8 +50,8 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -60,6 +60,9 @@ cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 #TODO: test if this is working
 
 NoBalancingTrips = False  #default at False
+
+
+
 
 #################################################
 #                   main code                   #
@@ -86,12 +89,10 @@ def solve_init_model(base_data,risk_info):
 
     print('solving initialization model')
     start = time.time()
-    result = InitModel.opt.solve(InitModel.model, tee=True, symbolic_solver_labels=True, keepfiles=False)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)
+    InitModel.solve_model()
     print("Time used solving the model:", time.time() - start)
     print('-----------------')
 
-    if result.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
-        print('the model is infeasible')
 
     #extract the important output
     x_flow_base_period_init = []
@@ -125,7 +126,7 @@ def construct_and_solve_SP(base_data,
 
     # ------ CONSTRUCT MODEL ----------#
 
-    print("Constructing model...", end="", flush=True)
+    print("Constructing SP model...", end="", flush=True)
 
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
@@ -147,11 +148,7 @@ def construct_and_solve_SP(base_data,
     print("Solving model...")
     start = time.time()
     #options = option_settings_ef()
-    model_instance.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
-    result = model_instance.opt.solve(model_instance.model, 
-                                    tee=True, 
-                                    symbolic_solver_labels=True, 
-                                    keepfiles=False)  
+    model_instance.solve_model() 
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
     print("----------", end="", flush=True)
@@ -206,10 +203,7 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     print("Solving EV model...")
     start = time.time()
-    result = model_instance_EV.opt.solve(model_instance_EV.model, 
-                                    tee=True, 
-                                    symbolic_solver_labels=True, 
-                                    keepfiles=False)  
+    model_instance_EV.solve_model()
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
     print("----------",  flush=True)
@@ -246,15 +240,54 @@ def construct_and_solve_EEV(base_data,risk_info):
     start = time.time()
     #options = option_settings_ef()
     model_instance.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
-    result = model_instance.opt.solve(model_instance.model, 
-                                    tee=True, 
-                                    symbolic_solver_labels=True, 
-                                    keepfiles=False)  
+    model_instance.solve_model()
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
     print("----------",  flush=True)
 
+
+    # --------- SAVE RESULTS ------------#
+
+    #-----------------------------------
+
+    if analysis_type == "SP":
+        file_string = 'output_data_' + "EEV" + '_' + sheet_name_scenarios
+        if NoBalancingTrips:
+            file_string = file_string +'_NoBalancingTrips'
+        
+        output = OutputData(model_instance.model,base_data)
+
+        with open(r"Data//" + file_string, 'wb') as output_file: 
+            print("Dumping EEV output in pickle file.....", end="")
+            pickle.dump(output, output_file)
+            print("done.")
+        
+        sys.stdout.flush()
+
+
     return model_instance, base_data
+
+
+def construct_and_solve_SP_warm_start(base_data,
+                            risk_info, 
+                            last_time_period=False,
+                            time_periods = None):
+    
+    model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
+
+    model_instance.unfix_variables()
+
+    #  ---------  SOLVE MODEL  ---------    #
+
+    print("Solving SP model with EEV warm start...")
+    start = time.time()
+    model_instance.solve_model(warmstart=True)
+    print("Done solving model.")
+    print("Time used solving the model:", time.time() - start)
+    print("----------", end="", flush=True)
+
+    return model_instance,base_data
+
 
 
 def main(analysis_type):
@@ -280,9 +313,8 @@ def main(analysis_type):
     #     --------- MODEL  ---------   #
     # solve model
     if analysis_type == "SP":
-        model_instance,base_data = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
-        #elif solution_method == 'ph':   #OTHER BRANCH
-        #    ph, base_data, Eobj = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
+        #model_instance,base_data = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
+        model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info,time_periods=time_periods)
     elif analysis_type == "EEV":
         model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
     
@@ -298,6 +330,7 @@ def main(analysis_type):
     file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
     if NoBalancingTrips:
         file_string = file_string +'_NoBalancingTrips'
+    
     output = OutputData(model_instance.model,base_data)
 
     with open(r"Data//" + file_string, 'wb') as output_file: 
