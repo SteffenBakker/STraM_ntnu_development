@@ -108,7 +108,7 @@ def solve_init_model(base_data,risk_info):
 
     return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
 
-def construct_and_solve_ef(base_data,
+def construct_and_solve_SP(base_data,
                             risk_info, 
                             last_time_period=False,
                             time_periods = None):
@@ -160,63 +160,101 @@ def construct_and_solve_ef(base_data,
 
 def construct_and_solve_EEV(base_data,risk_info):
 
-    #1: set scenario data to EV
+    base_data.S_SCENARIOS = ['BBB']
+    base_data.combined_sets()
+
+        ############################
+        ###  1: solve init model ###
+        ############################
     
-    #2: solve init model
-
-    #3: solve EV
-
-    #4: solve EEV
-    x=2
-
-def solve_EEV(base_data,risk_info,time_periods=None):
-
     #first solve the init model to initialize values
-
     x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
 
     #focus on all data this time
         
     base_data.init_data = False
-    
     if time_periods == None:
-        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
+        base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL    
     else:
-        base_data.update_time_periods(time_periods)
+        base_data.T_TIME_PERIODS = time_periods
+    base_data.combined_sets()
 
-    ####################################
-    ####   Solve EV problem      #
-    ####################################
 
-    print('')
-    print('SOLVING EV')
-    print('')
-    ef = construct_model_template_ef(base_data,risk_info,
-                                fix_first_time_period=True, x_flow_base=x_flow_base_period_init,
-                                fix_first_stage=False,first_stage_variables=None,
-                                scenario_names=['BBB'])
-    ef = solve_model_template_ef(ef)
-
-    output_EV = OutputData(ef,base_data,EV_problem=True)
+        ############################
+        ###  #2: solve EV        ###
+        ############################
     
+    
+    # ------ CONSTRUCT MODEL ----------#
 
-    # NEED TO SAVE SOME OUTPUT!!! THAT IS X_FLOW AND INVESTMENT DECISIONS!!!
+    print("Constructing EV model...", end="", flush=True)
 
-    ####################################
-    ####   Solve EEV problem      #
-    ####################################
+    start = time.time()
+    model_instance_EV = TranspModel(data=base_data, risk_info=risk_info)
+    model_instance_EV.NoBalancingTrips = NoBalancingTrips
+    model_instance_EV.construct_model()
+    model_instance_EV.fix_variables_first_time_period(x_flow_base_period_init)
 
-    #  --------- CONSTRUCT MODEL ---------     #
-    print('')
-    print('SOLVING EEV')
-    print('')
-    ef = construct_model_template_ef(base_data,risk_info,
-                                    fix_first_time_period=False, x_flow_base=x_flow_base_period_init,
-                                    fix_first_stage=True,first_stage_variables=output_EV,
-                                    scenario_names=base_data.scenario_information.scenario_names)
-    ef = solve_model_template_ef(ef)
+    print("Done constructing EV model.")
+    print("Time used constructing the model:", time.time() - start)
+    print("----------", end="", flush=True)
 
-    return ef, base_data
+
+    #  ---------  SOLVE MODEL  ---------    #
+
+    print("Solving EV model...")
+    start = time.time()
+    #options = option_settings_ef()
+    model_instance_EV.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
+    result = model_instance_EV.opt.solve(model_instance_EV.model, 
+                                    tee=True, 
+                                    symbolic_solver_labels=True, 
+                                    keepfiles=False)  
+    print("Done solving model.")
+    print("Time used solving the model:", time.time() - start)
+    print("----------", end="", flush=True)
+
+
+        ############################
+        ###  #3: solve EEV       ###
+        ############################
+    
+    base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
+    base_data.combined_sets()
+
+    # ------ CONSTRUCT MODEL ----------#
+
+    print("Constructing EV model...", end="", flush=True)
+
+    start = time.time()
+    model_instance = TranspModel(data=base_data, risk_info=risk_info)
+    model_instance.NoBalancingTrips = NoBalancingTrips
+    model_instance.construct_model()
+    model_instance.fix_variables_first_stage(model_instance_EV.model)
+    
+    #if fix_first_stage:
+    #    model_instance.fix_variables_first_stage(output_EV)
+
+    print("Done constructing EV model.")
+    print("Time used constructing the model:", time.time() - start)
+    print("----------", end="", flush=True)
+
+
+    #  ---------  SOLVE MODEL  ---------    #
+
+    print("Solving EV model...")
+    start = time.time()
+    #options = option_settings_ef()
+    model_instance.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
+    result = model_instance.opt.solve(model_instance.model, 
+                                    tee=True, 
+                                    symbolic_solver_labels=True, 
+                                    keepfiles=False)  
+    print("Done solving model.")
+    print("Time used solving the model:", time.time() - start)
+    print("----------", end="", flush=True)
+
+
 
 def main(analysis_type):
     
@@ -241,7 +279,7 @@ def main(analysis_type):
     #     --------- MODEL  ---------   #
     # solve model
     if analysis_type == "SP":
-        model_instance,result = construct_and_solve_ef(base_data,risk_info,time_periods=time_periods)
+        model_instance,result = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
         #elif solution_method == 'ph':   #OTHER BRANCH
         #    ph, base_data, Eobj = solve_SP_ph(base_data,risk_info,time_periods=time_periods)
     elif analysis_type == "EEV":
@@ -261,7 +299,7 @@ def main(analysis_type):
         file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios
         if NoBalancingTrips:
             file_string = file_string +'_NoBalancingTrips'
-        output = OutputData(model_instance,base_data)
+        output = OutputData(model_instance.model,base_data)
 
         with open(r"Data//" + file_string, 'wb') as output_file: 
             print("Dumping output in pickle file...", end="")

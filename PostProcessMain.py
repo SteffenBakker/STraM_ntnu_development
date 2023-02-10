@@ -34,7 +34,6 @@ with open(r'Data\base_data_'+scenarios, 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 
-
 print('objective function value: ', output.ob_function_value*SCALING_FACTOR/10**9)
 #SHOULD REMOVE THE MISSION PENALTY: DOES NOT MAKE SENSE NOW
 
@@ -74,11 +73,11 @@ def accuracy_of_q_max(output,base_data):
 
 result_q_max = accuracy_of_q_max(output,base_data)
 print('--------------------------------------------------------')
-print('Total deviation from tha actual max transport amount: ' + str(result_q_max))
+print('Total deviation from the actual max transport amount: ' + str(result_q_max))
 print('--------------------------------------------------------')
 if result_q_max>1:
     #pass
-    raise Exception('Total deviation from tha actual max transport amount: ' + str(result_q_max))
+    raise Exception('Total deviation from the actual max transport amount: ' + str(result_q_max))
 
 
 #---------------------------------------------------------#
@@ -122,12 +121,12 @@ def cost_and_investment_table(base_data,output):
             output.all_costs[legend_names[var]][key] = round(value / 10**9*SCALING_FACTOR,3) # in GNOK
 
     output.all_costs_table = pd.DataFrame.from_dict(output.all_costs, orient='index')
-
+    
     for t in base_data.T_TIME_PERIODS: 
         #t = base_data.T_TIME_PERIODS[0]
-        level_values =  output.all_costs_table.columns.get_level_values(1)
+        level_values =  output.all_costs_table.columns.get_level_values(1) #move into loop?
         columns = ((output.all_costs_table.columns.get_level_values(0)==t) & 
-                    ([level_values[i] in output.scenarios for i in range(len(level_values))]))
+                    ([level_values[i] in base_data.S_SCENARIOS for i in range(len(level_values))]))
         mean = output.all_costs_table.iloc[:,columns].mean(axis=1)
         std = output.all_costs_table.iloc[:,columns ].std(axis=1)
         output.all_costs_table[(t,'mean')] = mean
@@ -201,7 +200,7 @@ plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
 ##total_emission_penalty = sum(output.costs["EmissionCosts"].values())]
 #for t in base_data.T_TIME_PERIODS:
-#    for t in output.scenarios:
+#    for t in base_data.S_SCENARIOS:
 
 #rather resolve the model. FIX EVERYTHING. But remove the penalty from objective...
 
@@ -429,7 +428,7 @@ def mode_mix_calculations(output,base_data):
     
     TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
     TranspArb['TranspArb_std'] = TranspArb['TranspArb']
-    MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in output.scenarios]
+    MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in base_data.S_SCENARIOS]
     all_rows = pd.DataFrame(MFTS, columns = ['mode', 'fuel', 'time_period','scenario'])
     TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
 

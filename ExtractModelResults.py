@@ -17,7 +17,7 @@ from Data.settings import *
 
 class OutputData():
     #ef,base_data,instance_run,EV_problem
-    def __init__(self,model_instance,base_data,EV_problem=False):# or (self)
+    def __init__(self,modell,base_data,EV_problem=False):# or (self)
         
         self.all_variables = None
         self.costs = None
@@ -40,14 +40,14 @@ class OutputData():
             self.scenarios = ['BBB']
         else:
             scenarios = base_data.S_SCENARIOS
-            self.ob_function_value = pyo.value(model_instance.objective_function)
+            self.ob_function_value = pyo.value(modell.objective_function)
                 
-        self.extract_model_results(base_data,model_instance, EV_problem)
+        self.extract_model_results(base_data,modell, EV_problem)
 
 
 
         
-    def extract_model_results(self,base_data,model_instance, EV_problem):  #currently only for extensive form
+    def extract_model_results(self,base_data,modell, EV_problem):  #currently only for extensive form
         
         scenario_names = base_data.S_SCENARIOS
 
@@ -83,7 +83,7 @@ class OutputData():
                 for f in base_data.FM_FUEL[m]:
                     for t in base_data.T_TIME_PERIODS:
                         for p in base_data.P_PRODUCTS:
-                            weight = model_instance.x_flow[(a,f,p,t,scen_name)].value
+                            weight = modell.x_flow[(a,f,p,t,scen_name)].value
                             if weight is not None: 
                                 if weight > 0:
                                     a_series = pd.Series([variable,i,j,m,r,f,p,t,weight, scen_name], index=x_flow.columns)
@@ -94,7 +94,7 @@ class OutputData():
                 for f in base_data.FM_FUEL[m]:
                     for t in base_data.T_TIME_PERIODS:
                         for v in base_data.VEHICLE_TYPES_M[m]:
-                            weight = model_instance.b_flow[(a,f,v,t,scen_name)].value
+                            weight = modell.b_flow[(a,f,v,t,scen_name)].value
                             if weight is not None: 
                                 if weight > 0:
                                     a_series = pd.Series([variable,i,j,m,r,f,v,t,weight, scen_name], index=b_flow.columns)
@@ -104,7 +104,7 @@ class OutputData():
                 #k = K_PATH_DICT[kk]
                 for t in base_data.T_TIME_PERIODS:
                     for p in base_data.P_PRODUCTS:
-                        weight = model_instance.h_path[(kk, p, t,scen_name)].value
+                        weight = modell.h_path[(kk, p, t,scen_name)].value
                         if weight is not None: 
                             if weight > 0:
                                 a_series = pd.Series([variable,kk, p, t, weight, scen_name], index=h_path.columns)
@@ -113,7 +113,7 @@ class OutputData():
             for t in base_data.T_TIME_PERIODS:
                 for i,j,m,r in base_data.E_EDGES_RAIL:
                     e = (i,j,m,r)
-                    weight = model_instance.epsilon_edge[(e, t,scen_name)].value
+                    weight = modell.epsilon_edge[(e, t,scen_name)].value
                     if weight is None:
                         weight = 0    
                     a_series = pd.Series([variable,i,j,m,r, t, weight, scen_name], index=epsilon_edge.columns)
@@ -122,7 +122,7 @@ class OutputData():
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.U_UPGRADE:
                     (i,j,m,r) = e
-                    weight = model_instance.upsilon_upg[(i,j,m,r,f,t,scen_name)].value
+                    weight = modell.upsilon_upg[(i,j,m,r,f,t,scen_name)].value
                     if math.isnan(weight):
                         raise Exception('cannot be na')
                     if weight is None:
@@ -133,7 +133,7 @@ class OutputData():
             for t in base_data.T_TIME_PERIODS:
                 for (i, m) in base_data.NM_LIST_CAP:
                     for c in base_data.TERMINAL_TYPE[m]:
-                        weight = model_instance.nu_node[(i, c, m, t,scen_name)].value
+                        weight = modell.nu_node[(i, c, m, t,scen_name)].value
                         if weight is None:
                             weight = 0
                         a_series = pd.Series([variable,i, c, m, t, weight, scen_name],index=nu_node.columns)
@@ -142,21 +142,21 @@ class OutputData():
             for t in base_data.T_TIME_PERIODS:
                 for (e,f) in base_data.EF_CHARGING:
                     (i,j,m,r) = e
-                    weight = model_instance.y_charge[(i,j,m,r,f,t,scen_name)].value
+                    weight = modell.y_charge[(i,j,m,r,f,t,scen_name)].value
                     if weight is None:
                         weight = 0
                     a_series = pd.Series([variable,i,j,m,r,f,t, weight, scen_name],index=y_charging.columns)
                     y_charging = pd.concat([y_charging,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'z_emission'
             for t in base_data.T_TIME_PERIODS:
-                weight = model_instance.z_emission[(t,scen_name)].value
+                weight = modell.z_emission[(t,scen_name)].value
                 if weight is None:
                     weight = 0 
                 a_series = pd.Series([variable,t, weight, scen_name],index=z_emission_violation.columns)
                 z_emission_violation = pd.concat([z_emission_violation,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'total_emissions'
             for t in base_data.T_TIME_PERIODS:
-                weight = model_instance.total_emissions[(t,scen_name)].value
+                weight = modell.total_emissions[(t,scen_name)].value
                 if weight is None:
                     weight = 0 
                 a_series2 = pd.Series([variable,t, weight, scen_name],index=total_emissions.columns)
@@ -165,7 +165,7 @@ class OutputData():
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
                     for t in base_data.T_TIME_PERIODS:
-                        weight = model_instance.q_transp_amount[(m, f, t,scen_name)].value
+                        weight = modell.q_transp_amount[(m, f, t,scen_name)].value
                         if weight is not None:
                             if weight > 0:
                                 a_series = pd.Series([variable,m, f, t, weight, scen_name], index=q_transp_amount.columns)
@@ -173,7 +173,7 @@ class OutputData():
             variable = 'q_max_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
-                    weight = model_instance.q_max_transp_amount[(m, f,scen_name)].value
+                    weight = modell.q_max_transp_amount[(m, f,scen_name)].value
                     if weight is not None:
                         if weight > 0:
                             a_series = pd.Series([variable,m, f, weight, scen_name], index=q_max_transp_amount.columns)
@@ -185,8 +185,8 @@ class OutputData():
 
             for t in base_data.T_TIME_PERIODS:
                 for var in vars:
-                    costs[var][(t,scen_name)] = getattr(model_instance,str(var))[(t,scen_name)].value
-            costs['MaxTranspPenaltyCost'][scen_name] = model_instance.MaxTranspPenaltyCost.value
+                    costs[var][(t,scen_name)] = getattr(modell,str(var))[(t,scen_name)].value
+            costs['MaxTranspPenaltyCost'][scen_name] = modell.MaxTranspPenaltyCost[(scen_name)].value
 
 
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
@@ -194,12 +194,12 @@ class OutputData():
 
 
             #SECOND STAGE COSTS
-            second_stage_costs[scen_name] = model_instance.SecondStageCosts[scen_name].value
-            second_stage_emission_costs[scen_name] = sum(model_instance.z_emission[(t,scen_name)].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_SECOND_STAGE)
+            second_stage_costs[scen_name] = modell.SecondStageCosts[scen_name].value
+            second_stage_emission_costs[scen_name] = sum(modell.z_emission[(t,scen_name)].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_SECOND_STAGE)
             second_stage_costs_no_emissions[scen_name] = second_stage_costs[scen_name] - second_stage_emission_costs[scen_name]
         
         #first stage costs should be the same across scenarios -> pick the first
-        self.first_stage_emission_costs = sum(model_instance.z_emission[(t,base_data.S_SCENARIOS[0])].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
+        self.first_stage_emission_costs = sum(modell.z_emission[(t,base_data.S_SCENARIOS[0])].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
 
         #########
         # ----- #
@@ -220,7 +220,7 @@ class OutputData():
         self.q_max_transp_amount=q_max_transp_amount
         
         #just take from the last run as it is a first stage decision
-        self.FirstStageCosts = model_instance.FirstStageCosts[base_data.S_SCENARIOS[0]].value  
+        self.FirstStageCosts = modell.FirstStageCosts[base_data.S_SCENARIOS[0]].value  
 
 
         ######################################

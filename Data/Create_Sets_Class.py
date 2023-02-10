@@ -134,7 +134,8 @@ class TransportSets():
         self.scaling_factor = SCALING_FACTOR #10E-5
         self.precision_digits = 6
 
-        self.S_SCENARIOS = self.scenario_information.scenario_names
+        self.S_SCENARIOS_ALL = self.scenario_information.scenario_names
+        self.S_SCENARIOS = self.S_SCENARIOS_ALL
 
         self.M_MODES = ["Road", "Rail", "Sea"]
 

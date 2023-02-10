@@ -662,101 +662,69 @@ class TranspModel:
         return self.model
     
 
-    
-    
-
-
-
-
-
-
-    def fix_variables_first_stage(self,output_EV):
+    def fix_variables_first_stage(self,model):  #this is the EV model that is input.
         
         # for (i,j,m,r,f,p,t) in self.data.AFPT_S:    
         #     a = (i,j,m,r)
         #     if t in self.data.T_TIME_FIRST_STAGE:
         #         self.model.x_flow[(a,f,p,t)].fix(0)
         
+        base_scenario = 'BBB'
+
         #fixing those leads to infeasibility? 
         for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
             a = (i,j,m,r)
             if t in self.data.T_TIME_FIRST_STAGE:
+                #self.model.x_flow[(a,f,p,t,s)].fix(0)  
 
-                self.model.x_flow[(a,f,p,t,s)].fix(0)  
+                self.model.x_flow[(a,f,p,t,s)].setlb(-1)
+                self.model.x_flow[(a,f,p,t,s)].setub(5)
 
-                #self.model.x_flow[(a,f,p,t)].setlb(-1)
-                #self.model.x_flow[(a,f,p,t)].setub(5)
+                weight = model.x_flow[(a,f,p,t,base_scenario)].value
+                if weight is not None:
+                    if weight > 0.05:
+                        self.model.x_flow[(a,f,p,t,s)].fixed = False
+                        dev = 0.001
+                        self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
+                        self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
+                        #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+
         for (i,j,m,r,t,s) in self.data.ET_RAIL_S:
             if t in self.data.T_TIME_FIRST_STAGE:
                 e = (i,j,m,r)
                 self.model.epsilon_edge[(e,t,s)].fix(0)
+
+                weight = model.epsilon_edge[(e,t,base_scenario)].value
+                if weight is not None:
+                    if weight > 0.05:
+                        self.model.epsilon_edge[(e,t,s)].fix(weight) 
         for (e,f,t,s) in self.data.UT_UPG_S:
             if t in self.data.T_TIME_FIRST_STAGE:
                 self.model.upsilon_upg[(e,f,t,s)].fix(0)
+
+                weight = model.upsilon_upg[(e,f,t,base_scenario)].value
+                if weight is not None:
+                    if weight > 0.05:
+                        self.model.upsilon_upg[(e,f,t,s)].fix(weight) 
+
         for (i,c,m,t,s) in self.data.NCMT_S:
             if t in self.data.T_TIME_FIRST_STAGE:
                 self.model.nu_node[(i,c,m,t,s)].fix(0)
+
+                weight = model.nu_node[(i,c,m,t,base_scenario)].value
+                if weight is not None:
+                    if weight > 0.05:
+                        self.model.nu_node[(i,c,m,t,s)].fix(weight) 
+
         for (e,f,t,s) in self.data.EFT_CHARGE_S:
             if t in self.data.T_TIME_FIRST_STAGE:
                 self.model.y_charge[(e,f,t,s)].fix(0)
 
+                weight = model.y_charge[(e,f,t,base_scenario)].value
+                if weight is not None:
+                    if weight > 0.05:
+                        self.model.y_charge[(e,f,t,s)].fix(weight) 
         
-        for index,row in output_EV.all_variables[output_EV.all_variables['time_period'].isin(self.data.T_TIME_FIRST_STAGE)].iterrows():
-            
-            #start defining 
-            var_name = row['variable']
-            i = row['from']
-            j = row['to']
-            m = row['mode']
-            r = row['route']
-            a = (i,j,m,r)
-            e = (i,j,m,r)
-            f = row['fuel']
-            p = row['product']
-            t = row['time_period']
-            w = row['weight']
-            #s = row['scenario'] #not used
-            v = row['vehicle_type']
-            k = row['path']
-            c = row['terminal_type']
-            s = row['scenario']
-            
-            # fixing too much makes the problem somehow infeasible
-            # I believe it is a numerical issue. Giving x_flow some slack makes the problem feasible again
-            # TO DO: work on numerics. Check what the smallest parameter value is
-
-
-            if var_name == 'x_flow':
-                self.model.x_flow[(a,f,p,t,s)].fixed = False
-                dev = 0.001
-                self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*w)
-                self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*w)
-                #https://readthedocs.org/projects/pyomo/downloads/pdf/stable/
-            #elif variable == 'q_transp_amount':
-            #    self.model.q_transp_amount[(m, f, t)].fix(w)
-            #elif variable == 'b_flow':
-            #    self.model.b_flow[(a,f,v,t)].fix(w)
-            #elif variable == 'h_path':
-            #    self.model.h_path[(k,p,t)].fix(w)
-            elif var_name == 'epsilon_edge':
-                self.model.epsilon_edge[(e,t,s)].fix(w)
-            elif var_name == 'upsilon_upg':
-                self.model.upsilon_upg[(i,j,m,r,f,t,s)].fix(w)
-            elif var_name == 'nu_node':
-                self.model.nu_node[(i, c, m, t,s)].fix(w)
-            elif var_name == 'y_charging':
-                self.model.y_charge[(i,j,m,r,f,t,s)].fix(w)
-            #elif variable == 'z_emission':
-            #    self.model.z_emission[t].fix(w)
-            #elif variable == 'total_emissions':
-            #    self.model.total_emissions[t].fix(w)
-            #elif variable == 'q_max_transp_amount':
-            #    self.model.q_max_transp_amount[(m, f)].fix(w)
-        
-        #self.model.FirstStageCosts.fix(output_EV.FirstStageCosts)
-        #self.model.CvarAux.fix(output_EV.CvarAux)
-
-
         
     def fix_variables_first_time_period(self,x_flow_base_period_init):
         
