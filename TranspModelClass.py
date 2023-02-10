@@ -683,10 +683,10 @@ class TranspModel:
             if (a,f,p,t,s) not in [(aa,ff,pp,tt,ss) for (aa,ff,pp,tt,ss,ww) in x_flow_base_period_init]:
                 if t == self.data.T_TIME_PERIODS[0]:
 
-                    self.model.x_flow[(a,f,p,t,s)].fix(0)   #seems to be a little bit faster
+                    #self.model.x_flow[(a,f,p,t,s)].fix(0)   #seems to be a little bit faster
 
-                    #self.model.x_flow[(a,f,p,t)].setlb(-1)
-                    #self.model.x_flow[(a,f,p,t)].setub(5)
+                    self.model.x_flow[(a,f,p,t,s)].setlb(-1)
+                    self.model.x_flow[(a,f,p,t,s)].setub(1)
                     
 
         for (a,f,p,t,s,weight)in x_flow_base_period_init:
@@ -695,7 +695,7 @@ class TranspModel:
             #self.model.x_flow[(a,f,p,t)].fix(weight)
             
             self.model.x_flow[(a,f,p,t,s)].fixed = False
-            dev = 0.0001
+            dev = 0.001
             self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
             self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
 
