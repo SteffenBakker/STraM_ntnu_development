@@ -776,6 +776,7 @@ class TranspModel:
                 self.model.x_flow[(a,f,p,t,s)].setub(10**10/SCALING_FACTOR)   #maximum value is below 1000
 
         for (i,j,m,r,t,s) in self.data.ET_RAIL_S:
+            e = (i,j,m,r)
             self.model.epsilon_edge[(e,t,s)].fixed = False
         
         for (e,f,t,s) in self.data.UT_UPG_S:
