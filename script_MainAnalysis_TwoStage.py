@@ -126,7 +126,7 @@ def construct_and_solve_SP(base_data,
 
     # ------ CONSTRUCT MODEL ----------#
 
-    print("Constructing SP model...", end="", flush=True)
+    print("Constructing SP model...", flush=True)
 
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
@@ -140,7 +140,7 @@ def construct_and_solve_SP(base_data,
 
     print("Done constructing model.")
     print("Time used constructing the model:", time.time() - start)
-    print("----------", end="", flush=True)
+    print("----------", flush=True)
 
 
     #  ---------  SOLVE MODEL  ---------    #
