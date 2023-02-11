@@ -15,9 +15,9 @@ from ExtractModelResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
 
-import mpisppy.utils.sputils as sputils
-from solver_and_scenario_settings import scenario_creator
-from mpisppy.opt.ph import PH
+#import mpisppy.utils.sputils as sputils
+#from solver_and_scenario_settings import scenario_creator
+#from mpisppy.opt.ph import PH
 
 
 #Pyomo
@@ -275,7 +275,7 @@ def construct_and_solve_SP_warm_start(base_data,
     
     model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
 
-    model_instance.unfix_variables()
+    model_instance.unfix_variables_first_stage()
 
     #  ---------  SOLVE MODEL  ---------    #
 

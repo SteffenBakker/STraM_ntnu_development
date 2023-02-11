@@ -462,195 +462,197 @@ class TranspModel:
     
 
         def combinations(list_of_tuples1, list_of_tuples2):
-            if len(list_of_tuples1[0])==1:
+            if type(list_of_tuples1[0]) is not tuple:
                 list_of_tuples1 = [(x,) for x in list_of_tuples1]
-            if len(list_of_tuples2[0])==1:
+            if type(list_of_tuples2[0]) is not tuple:
                 list_of_tuples2 = [(x,) for x in list_of_tuples2]
             output = [x+y for x in list_of_tuples1 for y in list_of_tuples2]
             return output
 
-        def Nonanticipativity_x(model,i,j,m,r,f,p,t,s,ss):
-            a = i,j,m,r
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): # AND NOT ALREADY ADDED? -> do not care, gurobi fixes
-                return (self.model.x_flow[(a,f,p,t,s)]- self.model.x_flow[(a,f,p,t,ss)]==0) # TO DO: some slack here to improve feasibility? 
-            else:
-                return Constraint.Skip   # https://pyomo.readthedocs.io/en/stable/_modules/pyomo/core/base/constraint.html
-        self.model.Nonanticipativity_x_Constr = Constraint(combinations(self.data.AFPT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_x)
+        if len(self.data.S_SCENARIOS)>1:
 
-        def Nonanticipativity_b(model,i,j,m,r,f,v,t,s,ss):
-            a = i,j,m,r
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.b_flow[(a,f,v,t,s)]- self.model.b_flow[(a,f,v,t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_b_Constr = Constraint(combinations(self.data.AFVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_b)
+            def Nonanticipativity_x(model,i,j,m,r,f,p,t,s,ss):
+                a = i,j,m,r
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): # AND NOT ALREADY ADDED? -> do not care, gurobi fixes
+                    return (self.model.x_flow[(a,f,p,t,s)]- self.model.x_flow[(a,f,p,t,ss)]==0) # TO DO: some slack here to improve feasibility? 
+                else:
+                    return Constraint.Skip   # https://pyomo.readthedocs.io/en/stable/_modules/pyomo/core/base/constraint.html
+            self.model.Nonanticipativity_x_Constr = Constraint(combinations(self.data.AFPT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_x)
 
-        def Nonanticipativity_h(model,k,p,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.h_path[(k,p,t,s)]- self.model.h_path[(k,p,t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_h_Constr = Constraint(combinations(self.data.KPT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h)
+            def Nonanticipativity_b(model,i,j,m,r,f,v,t,s,ss):
+                a = i,j,m,r
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.b_flow[(a,f,v,t,s)]- self.model.b_flow[(a,f,v,t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_b_Constr = Constraint(combinations(self.data.AFVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_b)
 
-        def Nonanticipativity_h_bal(model,k,v,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.h_path_balancing[(k,v,t,s)]- self.model.h_path_balancing[(k,v,t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_h_bal_Constr = Constraint(combinations(self.data.KVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h_bal)
+            def Nonanticipativity_h(model,k,p,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.h_path[(k,p,t,s)]- self.model.h_path[(k,p,t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_h_Constr = Constraint(combinations(self.data.KPT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h)
 
-        def Nonanticipativity_stage(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.StageCosts[(t,s)]- self.model.StageCosts[(t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_stage_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_stage)
+            def Nonanticipativity_h_bal(model,k,v,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.h_path_balancing[(k,v,t,s)]- self.model.h_path_balancing[(k,v,t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_h_bal_Constr = Constraint(combinations(self.data.KVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h_bal)
 
-        def Nonanticipativity_eps(model,i,j,m,r,t,s,ss):
-            e = (i,j,m,r)
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.epsilon_edge[(e,t,s)]- self.model.epsilon_edge[(e,t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_RAIL,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
+            def Nonanticipativity_stage(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.StageCosts[(t,s)]- self.model.StageCosts[(t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_stage_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_stage)
 
-        def Nonanticipativity_upg(model,i,j,m,r,f,t,s,ss):
-            e = (i,j,m,r)
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.upsilon_upg[(e,f,t,s)]- self.model.upsilon_upg[(e,f,t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_upg_Constr = Constraint(combinations(self.data.UT_UPG,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upg)
+            def Nonanticipativity_eps(model,i,j,m,r,t,s,ss):
+                e = (i,j,m,r)
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.epsilon_edge[(e,t,s)]- self.model.epsilon_edge[(e,t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_RAIL,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
 
-        def Nonanticipativity_nu(model,n,c,m,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.nu_node[(n,c,m,t,s)]- self.model.nu_node[(n,c,m,t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NCMT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
+            def Nonanticipativity_upg(model,i,j,m,r,f,t,s,ss):
+                e = (i,j,m,r)
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.upsilon_upg[(e,f,t,s)]- self.model.upsilon_upg[(e,f,t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_upg_Constr = Constraint(combinations(self.data.UT_UPG,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upg)
 
-        def Nonanticipativity_y(model,i,j,m,r,f,t,s,ss):
-            e = (i,j,m,r)
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.y_charge[(e,f,t,s)]- self.model.y_charge[(e,f,t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
+            def Nonanticipativity_nu(model,n,c,m,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.nu_node[(n,c,m,t,s)]- self.model.nu_node[(n,c,m,t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NCMT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
 
-        def Nonanticipativity_z(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.z_emission[(t,s)]- self.model.z_emission[(t,ss)]==0)
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_z_Constr = Constraint(combinations(self.data.TS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_z)
+            def Nonanticipativity_y(model,i,j,m,r,f,t,s,ss):
+                e = (i,j,m,r)
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.y_charge[(e,f,t,s)]- self.model.y_charge[(e,f,t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
 
-        def Nonanticipativity_totem(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.total_emissions[(t,s)]- self.model.total_emissions[(t,ss)]==0)
-            else:
-                return Constraint.Skip 
-        self.model.Nonanticipativity_totem_Constr = Constraint(combinations(self.data.TS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_totem)
+            def Nonanticipativity_z(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.z_emission[(t,s)]- self.model.z_emission[(t,ss)]==0)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_z_Constr = Constraint(combinations(self.data.TS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_z)
 
-        def Nonanticipativity_q(model,m,f,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.q_transp_amount[(m,f,t,s)]- self.model.q_transp_amount[(m,f,t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
+            def Nonanticipativity_totem(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.total_emissions[(t,s)]- self.model.total_emissions[(t,ss)]==0)
+                else:
+                    return Constraint.Skip 
+            self.model.Nonanticipativity_totem_Constr = Constraint(combinations(self.data.TS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_totem)
 
-        #this is different across scenarios!!
-        #def Nonanticipativity_q_max(model,m,f,s,ss): 
-        #    return (self.model.q_max_transp_amount[(m,f,s)]- self.model.q_max_transp_amount[(m,f,ss)]==0) 
-        #self.model.Nonanticipativity_qmax_Constr = Constraint(combinations(self.data.MF,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_max)
+            def Nonanticipativity_q(model,m,f,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.q_transp_amount[(m,f,t,s)]- self.model.q_transp_amount[(m,f,t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
 
-        def Nonanticipativity_q_aux(model,m,f,t,s,ss):
-            if (t in self.data.T_YEARLY_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.q_aux_transp_amount[(m,f,t,s)]- self.model.q_aux_transp_amount[(m,f,t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_qaux_Constr = Constraint(combinations(self.data.MFT_NEW_YEARLY,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_aux)
-        
-        def Nonanticipativity_qmode(model,m,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.q_mode_total_transp_amount[(m,t,s)]- self.model.q_mode_total_transp_amount[(m,t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_qmode_Constr = Constraint(combinations(self.data.MT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_qmode)
+            #this is different across scenarios!!
+            #def Nonanticipativity_q_max(model,m,f,s,ss): 
+            #    return (self.model.q_max_transp_amount[(m,f,s)]- self.model.q_max_transp_amount[(m,f,ss)]==0) 
+            #self.model.Nonanticipativity_qmax_Constr = Constraint(combinations(self.data.MF,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_max)
 
-        def Nonanticipativity_opex(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.TranspOpexCost[(t,s)]- self.model.TranspOpexCost[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_opex_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_opex)
+            def Nonanticipativity_q_aux(model,m,f,t,s,ss):
+                if (t in self.data.T_YEARLY_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.q_aux_transp_amount[(m,f,t,s)]- self.model.q_aux_transp_amount[(m,f,t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_qaux_Constr = Constraint(combinations(self.data.MFT_NEW_YEARLY,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_aux)
+            
+            def Nonanticipativity_qmode(model,m,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.q_mode_total_transp_amount[(m,t,s)]- self.model.q_mode_total_transp_amount[(m,t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_qmode_Constr = Constraint(combinations(self.data.MT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_qmode)
 
-        def Nonanticipativity_co2(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.TranspCO2Cost[(t,s)]- self.model.TranspCO2Cost[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_co2_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2)
+            def Nonanticipativity_opex(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.TranspOpexCost[(t,s)]- self.model.TranspOpexCost[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_opex_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_opex)
 
-        def Nonanticipativity_opexb(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.TranspOpexCostB[(t,s)]- self.model.TranspOpexCostB[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_opexb_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_opexb)
+            def Nonanticipativity_co2(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.TranspCO2Cost[(t,s)]- self.model.TranspCO2Cost[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_co2_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2)
 
-        def Nonanticipativity_co2b(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.TranspCO2CostB[(t,s)]- self.model.TranspCO2CostB[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_co2b_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2b)
+            def Nonanticipativity_opexb(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.TranspOpexCostB[(t,s)]- self.model.TranspOpexCostB[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_opexb_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_opexb)
 
-        def Nonanticipativity_transf(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.TransfCost[(t,s)]- self.model.TransfCost[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_transf_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_transf)
+            def Nonanticipativity_co2b(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.TranspCO2CostB[(t,s)]- self.model.TranspCO2CostB[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_co2b_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2b)
 
-        def Nonanticipativity_edge(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.EdgeCost[(t,s)]- self.model.EdgeCost[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_edge_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_edge)
+            def Nonanticipativity_transf(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.TransfCost[(t,s)]- self.model.TransfCost[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_transf_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_transf)
 
-        def Nonanticipativity_node(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.NodeCost[(t,s)]- self.model.NodeCost[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_node_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_node)
+            def Nonanticipativity_edge(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.EdgeCost[(t,s)]- self.model.EdgeCost[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_edge_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_edge)
 
-        def Nonanticipativity_upgcost(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.UpgCost[(t,s)]- self.model.UpgCost[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_upgcost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upgcost)
+            def Nonanticipativity_node(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.NodeCost[(t,s)]- self.model.NodeCost[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_node_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_node)
 
-        def Nonanticipativity_chargecost(model,t,s,ss):
-            if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                return (self.model.ChargeCost[(t,s)]- self.model.ChargeCost[(t,ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_chargecost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_chargecost)
+            def Nonanticipativity_upgcost(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.UpgCost[(t,s)]- self.model.UpgCost[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_upgcost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upgcost)
 
-        def Nonanticipativity_firststagecost(model,s,ss):
-            if  (s is not ss): 
-                return (self.model.FirstStageCosts[(s)]- self.model.FirstStageCosts[(ss)]==0) 
-            else:
-                return Constraint.Skip
-        self.model.Nonanticipativity_firststagecost_Constr = Constraint(self.data.SS_SCENARIOS_NONANT,rule = Nonanticipativity_firststagecost)
+            def Nonanticipativity_chargecost(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.ChargeCost[(t,s)]- self.model.ChargeCost[(t,ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_chargecost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_chargecost)
 
-        # self.model.MaxTranspPenaltyCost -> no non-anticipativity   
-        # self.model.CvarAux   -> non-anticipativity already imposed in the model (not defined for scenarios)    
-        # self.model.CvarPosPart -> Different across scenarios
-        #self.model.SecondStageCosts  -> varies across scenarios
+            def Nonanticipativity_firststagecost(model,s,ss):
+                if  (s is not ss): 
+                    return (self.model.FirstStageCosts[(s)]- self.model.FirstStageCosts[(ss)]==0) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_firststagecost_Constr = Constraint(self.data.SS_SCENARIOS_NONANT,rule = Nonanticipativity_firststagecost)
+
+            # self.model.MaxTranspPenaltyCost -> no non-anticipativity   
+            # self.model.CvarAux   -> non-anticipativity already imposed in the model (not defined for scenarios)    
+            # self.model.CvarPosPart -> Different across scenarios
+            #self.model.SecondStageCosts  -> varies across scenarios
 
 
         #-----------------------------------------------#

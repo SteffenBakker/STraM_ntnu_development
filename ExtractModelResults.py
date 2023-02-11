@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import numpy as np
 import pandas as pd
-import mpisppy.utils.sputils as sputils
+#import mpisppy.utils.sputils as sputils
 import pyomo.environ as pyo
 import math
 

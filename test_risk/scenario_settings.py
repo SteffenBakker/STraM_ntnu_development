@@ -1,7 +1,7 @@
 """Scenario creator and SP settings"""
 
-import mpisppy.utils.sputils as sputils
-import mpisppy.scenario_tree as scenario_tree
+#import mpisppy.utils.sputils as sputils
+#import mpisppy.scenario_tree as scenario_tree
 from model import SimpleRecourseModel
 
 # define scenario creator
