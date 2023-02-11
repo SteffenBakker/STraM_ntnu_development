@@ -32,7 +32,7 @@ class TranspModel:
         self.status = None  # status is a string filled out later in solve_model()
         self.model = ConcreteModel()
         self.opt = pyomo.opt.SolverFactory('gurobi') #gurobi
-        self.opt.options['FeasibilityTol'] = 10**(-3) #the standard of 10**(-6) gives a constraint violation warning
+        self.opt.options['FeasibilityTol'] = 10**(-5) #the standard of 10**(-6) gives a constraint violation warning
         self.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
         self.data = data
         self.risk_info = risk_info # stores parameters of the risk measure (i.e., lambda and alpha for mean-CVaR)
