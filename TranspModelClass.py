@@ -466,7 +466,7 @@ class TranspModel:
                 list_of_tuples1 = [(x,) for x in list_of_tuples1]
             if len(list_of_tuples2[0]==1):
                 list_of_tuples2 = [(x,) for x in list_of_tuples2]
-            output [x+y for x in list_of_tuples1 for y in list_of_tuples2]
+            output = [x+y for x in list_of_tuples1 for y in list_of_tuples2]
             return output
 
         def Nonanticipativity_x(model,i,j,m,r,f,p,t,s,ss):
