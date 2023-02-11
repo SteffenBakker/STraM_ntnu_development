@@ -836,7 +836,7 @@ class TransportSets():
         self.SS_SCENARIOS_NONANT = []
         for s in self.S_SCENARIOS:
             for ss in self.S_SCENARIOS:
-                if (s != ss) and ((ss,s) not in self.SS_SCENARIOS_NONANT ):
+                if (s != ss) and ((ss,s) not in self.SS_SCENARIOS_NONANT):
                     self.SS_SCENARIOS_NONANT.append((s,ss))
 
         self.T_TIME_FIRST_STAGE = [t for t in self.T_TIME_FIRST_STAGE_BASE if t in self.T_TIME_PERIODS]  

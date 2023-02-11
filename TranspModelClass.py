@@ -462,9 +462,9 @@ class TranspModel:
     
 
         def combinations(list_of_tuples1, list_of_tuples2):
-            if len(list_of_tuples1[0]==1):
+            if len(list_of_tuples1[0])==1:
                 list_of_tuples1 = [(x,) for x in list_of_tuples1]
-            if len(list_of_tuples2[0]==1):
+            if len(list_of_tuples2[0])==1:
                 list_of_tuples2 = [(x,) for x in list_of_tuples2]
             output = [x+y for x in list_of_tuples1 for y in list_of_tuples2]
             return output
