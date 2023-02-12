@@ -41,7 +41,8 @@ import json #works across operating systems
 import cProfile
 import pstats
 
-
+from utils import Logger
+sys.stdout = Logger()
 
 #################################################
 #                   user input                  #
@@ -51,7 +52,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -92,7 +93,7 @@ def solve_init_model(base_data,risk_info):
     InitModel.solve_model()
     print("Time used solving the model:", time.time() - start)
     print('-----------------')
-
+    sys.stdout.flush()
 
     #extract the important output
     x_flow_base_period_init = []
@@ -140,17 +141,17 @@ def construct_and_solve_SP(base_data,
 
     print("Done constructing model.")
     print("Time used constructing the model:", time.time() - start)
-    print("----------", flush=True)
-
+    print("----------")
+    sys.stdout.flush()
 
     #  ---------  SOLVE MODEL  ---------    #
 
-    print("Solving model...")
+    print("Solving model...",flush=True)
     start = time.time()
     #options = option_settings_ef()
     model_instance.solve_model() 
-    print("Done solving model.")
-    print("Time used solving the model:", time.time() - start)
+    print("Done solving model.",flush=True)
+    print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", end="", flush=True)
 
     return model_instance,base_data
@@ -184,7 +185,7 @@ def construct_and_solve_EEV(base_data,risk_info):
     
     # ------ CONSTRUCT MODEL ----------#
 
-    print("Constructing EV model...", end="", flush=True)
+    print("Constructing EV model.....", end="", flush=True)
 
     start = time.time()
     model_instance_EV = TranspModel(data=base_data, risk_info=risk_info)
@@ -194,14 +195,14 @@ def construct_and_solve_EEV(base_data,risk_info):
     #fixing variables
     model_instance_EV.fix_variables_first_time_period(x_flow_base_period_init)
 
-    print("Done constructing EV model.")
-    print("Time used constructing the model:", time.time() - start)
-    print("----------", end="", flush=True)
+    print("Done constructing EV model.",flush=True)
+    print("Time used constructing the model:", time.time() - start,flush=True)
+    print("----------", flush=True)
 
 
     #  ---------  SOLVE MODEL  ---------    #
 
-    print("Solving EV model...")
+    print("Solving EV model.....",end="",flush=True)
     start = time.time()
     model_instance_EV.solve_model()
     print("Done solving model.")
@@ -218,7 +219,7 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     # ------ CONSTRUCT MODEL ----------#
 
-    print("Constructing EEV model...", flush=True)
+    print("Constructing EEV model...",end='', flush=True)
 
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
@@ -229,20 +230,20 @@ def construct_and_solve_EEV(base_data,risk_info):
     #if fix_first_stage:
     #    model_instance.fix_variables_first_stage(output_EV)
 
-    print("Done constructing EEV model.")
-    print("Time used constructing the model:", time.time() - start)
+    print("Done constructing EEV model.",flush=True)
+    print("Time used constructing the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
 
 
     #  ---------  SOLVE MODEL  ---------    #
 
-    print("Solving EEV model...")
+    print("Solving EEV model...",end='',flush=True)
     start = time.time()
     #options = option_settings_ef()
     model_instance.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
     model_instance.solve_model()
-    print("Done solving model.")
-    print("Time used solving the model:", time.time() - start)
+    print("Done solving model.",flush=True)
+    print("Time used solving the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
 
 
@@ -258,9 +259,9 @@ def construct_and_solve_EEV(base_data,risk_info):
         output = OutputData(model_instance.model,base_data)
 
         with open(r"Data//" + file_string, 'wb') as output_file: 
-            print("Dumping EEV output in pickle file.....", end="")
+            print("Dumping EEV output in pickle file.....", end="",flush=True)
             pickle.dump(output, output_file)
-            print("done.")
+            print("done.",flush=True)
         
         sys.stdout.flush()
 
@@ -279,13 +280,13 @@ def construct_and_solve_SP_warm_start(base_data,
 
     #  ---------  SOLVE MODEL  ---------    #
 
-    print("Solving SP model with EEV warm start...")
+    print("Solving SP model with EEV warm start...",end='',flush=True)
     start = time.time()
     model_instance.opt.options['FeasibilityTol'] = 10**(-4) #go from -5 to -4 -> does this worK?
     model_instance.solve_model(warmstart=True)
-    print("Done solving model.")
-    print("Time used solving the model:", time.time() - start)
-    print("----------", end="", flush=True)
+    print("Done solving model.",flush=True)
+    print("Time used solving the model:", time.time() - start,flush=True)
+    print("----------", flush=True)
 
     return model_instance,base_data
 
@@ -296,7 +297,7 @@ def main(analysis_type):
     print('----------------------------')
     print('Doing the following analysis: ', analysis_type, sheet_name_scenarios)
     print('----------------------------')
-
+    sys.stdout.flush()
     #     --------- DATA  ---------   #
     
             
@@ -304,7 +305,7 @@ def main(analysis_type):
     start = time.time()
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
     print("Done reading data.", flush=True)
-    print("Time used reading the base data:", time.time() - start)
+    print("Time used reading the base data:", time.time() - start,flush=True)
     sys.stdout.flush()
 
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
