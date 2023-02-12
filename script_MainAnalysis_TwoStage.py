@@ -52,6 +52,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+wrm_strt = False  #use EEV as warm start for SP
 sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -315,8 +316,11 @@ def main(analysis_type):
     #     --------- MODEL  ---------   #
     # solve model
     if analysis_type == "SP":
-        #model_instance,base_data = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
-        model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info,time_periods=time_periods)
+        if wrm_strt:
+            model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info,time_periods=time_periods)
+        else:
+            model_instance,base_data = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
+
     elif analysis_type == "EEV":
         model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
     
