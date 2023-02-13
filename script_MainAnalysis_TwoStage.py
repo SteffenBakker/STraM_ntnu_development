@@ -47,11 +47,8 @@ from Utils2 import Logger
 #                   user input                  #
 #################################################
 
-profiling = False
-distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
-
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = True  #use EEV as warm start for SP
+wrm_strt = False  #use EEV as warm start for SP
 sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -88,16 +85,16 @@ def solve_init_model(base_data,risk_info):
     InitModel.NoBalancingTrips = NoBalancingTrips
     InitModel.solve_base_year = True
     print('-----------------')
-    print('constructing initialization model')
+    print('constructing initialization model',flush=True)
     start = time.time()
     InitModel.construct_model()
-    print("Time used constructing the model:", time.time() - start)
+    print("Time used constructing the model:", time.time() - start,flush=True)
     print('-----------------')
 
-    print('solving initialization model')
+    print('solving initialization model',flush=True)
     start = time.time()
     InitModel.solve_model()
-    print("Time used solving the model:", time.time() - start)
+    print("Time used solving the model:", time.time() - start,flush=True)
     print('-----------------')
     sys.stdout.flush()
 
@@ -120,6 +117,7 @@ def construct_and_solve_SP(base_data,
                             risk_info, 
                             last_time_period=False,
                             time_periods = None):
+    
     # ------ SOLVE INIT MODEL ----------#
     x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
 
@@ -347,6 +345,29 @@ def main(analysis_type):
     sys.stdout.flush()
 
 
+def main2():
+
+    print('----------------------------')
+    print('Only do init: ', analysis_type, sheet_name_scenarios)
+    print('----------------------------')
+    sys.stdout.flush()
+    #     --------- DATA  ---------   #
+     
+    print("Reading data...", flush=True)
+    start = time.time()
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
+    print("Done reading data.", flush=True)
+    print("Time used reading the base data:", time.time() - start,flush=True)
+    sys.stdout.flush()
+
+    risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
+    #add to the base_data class?
+    base_data.risk_information = risk_info
+
+    print("solve init model", flush=True)
+    # ------ SOLVE INIT MODEL ----------#
+    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+    print("finished solving init model", flush=True)
 
 
 def last_time_period_run():
@@ -379,7 +400,8 @@ if __name__ == "__main__":
     #for analysis_type in ['SP','EEV']:
     #    main(analysis_type=analysis_type)
     
-    main(analysis_type=analysis_type)
+    #main(analysis_type=analysis_type)
+    main2()
 
     #last_time_period_run()
 

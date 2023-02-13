@@ -793,25 +793,26 @@ class TranspModel:
         opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
         opt.options['MIPGap']= MIP_gap # 'TimeLimit':600 (seconds)
 
-        results = opt.solve(self.model, warmstart=warmstart, tee=True, symbolic_solver_labels=True,
+        opt.solve(self.model, warmstart=warmstart, tee=True, symbolic_solver_labels=True,
                                       keepfiles=True)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)
 
-        if (results.solver.status == pyomo.opt.SolverStatus.ok) and (
-                results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal):
-            print('the solution is feasible and optimal')
-        elif results.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
-            print('the model is infeasible')
-            log_infeasible_constraints(self.model,log_expression=True, log_variables=True)
-            raise Exception('the model is infeasible')
-            #logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
-            #print(value(model.z))
+        if False:
+            if (results.solver.status == pyomo.opt.SolverStatus.ok) and (
+                    results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal):
+                print('the solution is feasible and optimal')
+            elif results.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
+                print('the model is infeasible')
+                #log_infeasible_constraints(self.model,log_expression=True, log_variables=True)
+                raise Exception('the model is infeasible')
+                #logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
+                #print(value(model.z))
 
-        else:
-            raise Exception('Solver Status: ', results.solver.status, 'Termination Condition: ', results.solver.termination_condition )
-            #print('Solver Status: '), self.results.solver.status
-            #print('Termination Condition: '), self.results.solver.termination_condition
+            else:
+                raise Exception('Solver Status: ', results.solver.status, 'Termination Condition: ', results.solver.termination_condition )
+                #print('Solver Status: '), self.results.solver.status
+                #print('Termination Condition: '), self.results.solver.termination_condition
 
-        print('Solution time: ' + str(results.solver.time))
+            print('Solution time: ' + str(results.solver.time))
         
 
 

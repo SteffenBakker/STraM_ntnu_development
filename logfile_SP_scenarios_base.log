@@ -1,0 +1,26 @@
+----------------------------
+Doing the following analysis:  SP scenarios_base
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.08340531276866481 %
+Done reading data.
+Time used reading the base data: 3.335535764694214
+-----------------
+constructing initialization model
+ERROR: Constructing component 'Nonanticipativity_b_Constr' from data=None
+    failed: KeyboardInterrupt:
+----------------------------
+Doing the following analysis:  SP scenarios_base
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.08340531276866481 %
+Done reading data.
+Time used reading the base data: 9.83880066871643
+-----------------
+constructing initialization model
+Backend TkAgg is interactive backend. Turning interactive mode on.
+Time used constructing the model: 1222.1199309825897
+-----------------
+solving initialization model
