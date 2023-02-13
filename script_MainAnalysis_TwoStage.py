@@ -41,7 +41,7 @@ import json #works across operating systems
 import cProfile
 import pstats
 
-from Utils import Logger
+from Utils2 import Logger
 
 #################################################
 #                   user input                  #
