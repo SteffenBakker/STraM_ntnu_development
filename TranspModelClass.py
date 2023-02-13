@@ -787,7 +787,7 @@ class TranspModel:
     
             
 
-    def solve_model(self, warmstart=False, FeasTol=10**(-5),MIP_gap):  #GENERAL way to solve a single deterministic model
+    def solve_model(self, warmstart=False, FeasTol=(10**(-5)),MIP_gap=MIPGAP):  #GENERAL way to solve a single deterministic model
 
         opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
