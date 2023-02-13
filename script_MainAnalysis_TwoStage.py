@@ -51,7 +51,7 @@ profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = True  #use EEV as warm start for SP
+wrm_strt = False  #use EEV as warm start for SP
 sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -69,9 +69,9 @@ NoBalancingTrips = False  #default at False
 
 run_identifier = analysis_type + '_' + sheet_name_scenarios
 if wrm_strt:
-    file_string = run_identifier +'_WrmStrt'
+    run_identifier = run_identifier +'_WrmStrt'
 if NoBalancingTrips:
-    file_string = run_identifier +'_NoBalancingTrips'
+    run_identifier = run_identifier +'_NoBalancingTrips'
 
 sys.stdout = Logger(run_identifier)
 
