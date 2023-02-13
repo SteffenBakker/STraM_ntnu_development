@@ -801,7 +801,8 @@ class TranspModel:
         opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
         opt.options['MIPGap']= MIP_gap # 'TimeLimit':600 (seconds)
-
+        #["NumericFocus"] = 3 , 0 is automatic, 1 is low precision but fast #  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+        #["ScaleFlag"] = 1 #https://www.gurobi.com/documentation/9.5/refman/scaleflag.html
         opt.solve(self.model, warmstart=warmstart, tee=True, symbolic_solver_labels=True,
                                       keepfiles=True)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)
 

@@ -1163,3 +1163,267 @@ Best objective -, best bound 2.472119480000e+05, gap -
 
 Interrupt request received
 Terminate batch job (Y/N)? 
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.1715571606978822 %
+Done reading data.
+Time used reading the base data: 1.7456200122833252
+-----------------
+constructing initialization model
+Time used constructing the model: 1.9738266468048096
+-----------------
+solving initialization model
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmp7yhq4isf.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmp200_9oo9.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmp5mwkcr3r.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmpps4ncihb.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmpps4ncihb.pyomo.lp
+Reading time = 0.20 seconds
+objective_function: 4314 rows, 30498 columns, 226214 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 4314 rows, 30498 columns and 226214 nonzeros
+Model fingerprint: 0x47e8aaec
+Variable types: 30459 continuous, 39 integer (39 binary)
+Coefficient statistics:
+  Matrix range     [2e-03, 5e+09]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [6e-02, 1e+10]
+Warning: Model contains large matrix coefficient range
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 1429 rows and 15820 columns
+Presolve time: 0.19s
+Presolved: 2885 rows, 14678 columns, 92429 nonzeros
+Variable types: 14678 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.606641e+11, 4284 iterations, 0.19 seconds (0.27 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.606641e+11 1.6066e+11  0.00%     -    0s
+
+Explored 1 nodes (4284 simplex iterations) in 0.44 seconds (0.62 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.60664e+11 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.606640548635e+11, best bound 1.606640548635e+11, gap 0.0000%
+Time used solving the model: 2.9147531986236572
+-----------------
+Constructing EV model.....Done constructing EV model.
+Time used constructing the model: 11.145323038101196
+----------
+Solving EV model.....Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmpgu0niean.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmptbzmkuxq.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmp69b3iq4m.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmp19ocss1v.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmp19ocss1v.pyomo.lp
+Reading time = 1.23 seconds
+objective_function: 21852 rows, 152722 columns, 1132545 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 21852 rows, 152722 columns and 1132545 nonzeros
+Model fingerprint: 0xfc3bad44
+Variable types: 152487 continuous, 235 integer (235 binary)
+Coefficient statistics:
+  Matrix range     [2e-06, 5e+09]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [2e-03, 7e+02]
+  RHS range        [6e-02, 3e+12]
+Warning: Model contains large matrix coefficient range
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 6274 rows and 58879 columns
+Presolve time: 1.91s
+Presolved: 15578 rows, 93843 columns, 623145 nonzeros
+Variable types: 93744 continuous, 99 integer (99 binary)
+
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing first log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+   41632    1.6050336e+11   8.304322e+02   2.051606e+09      5s
+   88091    1.6050336e+11   6.360218e+02   1.745223e+09     10s
+  132410    1.6050335e+11   5.237327e+02   2.654719e+09     15s
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+
+Root relaxation: objective 2.824630e+15, 43704 iterations, 14.98 seconds (14.23 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 2.8246e+15    0    7          - 2.8246e+15      -     -   17s
+     0     0 2.8246e+15    0    8          - 2.8246e+15      -     -  145s
+
+Cutting planes:
+  Gomory: 1
+  MIR: 5
+  RLT: 1
+
+Explored 1 nodes (86056 simplex iterations) in 145.21 seconds (93.05 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Solve interrupted
+Best objective -, best bound 2.824629964648e+15, gap -
+
+Interrupt request received
+Terminate batch job (Y/N)? 
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "int", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.1715571606978822 %
+Done reading data.
+Time used reading the base data: 1.7147746086120605
+-----------------
+constructing initialization model
+Time used constructing the model: 1.8153560161590576
+-----------------
+solving initialization model
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmp_jncbvqs.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmphadjn9s1.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmpacvd5esr.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmpb185bux0.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmpb185bux0.pyomo.lp
+Reading time = 0.20 seconds
+objective_function: 4314 rows, 30498 columns, 226214 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 4314 rows, 30498 columns and 226214 nonzeros
+Model fingerprint: 0x47e8aaec
+Variable types: 30459 continuous, 39 integer (39 binary)
+Coefficient statistics:
+  Matrix range     [2e-03, 5e+09]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [6e-02, 1e+10]
+Warning: Model contains large matrix coefficient range
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 1429 rows and 15820 columns
+Presolve time: 0.17s
+Presolved: 2885 rows, 14678 columns, 92429 nonzeros
+Variable types: 14678 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.606641e+11, 4284 iterations, 0.19 seconds (0.27 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.606641e+11 1.6066e+11  0.00%     -    0s
+
+Explored 1 nodes (4284 simplex iterations) in 0.42 seconds (0.62 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.60664e+11 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.606640548635e+11, best bound 1.606640548635e+11, gap 0.0000%
+Time used solving the model: 2.6476492881774902
+-----------------
+Constructing EV model.....Done constructing EV model.
+Time used constructing the model: 10.635674238204956
+----------
+Solving EV model.....Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmpt17uwtoe.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmp_90q1vc6.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmpntwjvcbe.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmpvy_yyt2m.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmpvy_yyt2m.pyomo.lp
+Reading time = 1.18 seconds
+objective_function: 21852 rows, 152722 columns, 1132545 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 21852 rows, 152722 columns and 1132545 nonzeros
+Model fingerprint: 0xfc3bad44
+Variable types: 152487 continuous, 235 integer (235 binary)
+Coefficient statistics:
+  Matrix range     [2e-06, 5e+09]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [2e-03, 7e+02]
+  RHS range        [6e-02, 3e+12]
+Warning: Model contains large matrix coefficient range
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 6274 rows and 58879 columns
+Presolve time: 1.94s
+Presolved: 15578 rows, 93843 columns, 623145 nonzeros
+Variable types: 93744 continuous, 99 integer (99 binary)
+
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing first log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+   40607    1.6050336e+11   8.352821e+02   1.593534e+09      5s
+   82879    1.6050336e+11   6.479003e+02   2.096893e+09     10s
+  128381    1.6050335e+11   5.314085e+02   2.818815e+09     15s
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+
+Root relaxation: objective 2.824630e+15, 43704 iterations, 15.08 seconds (14.23 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 2.8246e+15    0    7          - 2.8246e+15      -     -   17s
+     0     0 2.8246e+15    0    8          - 2.8246e+15      -     -  181s
+     0     0 2.8246e+15    0   10          - 2.8246e+15      -     -  387s
+
+Cutting planes:
+  Gomory: 2
+  MIR: 3
+  RLT: 1
+
+Explored 1 nodes (121741 simplex iterations) in 387.21 seconds (189.59 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Solve interrupted
+Best objective -, best bound 2.824629964648e+15, gap -
+
+Interrupt request received
+Terminate batch job (Y/N)? 

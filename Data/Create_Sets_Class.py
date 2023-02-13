@@ -132,7 +132,11 @@ class TransportSets():
         print("Reading and constructing data")
 
         self.scaling_factor = SCALING_FACTOR #10E-5
-        self.precision_digits = 6
+        self.scaling_factor_monetary = SCALING_FACTOR_MONETARY
+        self.scaling_factor_weight = SCALING_FACTOR_WEIGHT
+        self.scaling_factor_emissions = SCALING_FACTOR_EMISSIONS
+
+        self.precision_digits = 4
 
         self.S_SCENARIOS_ALL = self.scenario_information.scenario_names
         self.S_SCENARIOS = self.S_SCENARIOS_ALL
@@ -313,7 +317,7 @@ class TransportSets():
         # demands.hist(cumulative=True, density=1, bins=100)
         
         total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
-        cutoff = demands.quantile(0.25) #HARDCODED, requires some analyses
+        cutoff = demands.quantile(0.4) #HARDCODED, requires some analyses
         demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
         reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
         print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  #NOT EVEN 0.1% removed!!
@@ -342,7 +346,7 @@ class TransportSets():
         #demand
         self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS for (o,d,p) in self.ODP}        
         for (o,d,p,t), value in D_DEMAND_CUT.items():
-            self.D_DEMAND[(o,d,p,t)] = round(value/self.scaling_factor,self.precision_digits)
+            self.D_DEMAND[(o,d,p,t)] = round(value/self.scaling_factor_weight,self.precision_digits)
         
         if INTERPOLATE_DEMAND_DATA_2040:
             for (o,d,p,t), value in self.D_DEMAND.items(): 
@@ -484,8 +488,8 @@ class TransportSets():
         for p in self.P_PRODUCTS:
             for q in self.PATH_TYPES:
                 data_index = transfer_data.loc[(transfer_data['Product'] == p) & (transfer_data['Transfer type'] == q)]
-                self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost'],1)  #10E6NOK/10E6TONNES
-        
+                self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost']/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)  #10E6NOK/10E6TONNES
+                #No immediate need for scaling, as already in NOK/Tonnes
         
         mode_to_transfer = {('Sea','Rail'):'sea-rail',
                             ('Sea','Road'):'sea-road',
@@ -511,7 +515,7 @@ class TransportSets():
         CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
         self.CO2_fee = {t: 10000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for index, row in CO2_fee_data.iterrows():
-            self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]
+            self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions
             
 
         #base level transport costs (in average scenario)
@@ -537,14 +541,14 @@ class TransportSets():
                     if f in self.FM_FUEL[m]: #get rid of the hybrid!!
                         p = row['Product group']
                         y = row['Year']
-                        self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)] = row['Cost (NOK/Tkm)']
-                        self.E_EMISSIONS_NORMALIZED[(m,f,p,y)] = row['Emissions (gCO2/Tkm)']
+                        self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)] = round(row['Cost (NOK/Tkm)']/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)
+                        self.E_EMISSIONS_NORMALIZED[(m,f,p,y)] = round(row['Emissions (gCO2/Tkm)']*self.scaling_factor_weight/self.scaling_factor_emissions,self.precision_digits)
                         #compute base cost
-                        self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)]), 2) 
+                        self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)]), self.precision_digits) 
                         #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
-                        self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * row['Emissions (gCO2/Tkm)'], 1)
+                        self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * self.E_EMISSIONS_NORMALIZED[(m,f,p,y)], self.precision_digits)
                         #CO2 costs per tonne:
-                        self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], 1)
+                        self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], self.precision_digits)
 
         for (i, j, m, r) in self.A_ARCS:
                 for f in self.FM_FUEL[m]:
@@ -596,7 +600,7 @@ class TransportSets():
         for e in self.E_EDGES_UPG:
             self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
 
-        BIG_COST_NUMBER = 10**12/self.scaling_factor # nord-norge banen = 113 milliarder = 113*10**9
+        BIG_COST_NUMBER = 12*10**10/self.scaling_factor_monetary # nord-norge banen = 113 milliarder = 113*10**9  
         self.C_EDGE_RAIL = {e: BIG_COST_NUMBER for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
         self.Q_EDGE_RAIL = {e: 0 for e in self.E_EDGES_RAIL}   # TONNES ->MTONNES
         self.Q_EDGE_BASE_RAIL = {e: 100000 for e in self.E_EDGES_RAIL}   # TONNES
@@ -627,7 +631,7 @@ class TransportSets():
                         e = (i,j,m,r)
                     elif (jj,ii,mm,rr)==(i,j,m,r):
                         e = (i,j,m,r)
-                    self.C_UPG[(e,f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor,2)
+                    self.C_UPG[(e,f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor_monetary,self.precision_digits)
                     self.LEAD_TIME_UPGRADE[(e,f)] = row['Leadtime']
                     #TO DO: allow for partially electrified rail. Now we only take fully electrified. 
 
@@ -639,23 +643,23 @@ class TransportSets():
                 for c in self.TERMINAL_TYPE[m]:
                     if m == "Rail" and c=="Combination":
                         cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet combi 2014 (tonn)']/self.scaling_factor   #MTONNES
+                        self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet combi 2014 (tonn)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
-                        self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.scaling_factor   #MTONNES
-                        self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (combi)']/self.scaling_factor   #MNOK
+                        self.Q_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
+                        self.C_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Kostnad (combi)']/self.scaling_factor_monetary,self.precision_digits)   #MNOK
                         self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeCombi']
                     if m == "Rail" and c=="Timber":
                         cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.scaling_factor   #MTONNES
+                        self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
                         cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
-                        self.Q_NODE[i,c,m] = cap_exp_data.iloc[0]['Økning av kapasitet (tømmer)']/self.scaling_factor   #MTONNES
-                        self.C_NODE[i,c,m] = cap_exp_data.iloc[0]['Kostnad (tømmer)']/self.scaling_factor  #MNOK
+                        self.Q_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Økning av kapasitet (tømmer)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
+                        self.C_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Kostnad (tømmer)']/self.scaling_factor_monetary,self.precision_digits)  #MNOK
                         self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeTimber']
                     if m == "Sea":
                         cap_data = inv_sea_data.loc[(inv_sea_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = cap_data.iloc[0]['Kapasitet']/self.scaling_factor  #MTONNES
-                        self.Q_NODE[i,c,m] = cap_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor  #MTONNES
-                        self.C_NODE[i,c,m] = cap_data.iloc[0]['Kostnad']/self.scaling_factor  #MNOK
+                        self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet']/self.scaling_factor_weight,self.precision_digits)  #MTONNES
+                        self.Q_NODE[i,c,m] = round(cap_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor_weight,self.precision_digits)  #MTONNES
+                        self.C_NODE[i,c,m] = round(cap_data.iloc[0]['Kostnad']/self.scaling_factor_monetary,self.precision_digits)  #MNOK
                         self.LEAD_TIME_NODE[i,c,m] = cap_data.iloc[0]['Ledetid']
 
         #this is bad programming -> To do: update
@@ -675,9 +679,9 @@ class TransportSets():
             elif len(capacity_exp_data2) > 0:
                 capacity_exp_data = capacity_exp_data2
             
-            self.Q_EDGE_BASE_RAIL[a1] = capacity_data.iloc[0]['Maks kapasitet']/self.scaling_factor
-            self.Q_EDGE_RAIL[a1] = capacity_exp_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor
-            self.C_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kostnad']/self.scaling_factor,2) #
+            self.Q_EDGE_BASE_RAIL[a1] = round(capacity_data.iloc[0]['Maks kapasitet']/self.scaling_factor_weight,self.precision_digits)
+            self.Q_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor_weight,self.precision_digits)
+            self.C_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kostnad']/self.scaling_factor_monetary,self.precision_digits) #
             self.LEAD_TIME_EDGE_RAIL[a1] = capacity_exp_data.iloc[0]['Ledetid'] #
 
         for l in self.E_EDGES_UPG:
@@ -714,7 +718,7 @@ class TransportSets():
 
         # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
         self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
-        self.C_CHARGE = {(e,f): 9999 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
+        self.C_CHARGE = {(e,f): 100000 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
         self.LEAD_TIME_CHARGING = {(e,f): 50 for (e,f) in self.EF_CHARGING}
         max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
         for ((i, j, m, r),f) in self.EF_CHARGING:
@@ -723,8 +727,10 @@ class TransportSets():
             self.C_CHARGE[(e,f)] = round((self.AVG_DISTANCE[e]
                                                    / data_index.iloc[0]["Max_station_dist"]
                                                    * data_index.iloc[0]["Station_cost"]
-                                                   / (data_index.iloc[0][
-                                                          "Trucks_filled_daily"] * max_truck_cap * 365)),1)  # 0.7 or not??? #MKR/MTONNES, so no dividing here
+                                                   / (data_index.iloc[0]["Trucks_filled_daily"] * max_truck_cap * 365)
+                                                   /self.scaling_factor_monetary
+                                                   *self.scaling_factor_weight),
+                                        self.precision_digits)  # 0.7 or not??? MKR/TONNES, 
             self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid"]
 
         #Technological readiness/maturity (with Bass diffusion model)

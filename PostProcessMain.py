@@ -34,7 +34,7 @@ with open(r'Data\base_data_'+scenarios, 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 
-print('objective function value: ', output.ob_function_value*SCALING_FACTOR/10**9)
+print('objective function value: ', output.ob_function_value*SCALING_FACTOR_MONETARY/10**9)
 #SHOULD REMOVE THE MISSION PENALTY: DOES NOT MAKE SENSE NOW
 
 #---------------------------------------------------------#
@@ -118,7 +118,7 @@ def cost_and_investment_table(base_data,output):
     for var in cost_vars:
         var2 = legend_names[var]
         for key, value in output.all_costs[var2].items():
-            output.all_costs[legend_names[var]][key] = round(value / 10**9*SCALING_FACTOR,3) # in GNOK
+            output.all_costs[legend_names[var]][key] = round(value / 10**9*SCALING_FACTOR_MONETARY,3) # in GNOK
 
     output.all_costs_table = pd.DataFrame.from_dict(output.all_costs, orient='index')
     
@@ -227,10 +227,10 @@ def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
     t0 = base_data.T_TIME_PERIODS[0]
     for index,row in x_flow[x_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,p,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['weight'])
-        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR # in MTonnes CO2 equivalents
+        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR_WEIGHT # in MTonnes CO2 equivalents
     for index,row in b_flow[b_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,v,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['weight'])
-        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value/10**6*SCALING_FACTOR # in MTonnes CO2 equivalents
+        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value/10**6*SCALING_FACTOR_WEIGHT # in MTonnes CO2 equivalents
     print('direct: ',round(emissions_direct*10**(-6),2))
     print('indirect: ',round(emission_empty*10**(-6),2))
     print('both: ',round((emissions_direct+emission_empty)*10**(-6),2))
@@ -404,7 +404,7 @@ def mode_mix_calculations(output,base_data):
     for index, row in output.x_flow.iterrows():
         output.x_flow.at[index,'Distance'] = base_data.AVG_DISTANCE[(row['from'],row['to'],row['mode'],row['route'])]
 
-    output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] /10**9*SCALING_FACTOR # in GTonnes KM
+    output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] /10**9*SCALING_FACTOR_WEIGHT # in GTonnes KM
 
     #for i in [1]:  #we only do one type, discuss what foreign transport needs to be excluded
     i = 1
@@ -460,12 +460,12 @@ output.emission_stats = output.total_emissions.groupby('time_period').agg(
         Std=('weight', np.std))
 output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
 print('Average emissions (in Million TonnesCo2):')
-print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR/10**9) #this becomes Million TonnesCO2         
+print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR_WEIGHT/10**9) #this becomes Million TonnesCO2         
 
 print('objective function value: ')
-print(output.ob_function_value*SCALING_FACTOR/10**9)
+print(output.ob_function_value*SCALING_FACTOR_MONETARY/10**9)
 print('objective function value without emission penalty (Billion NOK): ')
-print(output.ob_function_value_without_emission*SCALING_FACTOR/10**9) #without emission penalty
+print(output.ob_function_value_without_emission*SCALING_FACTOR_MONETARY/10**9) #without emission penalty
 
 #2000NOK per Tonne CO2 is this in line? Do the comparison for
 
@@ -482,7 +482,7 @@ total_demand_european = {t:0 for t in base_data.T_TIME_PERIODS}
 total_demand_domestic = {t:0 for t in base_data.T_TIME_PERIODS}
 for key,value in base_data.D_DEMAND.items():
     (i,j,p,t) = key
-    val = round(value/10**6*SCALING_FACTOR,2)
+    val = round(value/10**6*SCALING_FACTOR_WEIGHT,2)
     total_demand[t] += val
     if (i not in ['Europa','Verden']) and (j not in ['Europa','Verden']):
         total_demand_domestic[t] += val

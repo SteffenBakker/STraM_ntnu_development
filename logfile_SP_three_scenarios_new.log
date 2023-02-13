@@ -1,0 +1,689 @@
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.1715571606978822 %
+Done reading data.
+Time used reading the base data: 2.015733480453491
+-----------------
+constructing initialization model
+ERROR: Constructing component 'Flow' from data=None failed: KeyboardInterrupt:
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.3245993027214192 %
+Done reading data.
+Time used reading the base data: 1.8789095878601074
+-----------------
+constructing initialization model
+Time used constructing the model: 13.384604454040527
+-----------------
+solving initialization model
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.5782331525083847 %
+Done reading data.
+Time used reading the base data: 1.8472528457641602
+-----------------
+constructing initialization model
+Time used constructing the model: 13.052053451538086
+-----------------
+solving initialization model
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmp3qkuqbjv.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmpw_5a5_wg.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmpinme_2o4.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmpurqkzdsx.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmpurqkzdsx.pyomo.lp
+Reading time = 2.78 seconds
+objective_function: 440708 rows, 282671 columns, 1745039 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 440708 rows, 282671 columns and 1745039 nonzeros
+Model fingerprint: 0x6fba601b
+Variable types: 282483 continuous, 188 integer (188 binary)
+Coefficient statistics:
+  Matrix range     [2e-03, 5e+09]
+  Objective range  [2e-01, 3e-01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [2e-01, 1e+10]
+Warning: Model contains large matrix coefficient range
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 437942 rows and 268728 columns
+Presolve time: 0.80s
+Presolved: 2766 rows, 13943 columns, 87266 nonzeros
+Variable types: 13943 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.597765e+10, 3209 iterations, 0.10 seconds (0.14 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.597765e+10 1.5978e+10  0.00%     -    1s
+
+Explored 1 nodes (3209 simplex iterations) in 1.18 seconds (1.55 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.59776e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.597764830721e+10, best bound 1.597764830721e+10, gap 0.0000%
+Time used solving the model: 22.15662407875061
+-----------------
+Constructing SP model...
+Done constructing model.
+Time used constructing the model: 66.70492911338806
+----------
+Solving model...
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmpmt89kgja.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmpd0dhx4kv.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmpqg72z0_2.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmpobb2x9cv.pyomo.lp',)
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "float", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.5782331525083847 %
+Done reading data.
+Time used reading the base data: 3.4269278049468994
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "float", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "base_data": "TransportSets", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "risk_info": "RiskInformation", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "start": "float", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "float", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "base_data": "TransportSets", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "risk_info": "RiskInformation", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "start": "float", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "float", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "base_data": "TransportSets", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "risk_info": "RiskInformation", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "start": "float", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "float", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "base_data": "TransportSets", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "risk_info": "RiskInformation", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "start": "float", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "float", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "base_data": "TransportSets", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "risk_info": "RiskInformation", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "start": "float", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+{"AbstractModel": "type", "AlphaNumericTextLabeler": "type", "Any": "GlobalSet", "AnyWithNone": "GlobalSet", "Binary": "GlobalSet", "Block": "type", "Boolean": "GlobalSet", "BooleanConstant": "type", "BooleanSet": "type", "BooleanValue": "type", "BooleanVar": "type", "BooleanVarList": "type", "BuildAction": "type", "BuildCheck": "type", "CNameLabeler": "type", "Component": "type", "ComponentMap": "ABCMeta", "ComponentUID": "type", "ConcreteModel": "type", "Connector": "type", "Constraint": "type", "ConstraintList": "type", "CounterLabeler": "type", "CuidLabeler": "type", "DataPortal": "type", "EMISSION_VIOLATION_PENALTY": "float", "EMPTY_VEHICLE_FACTOR": "float", "EmptySet": "GlobalSet", "Expr_if": "function", "Expression": "type", "ExternalFunction": "type", "GROWTH_ON_ROAD": "float", "INIT_MODE_SPLIT_LOWER": "dict", "INIT_MODE_SPLIT_UPPER": "dict", "INTERPOLATE_DEMAND_DATA_2040": "bool", "IntegerInterval": "type", "IntegerSet": "type", "Integers": "GlobalSet", "Logger": "type", "LogicalConstraint": "type", "LogicalConstraintList": "type", "MAX_TRANSPORT_AMOUNT_PENALTY": "float", "MAX_TRUCK_CAP": "int", "MIPGAP": "float", "Model": "type", "ModelComponentFactory": "ModelComponentFactoryClass", "NO_INVESTMENTS": "bool", "NameLabeler": "type", "NegativeIntegers": "GlobalSet", "NegativeReals": "GlobalSet", "NoBalancingTrips": "bool", "NonNegativeIntegers": "GlobalSet", "NonNegativeReals": "GlobalSet", "NonPositiveIntegers": "GlobalSet", "NonPositiveReals": "GlobalSet", "NumericLabeler": "type", "NumericValue": "type", "Objective": "type", "ObjectiveList": "type", "OutputData": "type", "Param": "type", "PercentFraction": "GlobalSet", "PersistentSolver": "type", "Piecewise": "type", "PositiveIntegers": "GlobalSet", "PositiveReals": "GlobalSet", "PyomoObject": "type", "PyomoOptions": "_PyomoOptions", "RISK_FREE_RATE": "float", "RangeSet": "type", "RealInterval": "type", "RealSet": "type", "Reals": "GlobalSet", "Reference": "function", "RiskInformation": "type", "SCALING_FACTOR": "int", "SCALING_FACTOR_MONETARY": "int", "SCALING_FACTOR_WEIGHT": "int", "SOSConstraint": "type", "ScalarBlock": "type", "ScalarBooleanVar": "type", "ScalarVar": "type", "Set": "type", "SetOf": "type", "ShortNameLabeler": "type", "SolverFactory": "SolverFactoryClass", "SolverManagerFactory": "Factory", "SolverStatus": "EnumMeta", "SortComponents": "type", "Suffix": "ABCMeta", "SymbolMap": "type", "TerminationCondition": "EnumMeta", "TextLabeler": "type", "Transformation": "type", "TransformationFactory": "Factory", "TranspModel": "type", "TransportSets": "type", "TraversalStrategy": "type", "UnitInterval": "GlobalSet", "UnknownSolver": "type", "Var": "type", "VarList": "type", "ZeroConstant": "NumericConstant", "acos": "function", "acosh": "function", "active_components": "function", "active_components_data": "function", "active_export_suffix_generator": "function", "active_import_suffix_generator": "function", "analysis_type": "str", "as_boolean": "function", "as_quantity": "function", "asin": "function", "asinh": "function", "assert_optimal_termination": "function", "atan": "function", "atanh": "function", "atleast": "builtin_function_or_method", "atmost": "builtin_function_or_method", "base": "module", "base_data": "TransportSets", "beta": "module", "boolean_value": "module", "cProfile": "module", "calculus": "module", "ceil": "function", "check_optimal_termination": "function", "components": "function", "components_data": "function", "cos": "function", "cosh": "function", "current": "module", "cvar_alpha": "float", "cvar_coeff": "float", "differentiate": "function", "display": "function", "dot_product": "builtin_function_or_method", "equivalent": "builtin_function_or_method", "exactly": "builtin_function_or_method", "exp": "function", "expr": "module", "expr_common": "module", "expr_errors": "module", "floor": "function", "get_ipython": "function", "global_option": "function", "implies": "builtin_function_or_method", "importlib": "module", "inequality": "builtin_function_or_method", "instance2dat": "function", "is_constant": "builtin_function_or_method", "is_fixed": "builtin_function_or_method", "is_potentially_variable": "builtin_function_or_method", "is_variable_type": "builtin_function_or_method", "json": "module", "kernel": "module", "land": "builtin_function_or_method", "linear_expression": "type", "lnot": "builtin_function_or_method", "log": "function", "log10": "function", "log_infeasible_constraints": "function", "logical_expr": "module", "lor": "builtin_function_or_method", "maximize": "int", "minimize": "int", "mobase": "module", "name": "function", "native_logical_values": "set", "native_numeric_types": "set", "native_types": "set", "nonlinear_expression": "type", "nonpyomo_leaf_types": "set", "np": "module", "numeric_expr": "module", "numvalue": "module", "os": "module", "pd": "module", "pickle": "module", "plugins": "module", "polynomial_degree": "builtin_function_or_method", "prod": "builtin_function_or_method", "pstats": "module", "pyo": "module", "pyomo": "module", "quicksum": "builtin_function_or_method", "risk_info": "RiskInformation", "run_identifier": "str", "sequence": "builtin_function_or_method", "set_options": "function", "sheet_name_scenarios": "str", "simple_constraint_rule": "function", "simple_constraintlist_rule": "function", "simple_objective_rule": "function", "simple_objectivelist_rule": "function", "simple_set_rule": "function", "sin": "function", "sinh": "function", "sqrt": "function", "start": "float", "sum_product": "builtin_function_or_method", "summation": "builtin_function_or_method", "symbol_map": "module", "symbol_map_from_instance": "function", "sympy_tools": "module", "sys": "module", "tan": "function", "tanh": "function", "taylor_series": "module", "taylor_series_expansion": "function", "time": "module", "time_periods": "NoneType", "units": "_DeferredUnitsSingleton", "util": "module", "value": "builtin_function_or_method", "visitor": "module", "wrm_strt": "bool", "xor": "builtin_function_or_method"}
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmpobb2x9cv.pyomo.lp
+Reading time = 11.65 seconds
+objective_function: 933472 rows, 932191 columns, 6188691 nonzeros
+Set parameter FeasibilityTol to value 0.001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 933472 rows, 932191 columns and 6188691 nonzeros
+Model fingerprint: 0x6b10cba2
+Variable types: 931251 continuous, 940 integer (940 binary)
+Coefficient statistics:
+  Matrix range     [1e-08, 5e+09]
+  Objective range  [2e-01, 3e-01]
+  Bounds range     [2e-02, 7e+02]
+  RHS range        [2e-01, 3e+12]
+Warning: Model contains large matrix coefficient range
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 885688 rows and 649045 columns (presolve time = 5s) ...
+Presolve removed 886649 rows and 653701 columns (presolve time = 10s) ...
+Presolve removed 886663 rows and 653715 columns
+Presolve time: 12.44s
+Presolved: 46809 rows, 278476 columns, 2080472 nonzeros
+Variable types: 278107 continuous, 369 integer (345 binary)
+
+Deterministic concurrent LP optimizer: primal simplex, dual simplex, and barrier
+Showing barrier log only...
+
+Root barrier log...
+
+Ordering time: 0.91s
+
+Barrier statistics:
+ Dense cols : 1
+ Free vars  : 364
+ AA' NZ     : 7.590e+05
+ Factor NZ  : 2.784e+06 (roughly 150 MB of memory)
+ Factor Ops : 6.882e+08 (less than 1 second per iteration)
+ Threads    : 1
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0   2.61893782e+18 -1.03436010e+19  3.17e+10 1.58e+11  2.46e+15    18s
+   1   6.12742130e+19 -8.23973060e+18  1.79e+10 1.11e+11  1.47e+15    19s
+   2   6.09062729e+19 -4.34733034e+18  5.69e+09 4.50e+10  5.73e+14    19s
+   3   2.79564492e+19 -2.91990814e+18  2.90e+09 2.61e+10  2.99e+14    19s
+   4   1.13387291e+19 -2.17172704e+18  1.31e+09 1.76e+10  1.39e+14    20s
+   5   4.87513613e+18 -1.34196079e+18  6.08e+08 9.64e+09  6.66e+13    20s
+   6   1.09743798e+18 -5.93929693e+17  1.46e+08 3.88e+09  1.73e+13    20s
+   7   7.77932863e+17 -3.49543795e+17  1.04e+08 2.15e+09  1.19e+13    21s
+   8   5.31455226e+17 -2.56700244e+17  7.10e+07 1.51e+09  8.18e+12    21s
+   9   2.88189716e+17 -1.56973753e+17  3.85e+07 8.65e+08  4.51e+12    21s
+  10   4.14606925e+16 -8.29687675e+16  5.50e+06 4.26e+08  8.57e+11    21s
+  11   2.03441288e+16 -2.49474509e+16  2.69e+06 1.10e+08  3.71e+11    22s
+  12   6.81434347e+15 -1.21312171e+16  8.97e+05 4.59e+07  1.35e+11    22s
+  13   4.34126364e+15 -4.33318761e+15  5.69e+05 1.23e+07  7.30e+10    22s
+  14   1.12927176e+15 -2.84544122e+15  1.46e+05 6.76e+06  2.31e+10    23s
+  15   2.91164649e+14 -1.13213613e+15  3.71e+04 1.85e+06  6.49e+09    23s
+  16   1.11621989e+14 -3.75308012e+14  1.41e+04 4.28e+05  2.18e+09    23s
+  17   5.45938375e+13 -2.46298628e+14  6.93e+03 2.50e+05  1.16e+09    24s
+  18   3.97245275e+13 -1.82169788e+14  5.04e+03 1.73e+05  8.26e+08    24s
+  19   3.32824388e+13 -1.67479268e+14  4.23e+03 1.57e+05  7.16e+08    24s
+  20   1.96166512e+13 -1.29187264e+14  2.47e+03 1.16e+05  4.74e+08    25s
+  21   1.60263905e+13 -1.17600017e+14  2.00e+03 1.04e+05  4.09e+08    25s
+  22   9.36997992e+12 -8.89352556e+13  1.14e+03 7.63e+04  2.74e+08    25s
+  23   6.28319004e+12 -6.52763455e+13  7.48e+02 5.46e+04  1.92e+08    26s
+  24   4.38472021e+12 -4.19950739e+13  5.06e+02 3.41e+04  1.23e+08    26s
+  25   2.69008174e+12 -2.87103149e+13  2.93e+02 2.26e+04  7.94e+07    26s
+  26   1.68048700e+12 -1.92823470e+13  1.68e+02 1.48e+04  5.08e+07    27s
+  27   1.36935289e+12 -1.56762993e+13  1.30e+02 1.19e+04  4.07e+07    27s
+  28   1.01029563e+12 -1.06227430e+13  8.78e+01 7.90e+03  2.75e+07    27s
+  29   8.22056047e+11 -8.94483671e+12  6.63e+01 6.62e+03  2.25e+07    27s
+  30   6.64124294e+11 -6.84442949e+12  6.47e+01 5.03e+03  1.70e+07    28s
+  31   4.93755378e+11 -4.55637440e+12  1.74e+02 3.33e+03  1.13e+07    28s
+  32   3.96700776e+11 -3.59684277e+12  1.31e+02 2.62e+03  8.76e+06    28s
+  33   3.31051644e+11 -2.94997981e+12  1.39e+02 2.15e+03  7.10e+06    29s
+  34   3.09789875e+11 -2.47940366e+12  1.26e+02 1.80e+03  6.06e+06    29s
+  35   2.81755896e+11 -2.23176171e+12  1.11e+02 1.62e+03  5.43e+06    29s
+  36   2.43841646e+11 -1.81509246e+12  9.29e+01 1.33e+03  4.43e+06    30s
+  37   2.29897358e+11 -1.60071075e+12  8.57e+01 1.18e+03  3.95e+06    30s
+  38   2.26755517e+11 -1.56252158e+12  8.34e+01 1.15e+03  3.86e+06    30s
+  39   2.07620255e+11 -1.31275374e+12  7.41e+01 9.76e+02  3.29e+06    30s
+  40   2.00913560e+11 -1.23825658e+12  7.12e+01 9.22e+02  3.12e+06    31s
+  41   1.95820657e+11 -1.15456053e+12  1.75e+02 8.62e+02  2.93e+06    31s
+  42   1.94453026e+11 -1.14507026e+12  1.74e+02 8.55e+02  2.91e+06    31s
+  43   1.89542496e+11 -1.08002778e+12  1.67e+02 8.11e+02  2.77e+06    32s
+  44   1.89538046e+11 -1.07991305e+12  1.67e+02 8.10e+02  2.69e+06    32s
+  45   1.75388234e+11 -8.86104487e+11  1.50e+02 6.78e+02  2.30e+06    32s
+  46   1.75315468e+11 -8.85079848e+11  1.50e+02 6.77e+02  2.29e+06    32s
+  47   1.74094909e+11 -8.82178710e+11  1.48e+02 6.75e+02  2.28e+06    33s
+  48   1.59707881e+11 -7.65583058e+11  1.14e+02 6.06e+02  2.04e+06    33s
+  49   1.55453392e+11 -7.21801568e+11  1.09e+02 5.83e+02  1.96e+06    33s
+  50   1.52011274e+11 -6.92559525e+11  1.05e+02 5.70e+02  1.91e+06    34s
+  51   1.48518383e+11 -6.15470749e+11  1.01e+02 5.43e+02  1.82e+06    34s
+  52   1.48441197e+11 -6.11593603e+11  1.01e+02 5.42e+02  1.82e+06    34s
+  53   1.47742911e+11 -6.05169268e+11  1.00e+02 5.40e+02  1.81e+06    35s
+  54   1.47268595e+11 -5.37203439e+11  9.93e+01 5.25e+02  1.77e+06    35s
+  55   1.45183416e+11 -4.85137796e+11  9.66e+01 5.17e+02  1.73e+06    35s
+  56   1.45025280e+11 -4.87254872e+11  9.65e+01 5.16e+02  1.73e+06    36s
+  57   1.45025824e+11 -4.89240394e+11  9.65e+01 5.16e+02  1.73e+06    36s
+  58   1.45451149e+11 -4.53527316e+11  9.59e+01 5.12e+02  1.72e+06    36s
+  59   1.46786298e+11 -4.40501007e+11  9.49e+01 5.04e+02  1.69e+06    37s
+  60   1.46513521e+11 -4.40529745e+11  9.47e+01 5.04e+02  1.69e+06    37s
+  61   1.46944183e+11 -4.35629425e+11  9.38e+01 5.02e+02  1.68e+06    37s
+
+Barrier performed 61 iterations in 37.35 seconds (31.90 work units)
+Numerical trouble encountered
+
+Model may be infeasible or unbounded.  Consider using the
+homogeneous algorithm (through parameter 'BarHomogeneous')
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                         37s
+Warning: Markowitz tolerance tightened to 0.125
+Warning: 1 variables dropped from basis
+Warning: switch to quad precision
+   15340    2.3155010e+10   1.327532e+06   0.000000e+00     40s
+   31532    2.6654154e+10   1.713594e+07   0.000000e+00     45s
+   42204    2.8046878e+10   1.590538e+07   0.000000e+00     50s
+   47482    2.8683517e+10   1.011089e+07   0.000000e+00     55s
+   52450    2.9824271e+10   6.394806e+06   0.000000e+00     60s
+   57096    3.0628320e+10   3.734514e+06   0.000000e+00     65s
+   62050    3.2997195e+10   3.948513e+07   0.000000e+00     70s
+   64038    3.4902148e+10   1.236221e+08   0.000000e+00     75s
+   66526    3.6606488e+10   3.892621e+08   0.000000e+00     80s
+   69800    6.2725749e+10   1.086538e+09   0.000000e+00     85s
+   71377    4.2649034e+14   9.510360e+05   0.000000e+00     90s
+   73093    4.4463510e+14   8.967701e+06   0.000000e+00     96s
+   74695    8.1598517e+14   3.721511e+07   0.000000e+00    100s
+   77845    1.6682886e+15   8.456241e+05   0.000000e+00    105s
+   79863    1.8923547e+15   2.590967e+06   0.000000e+00    111s
+   80861    1.9294819e+15   2.185599e+07   0.000000e+00    115s
+   81915    2.0171898e+15   3.256291e+05   0.000000e+00    121s
+   84045    2.4668519e+15   4.676766e+06   0.000000e+00    125s
+   85703    2.6716352e+15   1.707838e+05   0.000000e+00    131s
+   86845    2.6876617e+15   2.604573e+04   0.000000e+00    135s
+   87782    2.6877467e+15   0.000000e+00   1.631053e+04    140s
+   88542    2.6877467e+15   0.000000e+00   7.349192e+05    145s
+   89292    2.6877467e+15   0.000000e+00   8.206950e+02    151s
+   90012    2.6877467e+15   0.000000e+00   2.268101e+03    156s
+   90765    2.6877467e+15   0.000000e+00   9.218750e-01    160s
+   94781    2.6877467e+15   0.000000e+00   7.431641e-01    165s
+   99158    2.6877467e+15   0.000000e+00   5.369263e-01    170s
+  103200    2.6877467e+15   0.000000e+00   6.855469e-01    175s
+  107060    2.6877467e+15   0.000000e+00   7.236328e-01    180s
+  111210    2.6877467e+15   0.000000e+00   8.901367e-01    185s
+  114953    2.6877467e+15   0.000000e+00   7.778320e-01    190s
+  118689    2.6877467e+15   0.000000e+00   6.821289e-01    195s
+  122259    2.6877467e+15   0.000000e+00   5.263672e-01    200s
+  125825    2.6877467e+15   0.000000e+00   7.788696e-01    205s
+  129679    2.6877467e+15   0.000000e+00   7.048340e-01    210s
+  133026    2.6877467e+15   0.000000e+00   6.201477e-01    215s
+  135982    2.6877467e+15   0.000000e+00   8.828125e-01    220s
+  138640    2.6877467e+15   0.000000e+00   4.199219e-01    225s
+  141602    2.6877467e+15   0.000000e+00   7.148438e-01    230s
+  144658    2.6877467e+15   0.000000e+00   5.140991e-01    235s
+  147475    2.6877467e+15   0.000000e+00   6.627197e-01    240s
+  150539    2.6877467e+15   0.000000e+00   7.261353e-01    245s
+  153661    2.6877467e+15   0.000000e+00   4.552002e-01    250s
+  156920    2.6877467e+15   0.000000e+00   5.297852e-01    255s
+  159103    2.6877467e+15   0.000000e+00   1.030396e+00    260s
+  161409    2.6877467e+15   0.000000e+00   4.182129e-01    265s
+  163828    2.6877467e+15   0.000000e+00   7.116394e-01    270s
+  166803    2.6877467e+15   0.000000e+00   6.504822e-01    275s
+  169856    2.6877467e+15   0.000000e+00   5.971680e-01    280s
+  173445    2.6877467e+15   0.000000e+00   1.027344e+00    285s
+  176991    2.6877467e+15   0.000000e+00   1.383606e+00    290s
+  180226    2.6877467e+15   0.000000e+00   3.751221e-01    295s
+  183228    2.6877467e+15   0.000000e+00   8.837891e-01    300s
+  186341    2.6877467e+15   0.000000e+00   6.546021e-01    305s
+  189267    2.6877467e+15   0.000000e+00   6.152344e-01    310s
+  192310    2.6877467e+15   0.000000e+00   1.306152e+00    315s
+  195251    2.6877467e+15   0.000000e+00   1.157898e+00    320s
+  198393    2.6877467e+15   0.000000e+00   5.961914e-01    325s
+  201322    2.6877467e+15   0.000000e+00   7.847900e-01    330s
+  204714    2.6877467e+15   0.000000e+00   3.410645e-01    335s
+  207943    2.6877467e+15   0.000000e+00   1.835938e-01    340s
+  211056    2.6877467e+15   0.000000e+00   8.535156e-01    345s
+  214025    2.6877467e+15   0.000000e+00   4.916992e-01    350s
+  216793    2.6877467e+15   0.000000e+00   9.111328e-01    355s
+  219887    2.6877467e+15   0.000000e+00   6.718750e-01    360s
+  223140    2.6877467e+15   0.000000e+00   1.331055e+00    365s
+  226365    2.6877467e+15   0.000000e+00   6.040649e-01    370s
+  229056    2.6877467e+15   0.000000e+00   8.002930e-01    375s
+  232556    2.6877467e+15   0.000000e+00   6.692505e-01    380s
+  235357    2.6877467e+15   0.000000e+00   6.668091e-01    385s
+  237662    2.6877467e+15   0.000000e+00   5.322266e-01    390s
+  240733    2.6877467e+15   0.000000e+00   5.424194e-01    395s
+
+
+Root relaxation: interrupted, 243314 iterations, 1086.65 seconds (103.54 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0          -    0               - 1.5962e+10      -     - 1101s
+
+Explored 1 nodes (243314 simplex iterations) in 1101.62 seconds (120.22 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Solve interrupted
+Best objective -, best bound 1.596158156102e+10, gap -
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "C:\Users\steffejb\venvs\aim-strat-freight-venv\lib\site-packages\pyomo\solvers\plugins\solvers\GUROBI_RUN.py", line 263, in gurobi_run
+    cons = model.getConstrs()
+KeyboardInterrupt
+
+Interrupt request received
+Terminate batch job (Y/N)? 
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.5782331525083847 %
+Done reading data.
+Time used reading the base data: 1.9776458740234375
+-----------------
+constructing initialization model
+Time used constructing the model: 13.50222396850586
+-----------------
+solving initialization model
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmpg3urfmt0.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmpxsmomsr1.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmpr5s5020f.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmphjapbt28.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmphjapbt28.pyomo.lp
+Reading time = 3.13 seconds
+objective_function: 440708 rows, 282671 columns, 1745039 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 440708 rows, 282671 columns and 1745039 nonzeros
+Model fingerprint: 0x4a96cf73
+Variable types: 282483 continuous, 188 integer (188 binary)
+Coefficient statistics:
+  Matrix range     [2e-03, 5e+04]
+  Objective range  [2e-01, 3e-01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [2e-01, 1e+10]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 437942 rows and 268728 columns
+Presolve time: 0.93s
+Presolved: 2766 rows, 13943 columns, 87266 nonzeros
+Variable types: 13943 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.597765e+10, 3209 iterations, 0.16 seconds (0.14 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.597765e+10 1.5978e+10  0.00%     -    1s
+
+Explored 1 nodes (3209 simplex iterations) in 1.44 seconds (1.55 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.59776e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.597764830721e+10, best bound 1.597764830721e+10, gap 0.0000%
+Time used solving the model: 24.591328144073486
+-----------------
+Constructing SP model...
+Done constructing model.
+Time used constructing the model: 68.1625645160675
+----------
+Solving model...
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmpc01875cd.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmp8jbpltm8.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmpbbespf0y.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmp0vaqm7zp.pyomo.lp',)
+----------------------------
+Doing the following analysis:  SP three_scenarios_new
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.5782331525083847 %
+Done reading data.
+Time used reading the base data: 1.7266643047332764
+-----------------
+constructing initialization model
+Time used constructing the model: 12.971634864807129
+-----------------
+solving initialization model
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmpsrb9r37t.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmp46zrsskc.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmp4yrchqb3.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmp2q04j012.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmp2q04j012.pyomo.lp
+Reading time = 2.74 seconds
+objective_function: 440708 rows, 282671 columns, 1745039 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 440708 rows, 282671 columns and 1745039 nonzeros
+Model fingerprint: 0x4a96cf73
+Variable types: 282483 continuous, 188 integer (188 binary)
+Coefficient statistics:
+  Matrix range     [2e-03, 5e+04]
+  Objective range  [2e-01, 3e-01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [2e-01, 1e+10]
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 437942 rows and 268728 columns
+Presolve time: 0.77s
+Presolved: 2766 rows, 13943 columns, 87266 nonzeros
+Variable types: 13943 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.597765e+10, 3209 iterations, 0.11 seconds (0.14 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.597765e+10 1.5978e+10  0.00%     -    1s
+
+Explored 1 nodes (3209 simplex iterations) in 1.16 seconds (1.55 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.59776e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.597764830721e+10, best bound 1.597764830721e+10, gap 0.0000%
+Time used solving the model: 22.014506340026855
+-----------------
+------------------
+Emission_cap_absolute_base_year:  42717219.0
+------------------
+Constructing SP model...
+Done constructing model.
+Time used constructing the model: 67.55161547660828
+----------
+Solving model...
+Solver script file: 'C:\Users\steffejb\AppData\Local\Temp\tmpc3ormejn.gurobi.script'
+Solver log file: 'C:\Users\steffejb\AppData\Local\Temp\tmpaugnu2oc.gurobi.log'
+Solver solution file: 'C:\Users\steffejb\AppData\Local\Temp\tmpaivdby8x.gurobi.txt'
+Solver problem files: ('C:\\Users\\steffejb\\AppData\\Local\\Temp\\tmp96414mkq.pyomo.lp',)
+Set parameter Username
+Academic license - for non-commercial use only - expires 2023-11-12
+Read LP format model from file C:\Users\steffejb\AppData\Local\Temp\tmp96414mkq.pyomo.lp
+Reading time = 9.67 seconds
+objective_function: 933472 rows, 932191 columns, 6188691 nonzeros
+Set parameter FeasibilityTol to value 0.001
+Set parameter MIPGap to value 0.005
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 933472 rows, 932191 columns and 6188691 nonzeros
+Model fingerprint: 0x07a415e9
+Variable types: 931251 continuous, 940 integer (940 binary)
+Coefficient statistics:
+  Matrix range     [1e-08, 5e+04]
+  Objective range  [2e-01, 3e-01]
+  Bounds range     [2e-02, 7e+02]
+  RHS range        [2e-01, 1e+10]
+Warning: Model contains large matrix coefficient range
+Warning: Model contains large rhs
+         Consider reformulating model or setting NumericFocus parameter
+         to avoid numerical issues.
+Presolve removed 886499 rows and 653620 columns (presolve time = 5s) ...
+Presolve removed 886711 rows and 653773 columns
+Presolve time: 9.77s
+Presolved: 46761 rows, 278418 columns, 2074990 nonzeros
+Variable types: 278049 continuous, 369 integer (345 binary)
+
+Deterministic concurrent LP optimizer: primal simplex, dual simplex, and barrier
+Showing barrier log only...
+
+Root barrier log...
+
+Ordering time: 0.75s
+
+Barrier statistics:
+ Dense cols : 1
+ Free vars  : 364
+ AA' NZ     : 7.583e+05
+ Factor NZ  : 2.781e+06 (roughly 150 MB of memory)
+ Factor Ops : 6.879e+08 (less than 1 second per iteration)
+ Threads    : 1
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0   1.27967669e+13 -2.57134054e+14  2.87e+09 1.46e-11  1.46e+11    14s
+   1   8.74255428e+12 -2.09015095e+14  1.62e+09 5.17e+04  8.33e+10    15s
+   2   4.20393949e+12 -1.66606211e+14  3.99e+08 2.28e+04  2.21e+10    15s
+   3   1.72102566e+12 -8.03960227e+13  4.67e+07 5.91e+03  2.84e+09    15s
+   4   5.84927947e+11 -1.68871362e+13  3.52e+06 2.85e+02  2.33e+08    16s
+   5   1.93952263e+11 -3.20645623e+12  6.33e+05 1.23e+01  4.22e+07    16s
+   6   1.07257045e+11 -2.12842260e+12  2.43e+05 6.79e+00  1.80e+07    16s
+   7   8.23232505e+10 -1.10956562e+12  1.43e+05 4.73e+00  1.02e+07    16s
+   8   5.73249340e+10 -6.13492570e+11  6.06e+04 2.10e+00  4.55e+06    17s
+   9   4.43170122e+10 -3.34463925e+11  3.15e+04 1.03e+00  2.34e+06    17s
+  10   3.73115043e+10 -2.10974961e+11  1.93e+04 5.62e-01  1.42e+06    17s
+  11   2.94543368e+10 -1.47431518e+11  9.75e+03 3.61e-01  7.89e+05    17s
+  12   2.48398045e+10 -9.92498290e+10  6.13e+03 2.30e-01  5.05e+05    17s
+  13   2.39250242e+10 -8.27950759e+10  5.37e+03 1.91e-01  4.33e+05    18s
+  14   2.22367526e+10 -6.19531509e+10  3.94e+03 1.42e-01  3.23e+05    18s
+  15   2.05711145e+10 -5.04897340e+10  2.65e+03 1.18e-01  2.41e+05    18s
+  16   2.02251574e+10 -4.07713274e+10  2.34e+03 9.95e-02  2.09e+05    19s
+  17   1.94341178e+10 -3.08828021e+10  1.61e+03 8.05e-02  1.58e+05    19s
+  18   1.92732336e+10 -1.99796410e+10  1.46e+03 5.99e-02  1.30e+05    19s
+  19   1.87474585e+10 -1.81042240e+10  1.17e+03 5.65e-02  1.14e+05    19s
+  20   1.84249769e+10 -1.04474666e+10  1.01e+03 4.24e-02  9.27e+04    20s
+  21   1.81449539e+10 -6.61082942e+09  8.42e+02 3.58e-02  7.89e+04    20s
+  22   1.80797347e+10 -5.48791234e+09  7.98e+02 3.39e-02  7.51e+04    20s
+  23   1.79587268e+10 -1.47284322e+09  6.19e+02 2.78e-02  6.13e+04    21s
+  24   1.79219438e+10 -4.66161545e+08  5.63e+02 2.64e-02  5.73e+04    21s
+  25   1.79517860e+10  9.38805961e+08  5.08e+02 2.43e-02  5.26e+04    21s
+  26   1.80882786e+10  4.62359316e+09  4.42e+02 1.90e-02  4.41e+04    22s
+  27   1.81550859e+10  5.58016947e+09  4.00e+02 1.78e-02  4.09e+04    22s
+  28   1.82131441e+10  6.89650324e+09  3.73e+02 1.63e-02  3.80e+04    22s
+  29   1.83173273e+10  7.73737841e+09  3.47e+02 1.51e-02  3.57e+04    22s
+  30   1.83867468e+10  9.09992704e+09  3.30e+02 1.34e-02  3.30e+04    23s
+  31   1.86130943e+10  1.04061973e+10  2.87e+02 1.16e-02  2.94e+04    23s
+  32   1.87554273e+10  1.09686289e+10  2.57e+02 1.09e-02  2.75e+04    23s
+  33   1.88808617e+10  1.17697230e+10  2.33e+02 1.01e-02  2.55e+04    24s
+  34   1.90227251e+10  1.23287602e+10  2.13e+02 9.56e-03  2.40e+04    24s
+  35   1.90749684e+10  1.28466961e+10  2.07e+02 9.10e-03  2.33e+04    24s
+  36   1.92422127e+10  1.35808260e+10  1.92e+02 8.34e-03  2.17e+04    24s
+  37   1.93250663e+10  1.45004846e+10  1.85e+02 7.46e-03  2.04e+04    25s
+  38   1.94189409e+10  1.49302002e+10  1.77e+02 7.07e-03  1.97e+04    25s
+  39   1.95735393e+10  1.52678961e+10  1.67e+02 6.79e-03  1.89e+04    25s
+  40   1.96827636e+10  1.57683380e+10  1.60e+02 6.31e-03  1.82e+04    25s
+  41   1.98635310e+10  1.64854848e+10  1.50e+02 5.59e-03  1.69e+04    26s
+  42   2.01316624e+10  1.71009085e+10  1.36e+02 4.96e-03  1.56e+04    26s
+  43   2.02092947e+10  1.76668482e+10  1.32e+02 4.44e-03  1.49e+04    26s
+  44   2.02939279e+10  1.81346114e+10  1.29e+02 4.02e-03  1.43e+04    27s
+  45   2.03812509e+10  1.84275303e+10  1.24e+02 3.78e-03  1.39e+04    27s
+  46   2.05665014e+10  1.89476380e+10  1.17e+02 3.38e-03  1.31e+04    27s
+  47   2.06347397e+10  1.93020076e+10  1.14e+02 3.15e-03  1.27e+04    27s
+  48   2.07170046e+10  1.94395580e+10  1.11e+02 3.06e-03  1.25e+04    28s
+  49   2.08052251e+10  1.97550895e+10  1.08e+02 2.81e-03  1.21e+04    28s
+  50   2.09666206e+10  2.00584619e+10  1.02e+02 2.59e-03  1.16e+04    28s
+  51   2.10516013e+10  2.04279550e+10  9.94e+01 2.32e-03  1.12e+04    28s
+  52   2.12060649e+10  2.08756030e+10  9.48e+01 2.04e-03  1.07e+04    29s
+  53   2.13210864e+10  2.10778626e+10  9.17e+01 1.93e-03  1.04e+04    29s
+  54   2.14366910e+10  2.15373962e+10  8.88e+01 1.61e-03  9.95e+03    29s
+  55   2.16126944e+10  2.17172350e+10  8.46e+01 1.47e-03  9.62e+03    29s
+  56   2.17377258e+10  2.19930753e+10  8.18e+01 1.28e-03  9.29e+03    30s
+  57   2.18791564e+10  2.22714650e+10  7.87e+01 1.13e-03  8.98e+03    30s
+  58   2.19688560e+10  2.24930373e+10  7.69e+01 1.01e-03  8.78e+03    30s
+  59   2.21104211e+10  2.26147627e+10  7.42e+01 9.38e-04  8.59e+03    30s
+  60   2.21658596e+10  2.28556661e+10  7.31e+01 8.02e-04  8.38e+03    31s
+  61   2.22811957e+10  2.29735765e+10  7.10e+01 7.29e-04  8.21e+03    31s
+  62   2.23848282e+10  2.31267620e+10  6.90e+01 6.59e-04  8.05e+03    31s
+  63   2.24636787e+10  2.32715509e+10  6.77e+01 5.93e-04  7.92e+03    31s
+  64   2.26251362e+10  2.35043656e+10  6.50e+01 4.34e-04  7.63e+03    32s
+  65   2.27949556e+10  2.37481753e+10  6.23e+01 2.90e-04  7.34e+03    32s
+  66   2.28479119e+10  2.38681655e+10  6.14e+01 2.20e-04  7.21e+03    32s
+  67   2.29746192e+10  2.39906581e+10  5.94e+01 1.65e-04  7.02e+03    32s
+  68   2.30918645e+10  2.41786455e+10  5.76e+01 1.60e-04  6.78e+03    33s
+  69   2.32404201e+10  2.43884750e+10  5.54e+01 1.53e-04  6.51e+03    33s
+  70   2.33370330e+10  2.45057297e+10  5.40e+01 1.50e-04  6.36e+03    33s
+  71   2.33916385e+10  2.46850125e+10  5.32e+01 1.44e-04  6.17e+03    34s
+  72   2.34528117e+10  2.48078167e+10  5.23e+01 1.41e-04  6.06e+03    34s
+  73   2.35222253e+10  2.49070670e+10  5.13e+01 1.39e-04  5.94e+03    34s
+  74   2.35276406e+10  2.49536688e+10  5.13e+01 1.37e-04  5.90e+03    34s
+  75   2.35808369e+10  2.50029936e+10  5.05e+01 1.36e-04  5.82e+03    35s
+  76   2.37674135e+10  2.50815344e+10  4.81e+01 1.34e-04  5.68e+03    35s
+  77   2.38452201e+10  2.51795456e+10  4.70e+01 1.31e-04  5.56e+03    35s
+  78   2.39377721e+10  2.53584117e+10  4.58e+01 1.27e-04  5.39e+03    35s
+  79   2.40198570e+10  2.54798949e+10  4.48e+01 1.23e-04  5.25e+03    36s
+  80   2.41361538e+10  2.55727078e+10  4.33e+01 1.21e-04  5.12e+03    36s
+  81   2.42028357e+10  2.57605292e+10  4.25e+01 1.16e-04  4.96e+03    36s
+  82   2.42903552e+10  2.58471739e+10  4.14e+01 1.14e-04  4.86e+03    36s
+  83   2.43980031e+10  2.59713753e+10  4.01e+01 1.11e-04  4.74e+03    37s
+  84   2.44139576e+10  2.60504637e+10  4.00e+01 1.10e-04  4.68e+03    37s
+  85   2.44883063e+10  2.61370051e+10  3.91e+01 1.08e-04  4.60e+03    37s
+  86   2.45577612e+10  2.62692397e+10  3.83e+01 1.06e-04  4.51e+03    37s
+  87   2.46038116e+10  2.63274973e+10  3.78e+01 1.04e-04  4.43e+03    38s
+  88   2.47078336e+10  2.64158675e+10  3.67e+01 1.02e-04  4.33e+03    38s
+  89   2.48034784e+10  2.65023509e+10  3.57e+01 9.99e-05  4.25e+03    38s
+  90   2.48809172e+10  2.66035535e+10  3.49e+01 9.78e-05  4.16e+03    38s
+  91   2.49747564e+10  2.66802917e+10  3.39e+01 9.61e-05  4.07e+03    39s
+  92   2.50584530e+10  2.67918043e+10  3.30e+01 9.36e-05  3.97e+03    39s
+  93   2.50769323e+10  2.68658532e+10  3.29e+01 9.20e-05  3.91e+03    39s
+  94   2.51085193e+10  2.69414315e+10  3.25e+01 9.03e-05  3.85e+03    39s
+  95   2.51765506e+10  2.70298662e+10  3.19e+01 8.86e-05  3.78e+03    40s
+  96   2.51988806e+10  2.70710886e+10  3.17e+01 8.79e-05  3.75e+03    40s
+  97   2.52135997e+10  2.71206686e+10  3.15e+01 8.66e-05  3.71e+03    40s
+  98   2.52398609e+10  2.72168692e+10  3.13e+01 8.46e-05  3.64e+03    40s
+  99   2.53710570e+10  2.73109983e+10  3.00e+01 8.23e-05  3.53e+03    41s
+ 100   2.54118257e+10  2.73763464e+10  2.97e+01 8.10e-05  3.48e+03    41s
+ 101   2.54284336e+10  2.74907425e+10  2.95e+01 7.86e-05  3.41e+03    41s
+ 102   2.55019919e+10  2.76264471e+10  2.88e+01 7.60e-05  3.31e+03    41s
+ 103   2.55763276e+10  2.77314789e+10  2.82e+01 7.43e-05  3.24e+03    42s
+ 104   2.56515137e+10  2.77668194e+10  2.75e+01 7.36e-05  3.19e+03    42s
+ 105   2.57657135e+10  2.78340502e+10  2.65e+01 7.28e-05  3.11e+03    42s
+ 106   2.58136239e+10  2.80041586e+10  2.61e+01 7.09e-05  3.05e+03    42s
+ 107   2.58628756e+10  2.80815072e+10  2.57e+01 6.96e-05  3.00e+03    43s
+ 108   2.59291899e+10  2.81807788e+10  2.52e+01 6.73e-05  2.92e+03    43s
+ 109   2.59785004e+10  2.82446161e+10  2.48e+01 6.59e-05  2.86e+03    43s
+ 110   2.60429469e+10  2.82795285e+10  2.44e+01 6.52e-05  2.83e+03    43s
+ 111   2.61131166e+10  2.83025211e+10  2.38e+01 6.49e-05  2.80e+03    44s
+ 112   2.61344269e+10  2.84091445e+10  2.37e+01 6.42e-05  2.77e+03    44s
+ 113   2.62037040e+10  2.85582622e+10  2.31e+01 6.31e-05  2.71e+03    44s
+ 114   2.62120143e+10  2.86121088e+10  2.31e+01 6.28e-05  2.70e+03    45s
+ 115   2.62289948e+10  2.87009536e+10  2.29e+01 6.25e-05  2.69e+03    45s
+ 116   2.62355547e+10  2.88185576e+10  2.29e+01 6.22e-05  2.68e+03    45s
+ 117   2.62445543e+10  2.89036975e+10  2.28e+01 6.21e-05  2.67e+03    46s
+ 118   2.62509388e+10  2.89488042e+10  2.28e+01 6.20e-05  2.67e+03    46s
+
+Barrier performed 118 iterations in 45.93 seconds (41.52 work units)
+Numerical trouble encountered
+
+Model may be infeasible or unbounded.  Consider using the
+homogeneous algorithm (through parameter 'BarHomogeneous')
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0      handle free variables                         46s
+   27621    2.6992939e+10   6.470520e+11   0.000000e+00     50s
+   36441    2.7957665e+10   1.777249e+06   0.000000e+00     55s
+   49015    2.8746769e+10   7.640701e+05   0.000000e+00     60s
+   59264    3.0790438e+10   3.082367e+07   0.000000e+00     65s
+   62745    3.0947703e+10   7.493376e+05   0.000000e+00     70s
+   68389    3.3180859e+10   4.320734e+05   0.000000e+00     75s
+   73249    3.5772543e+10   7.760061e+05   0.000000e+00     80s
+   78919    4.9557181e+10   1.511711e+06   0.000000e+00     85s
+Concurrent spin time: 6.56s
+
+Solved with dual simplex
+
+Root relaxation: objective 6.322216e+10, 90794 iterations, 76.34 seconds (61.71 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 6.3222e+10    0   45          - 6.3222e+10      -     -   88s
+     0     0 6.3222e+10    0   34          - 6.3222e+10      -     -  106s
+     0     0 6.3222e+10    0   31          - 6.3222e+10      -     -  108s
+     0     0 6.3222e+10    0   31          - 6.3222e+10      -     -  109s
+     0     0 6.3222e+10    0   31          - 6.3222e+10      -     -  116s
+     0     0 6.3222e+10    0   29          - 6.3222e+10      -     -  117s
+     0     0 6.3222e+10    0   29          - 6.3222e+10      -     -  124s
+     0     0 6.3222e+10    0   29          - 6.3222e+10      -     -  127s
+     0     0 6.3222e+10    0   29          - 6.3222e+10      -     -  131s
+     0     2 6.3222e+10    0   29          - 6.3222e+10      -     -  183s
+     7    12 6.3222e+10    3   18          - 6.3222e+10      -   132  185s
+    11    16 6.3222e+10    4   16          - 6.3222e+10      -  92.8  190s
+    15    20 6.3222e+10    5   14          - 6.3222e+10      -   130  195s
+    30    39 6.3222e+10    9   12          - 6.3222e+10      -   119  202s
+    38    61 6.3222e+10   10    8          - 6.3222e+10      -   123  209s
+    60    74 6.3222e+10   14    6          - 6.3222e+10      -   104  217s
+*   64    74              17    6.322216e+10 6.3222e+10  0.00%   126  217s
+*   66    74              16    6.322216e+10 6.3222e+10  0.00%   135  217s
+
+Cutting planes:
+  Gomory: 11
+  MIR: 18
+
+Explored 79 nodes (103760 simplex iterations) in 217.79 seconds (178.35 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 2: 6.32222e+10 6.32222e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Warning: max integrality violation (3.1994e-04) exceeds tolerance
+Best objective 6.322215558518e+10, best bound 6.322215554803e+10, gap 0.0000%
+Done solving model.
+Time used solving the model: 284.6404664516449
+----------Dumping data in pickle file...done.
+Dumping output in pickle file.....done.

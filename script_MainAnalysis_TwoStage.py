@@ -48,7 +48,7 @@ from Utils2 import Logger
 #################################################
 
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = True  #use EEV as warm start for SP
+wrm_strt = False  #use EEV as warm start for SP
 sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -109,7 +109,10 @@ def solve_init_model(base_data,risk_info):
                     weight = InitModel.model.x_flow[(a,f,p,t,s)].value
                     if weight > 0:
                         x_flow_base_period_init.append((a,f,p,t,s,weight))
-        EMISSION_CAP_ABSOLUTE_BASE_YEAR = InitModel.model.total_emissions[base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0]].value  #same emissions across all scenarios!
+    EMISSION_CAP_ABSOLUTE_BASE_YEAR = InitModel.model.total_emissions[base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0]].value  #same emissions across all scenarios!
+    print('------------------')
+    print('Emission_cap_absolute_base_year: ', EMISSION_CAP_ABSOLUTE_BASE_YEAR)
+    print('------------------')
 
     return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
 
