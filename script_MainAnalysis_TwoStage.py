@@ -48,7 +48,7 @@ from Utils2 import Logger
 #################################################
 
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = False  #use EEV as warm start for SP
+wrm_strt = True  #use EEV as warm start for SP
 sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -243,7 +243,7 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Solving EEV model...",end='',flush=True)
     start = time.time()
     #options = option_settings_ef()
-    model_instance.solve_model(FeasTol=10**(-4))
+    model_instance.solve_model(FeasTol=10**(-3))
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
@@ -270,7 +270,6 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     return model_instance, base_data
 
-
 def construct_and_solve_SP_warm_start(base_data,
                             risk_info, 
                             last_time_period=False,
@@ -284,7 +283,7 @@ def construct_and_solve_SP_warm_start(base_data,
 
     print("Solving SP model with EEV warm start...",end='',flush=True)
     start = time.time()
-    model_instance.solve_model(warmstart=True,FeasTol=10**(-3))
+    model_instance.solve_model(warmstart=True,FeasTol=10**(-2))
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", flush=True)
@@ -400,8 +399,8 @@ if __name__ == "__main__":
     #for analysis_type in ['SP','EEV']:
     #    main(analysis_type=analysis_type)
     
-    #main(analysis_type=analysis_type)
-    main2()
+    main(analysis_type=analysis_type)
+    #main2()
 
     #last_time_period_run()
 
