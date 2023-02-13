@@ -28,12 +28,8 @@ class TranspModel:
 
     def __init__(self, data, risk_info):
 
-        self.results = None  # results is a structure filled out later in solve_model()
-        self.status = None  # status is a string filled out later in solve_model()
         self.model = ConcreteModel()
-        self.opt = pyomo.opt.SolverFactory('gurobi') #gurobi
-        self.opt.options['FeasibilityTol'] = 10**(-5) #the standard of 10**(-6) gives a constraint violation warning
-        self.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
+        
         self.data = data
         self.risk_info = risk_info # stores parameters of the risk measure (i.e., lambda and alpha for mean-CVaR)
 
@@ -791,27 +787,31 @@ class TranspModel:
     
             
 
-    def solve_model(self, warmstart=False):  #GENERAL way to solve a single deterministic model
+    def solve_model(self, warmstart=False, FeasTol=10**(-5),MIP_gap):  #GENERAL way to solve a single deterministic model
 
-        self.results = self.opt.solve(self.model, warmstart=warmstart, tee=True, symbolic_solver_labels=True,
+        opt = pyomo.opt.SolverFactory('gurobi') #gurobi
+        opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
+        opt.options['MIPGap']= MIP_gap # 'TimeLimit':600 (seconds)
+
+        results = opt.solve(self.model, warmstart=warmstart, tee=True, symbolic_solver_labels=True,
                                       keepfiles=True)  # , tee=True, symbolic_solver_labels=True, keepfiles=True)
 
-        if (self.results.solver.status == pyomo.opt.SolverStatus.ok) and (
-                self.results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal):
+        if (results.solver.status == pyomo.opt.SolverStatus.ok) and (
+                results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal):
             print('the solution is feasible and optimal')
-        elif self.results.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
-            #print('the model is infeasible')
+        elif results.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
+            print('the model is infeasible')
+            log_infeasible_constraints(self.model,log_expression=True, log_variables=True)
             raise Exception('the model is infeasible')
-            #log_infeasible_constraints(self.model,log_expression=True, log_variables=True)
             #logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
             #print(value(model.z))
 
         else:
-            raise Exception('Solver Status: ', self.results.solver.status, 'Termination Condition: ', self.results.solver.termination_condition )
+            raise Exception('Solver Status: ', results.solver.status, 'Termination Condition: ', results.solver.termination_condition )
             #print('Solver Status: '), self.results.solver.status
             #print('Termination Condition: '), self.results.solver.termination_condition
 
-        print('Solution time: ' + str(self.results.solver.time))
+        print('Solution time: ' + str(results.solver.time))
         
 
 

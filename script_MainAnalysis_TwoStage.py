@@ -52,7 +52,7 @@ distribution_on_cluster = False  #is the code to be run on the cluster using the
 
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
-sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -151,8 +151,7 @@ def construct_and_solve_SP(base_data,
 
     print("Solving model...",flush=True)
     start = time.time()
-    model_instance.opt.options['FeasibilityTol'] = 10**(-3)    
-    model_instance.solve_model() 
+    model_instance.solve_model(FeasTol=10**(-3)) #to run a bit faster
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", end="", flush=True)
@@ -243,8 +242,7 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Solving EEV model...",end='',flush=True)
     start = time.time()
     #options = option_settings_ef()
-    model_instance.opt.options['MIPGap']= MIPGAP # 'TimeLimit':600 (seconds)
-    model_instance.solve_model()
+    model_instance.solve_model(FeasTol=10**(-4))
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
@@ -285,8 +283,7 @@ def construct_and_solve_SP_warm_start(base_data,
 
     print("Solving SP model with EEV warm start...",end='',flush=True)
     start = time.time()
-    model_instance.opt.options['FeasibilityTol'] = 10**(-3) #go from -5 to -3 -> does this worK?
-    model_instance.solve_model(warmstart=True)
+    model_instance.solve_model(warmstart=True,FeasTol=10**(-3))
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", flush=True)
