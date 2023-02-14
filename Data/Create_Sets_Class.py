@@ -106,7 +106,9 @@ class TransportSets():
             self.prefix = r'Data/'
         elif self.run_file =="sets":
             self.prefix = '' 
-        self.init_data = init_data
+        
+        self.init_data = init_data #set T_TIME_PERIODS to first period
+        self.last_time_period = False #only solve last time period -> remove all operational constraints for the other periods
 
         #read/construct data                
         self.construct_pyomo_data()
@@ -117,6 +119,10 @@ class TransportSets():
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
         self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios) #TODO: check performance of this
+        self.scenario_information_EV = ScenarioInformation(self.prefix,'EV_scenario') 
+
+        self.risk_information = None
+
 
     def construct_pyomo_data(self):
 
@@ -247,39 +253,17 @@ class TransportSets():
         #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
         #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
         self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] 
-        self.T_TIME_PERIODS_NOT_NOW = self.T_TIME_PERIODS[1:]
-        self.T_YEARLY_TIME_PERIODS = [*range(self.T_TIME_PERIODS[0], self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] #all years from 2022 up to 2050
-        #self.T_TIME_FIRST_STAGE = [2020, 2025]  #(OLD)
-        self.T_TIME_FIRST_STAGE = [2022, 2026] 
-        self.T_TIME_SECOND_STAGE = [2030, 2040, 2050] 
-        self.T_YEARLY_TIME_FIRST_STAGE = [*range(self.T_TIME_PERIODS[0], 2030)]  #first-stage years
-        #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
-        self.T_YEARLY_TIME_SECOND_STAGE = [*range(2030, self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1)] 
-        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))}
+        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
+        self.T_TIME_FIRST_STAGE_BASE = [2022, 2026] 
+        self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] 
         
+        #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
-                
-        self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS}
-        t0 = self.T_TIME_PERIODS[0]
-        num_periods = len(self.T_TIME_PERIODS)
-        
-        for i in range(num_periods):
-            t = self.T_TIME_PERIODS[i]
-            if i < num_periods-1:
-                tp1 = self.T_TIME_PERIODS[i+1]
-                self.Y_YEARS[t] = list(range(t-t0,tp1-t0))
-            elif i == (num_periods - 1):  #this is the last time period. Lasts only a year?? 
-                duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS[i-1]])
-                self.Y_YEARS[t] = [self.T_TIME_PERIODS[i]-t0 + j for j in range(duration_previous)]
 
-        self.T_MOST_RECENT_DECISION_PERIOD = {}
-        for ty in self.T_YEARLY_TIME_PERIODS: #loop over all (yearly) years
-            cur_most_recent_dec_period = self.T_TIME_PERIODS[0] #initialize at 2022
-            for t in self.T_TIME_PERIODS: # loop over all decision periods
-                if t <= ty:
-                    cur_most_recent_dec_period = t 
-            self.T_MOST_RECENT_DECISION_PERIOD[ty] = cur_most_recent_dec_period
+
+                
+        
         
         
         # -----------------------
@@ -486,8 +470,9 @@ class TransportSets():
         self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
         self.emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
-        self.CO2_CAP = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
-        #self.CO2_CAP = {year:round(cap/self.scaling_factor,0) for year,cap in self.CO2_CAP.items()}   #this was max 4*10^13, now 4*10^7
+        self.EMISSION_CAP_RELATIVE = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
+        #self.EMISSION_CAP_RELATIVE = {year:round(cap/self.scaling_factor,0) for year,cap in self.EMISSION_CAP_RELATIVE.items()}   #this was max 4*10^13, now 4*10^7
+        self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']
@@ -783,7 +768,46 @@ class TransportSets():
     def combined_sets(self):
 
         
+        self.T_TIME_FIRST_STAGE = [t for t in self.T_TIME_FIRST_STAGE_BASE if t in self.T_TIME_PERIODS]  
+        self.T_TIME_SECOND_STAGE = [t for t in self.T_TIME_SECOND_STAGE_BASE if t in self.T_TIME_PERIODS]  
 
+        start = self.T_TIME_PERIODS[0]
+        #if len(self.T_TIME_PERIODS) == len(self.T_TIME_PERIODS_ALL):
+        end = self.T_TIME_PERIODS[len(self.T_TIME_PERIODS)-1] + 1   #we only need to model the development until the end
+        #else:
+        #    end = 
+        self.T_YEARLY_TIME_PERIODS = [*range(start,end)] #all years from 2022 up to 2050
+        self.T_YEARLY_TIME_PERIODS_ALL = [*range(start,self.T_TIME_PERIODS_ALL[len(self.T_TIME_PERIODS_ALL)-1] + 1)] #all years from 2022 up to 2050
+        
+        self.T_YEARLY_TIME_FIRST_STAGE = [ty for ty in self.T_YEARLY_TIME_PERIODS if ty < self.T_TIME_SECOND_STAGE_BASE[0] ]
+        #self.T_YEARLY_TIME_FIRST_STAGE_NO_TODAY = [*range(self.T_TIME_PERIODS[0] + 1, 2030)] #first-stage years without the first period
+        self.T_YEARLY_TIME_SECOND_STAGE = [ty for ty in self.T_YEARLY_TIME_PERIODS if ty >= self.T_TIME_SECOND_STAGE_BASE[0] ]
+        
+        self.Y_YEARS = {t:[] for t in self.T_TIME_PERIODS_ALL}
+        t0 = self.T_TIME_PERIODS[0]
+        num_periods = len(self.T_TIME_PERIODS_ALL)
+        
+        for i in range(num_periods):
+            t = self.T_TIME_PERIODS_ALL[i]
+            if i < num_periods-1:
+                tp1 = self.T_TIME_PERIODS_ALL[i+1]
+                self.Y_YEARS[t] = list(range(t-t0,tp1-t0))
+            elif i == (num_periods - 1):  #this is the last time period. Lasts only a year?? 
+                duration_previous = len(self.Y_YEARS[self.T_TIME_PERIODS_ALL[i-1]])
+                self.Y_YEARS[t] = [self.T_TIME_PERIODS_ALL[i]-t0 + j for j in range(duration_previous)]
+
+        self.T_MOST_RECENT_DECISION_PERIOD = {}
+        for ty in self.T_YEARLY_TIME_PERIODS: #loop over all (yearly) years
+            cur_most_recent_dec_period = self.T_TIME_PERIODS[0] #initialize at 2022
+            for t in self.T_TIME_PERIODS: # loop over all decision periods
+                if t <= ty:
+                    cur_most_recent_dec_period = t 
+            self.T_MOST_RECENT_DECISION_PERIOD[ty] = cur_most_recent_dec_period
+
+
+        self.T_TIME_PERIODS_OPERATIONAL = self.T_TIME_PERIODS
+        if self.last_time_period:
+            self.T_TIME_PERIODS_OPERATIONAL = [self.T_TIME_PERIODS[-1]]
 
         #------------------------
         "Combined sets - time independent"
@@ -795,8 +819,17 @@ class TransportSets():
         "Combined sets - time dependent"
 
         self.TS = [(t) for t in self.T_TIME_PERIODS]
+        self.TS_CONSTR = [(t) for t in self.T_TIME_PERIODS_OPERATIONAL]
+        self.TS_NO_BASE_YEAR = [(t) for t in self.T_TIME_PERIODS if t is not self.T_TIME_PERIODS[0]]
+        self.TS_NO_BASE_YEAR_CONSTR = [(t) for t in self.T_TIME_PERIODS_OPERATIONAL if t is not self.T_TIME_PERIODS[0]]
+
+
         self.APT = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS] 
         self.AVT = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS] 
+        self.APT_CONSTR = [(i,j,m,r) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS_OPERATIONAL] 
+        self.AVT_CONSTR = [(i,j,m,r) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS_OPERATIONAL] 
+        
+        
         self.AFPT = [(i,j,m,r) + (f,) + (p,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
         self.AFVT = [(i,j,m,r) + (f,) + (v,) + (t,) for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] for v in self.VEHICLE_TYPES_M[m] for t in
@@ -805,15 +838,23 @@ class TransportSets():
         self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
         self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS]
         self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS]
+        self.EAT_RAIL_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
         self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS]
+        self.EFT_CHARGE_CONSTR = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS]
+        self.NCMT_CONSTR = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
                                     for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
+        self.NMFVT_CONSTR = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
+                                    for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.ODPTS = [odp + (t,) for odp in self.ODP for t in self.T_TIME_PERIODS]
+        self.ODPTS_CONSTR = [odp + (t,) for odp in self.ODP for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.EPT = [l + (p,) + (t,) for l in self.E_EDGES for p in self.P_PRODUCTS for t in
                          self.T_TIME_PERIODS]
         self.MFT_MATURITY = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS]
+        self.MFT_MATURITY_CONSTR = [mf + (t,) for mf in self.NEW_MF_LIST for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.MFT = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS]
+        self.MFT_CONSTR = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS_OPERATIONAL]
         
         self.MFTT = [(m,f,t,tau) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS 
                             for tau in self.T_TIME_PERIODS if tau <= t]
@@ -829,14 +870,15 @@ class TransportSets():
         self.MFT_NEW_FIRST_PERIOD = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in [self.T_TIME_PERIODS[0]] if not self.tech_is_mature[(m,f)]]
 
         self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS]        
+        self.UT_UPG_CONSTR = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS_OPERATIONAL]  
 
-    #TODO: FIX THIS FOR THE MATURITY PATHS
-    def update_time_periods(self, init_data):
-        if init_data==False:
-            self.T_TIME_PERIODS = self.T_TIME_PERIODS_ALL
-        else:
-            self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
+
+    # TODO: FIX THIS FOR THE MATURITY PATHS
+    def update_time_periods(self, time_periods):
+        self.T_TIME_PERIODS = time_periods
         self.combined_sets()
+
+        
 
     #Function that updates all information that depends on the current scenario number
     #Currently: update transport costs based on fuel group scenarios

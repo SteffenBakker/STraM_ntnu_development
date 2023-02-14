@@ -74,29 +74,18 @@ with open(r'Data\base_data', 'rb') as data_file:
 
     # draw labels on the map
 
-
-    node_xy_offset = {
-        "Ålesund": (-18, 3),
-        "Bodø": (-15, 1),
-        "Trondheim": (-30, 5),
-        "Tromsø": (-20, 2),
-        "Bergen": (2, 3),
-        "Hamar": (2, 2),
-        "Sør-Sverige": (3, -5),
-        "Kristiansand": (-31, -6),
-        "Skien": (-16, -2),
-        "Oslo": (-15, -2),
-        "Europa": (-23, 0),
-        "Verden": (-12, 3),
-        "Stavanger": (-27, -6),
-        "Kontinentalsokkelen": (-13, 3),
-        "Nord-Sverige": (3, -2)
-        }
+    
+    
 
     node_labels = copy.deepcopy(N_NODES)
 
     # translate labels
-    translate_dict = {"Sør-Sverige":" South\nSweden", "Europa":"Europe", "Verden":"World", "Kontinentalsokkelen":"Continental\n   shelf", "Nord-Sverige":" North\nSweden"}
+    translate_dict = {"Nord-Sverige":"Umeå",
+                    "Sør-Sverige":" Stockholm", 
+                    "Europa":"Europe", 
+                    "Verden":"World", 
+                    "Kontinentalsokkelen":"Continental\n   shelf", 
+                    }
     for i in range(len(N_NODES)):
         if node_labels[i] in translate_dict:
             node_labels[i] = translate_dict[node_labels[i]]
@@ -104,41 +93,27 @@ with open(r'Data\base_data', 'rb') as data_file:
     
     node_labels = copy.deepcopy(N_NODES)
     
-    label_dict = {"Sør-Sverige":" South\nSweden", 
-        "Nord-Sverige":"North\nSweden", 
-        "Kontinentalsokkelen":"Continent.\n   shelf", 
-        "Europa":"Europe", 
-        "Verden":"World"}
-
-    for key,value in label_dict.items():
+    for key,value in translate_dict.items():
         node_labels[node_labels.index(key)] = value
 
-    #node_labels[1] = " North\nSweden"
-    #node_labels[5] = "World"
-    #node_labels[6] = "Continental\n   shelf"
-    #node_labels[10] = " South\nSweden"
-    #node_labels[11] = "Europe"
-    
 
-    node_offsets = {" South\nSweden":(4,-4),
-                    'Oslo':(2,3),
-                    'Trondheim':(-30,6),
-                    "Continent.\n   shelf":(-12,4),
-                    'Bodø':(-18,0),
-                    'Kristiansand':(-30,-8),
-                    "Europe":(-24,1),
-                    "World":(-14,-7),
-                    'Bergen':(4,3),
-                    'Ålesund':(-22,2),
-                    'Hamar':(2,4),
-                    "North\nSweden":(2,2),
-                    'Tromsø':(-22,3),
-                    'Stavanger':(-30,-6),
-                    'Skien':(-18,-1)}
-    # draw labels on the map
-    #                0  1   2  3    4     5    6    7   8    9    10  11    12   13  14  
-    #node_x_offset = [2, 2, 2, 0,    -5,  0, -12, 2,  -31, -27, 3,   2,   3,   2,  2]
-    #node_y_offset = [3, 3, -1, 3,   0,   -3,  3,   -6, -6,  -6,  -4,  -5,  -4,  2,  0]
+    node_xy_offset = {
+                    "Ålesund": (-18, 3),
+                    "Bodø": (-15, 1),
+                    "Trondheim": (-30, 5),
+                    "Tromsø": (-20, 2),
+                    "Bergen": (2, 3),
+                    "Hamar": (2, 2),
+                    "Sør-Sverige": (-3, -8),
+                    "Kristiansand": (-31, -6),
+                    "Skien": (-16, -2),
+                    "Oslo": (-15, -2),
+                    "Europa": (-23, 0),
+                    "Verden": (-12, 3),
+                    "Stavanger": (-27, -6),
+                    "Kontinentalsokkelen": (-13, 3),
+                    "Nord-Sverige": (3, -2)
+                    }
 
     for i in range(len(N_NODES)):
         plt.annotate(node_labels[i], (node_x[i] + 10000*node_xy_offset[N_NODES[i]][0], node_y[i] + 10000*node_xy_offset[N_NODES[i]][1]), zorder = 1000)
