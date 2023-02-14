@@ -199,7 +199,7 @@ class TranspModel:
         self.model.CvarPosPartConstr = Constraint(self.data.S_SCENARIOS, rule=CvarRule) # add to model
 
         # lower bound on auxiliary CVaR variable (needed to avoid numerical issues)
-        cvar_aux_lb = -1e10 # (hardcoded). 10 seems to be more accurate than 11
+        cvar_aux_lb = 0.0 # (hardcoded). 10 seems to be more accurate than 11
         def CvarAuxLBRule(model):
             return (self.model.CvarAux >= cvar_aux_lb  - model.feas_relax )
         self.model.CvarAuxLBConstr = Constraint(rule=CvarAuxLBRule) # add to model
