@@ -4,8 +4,11 @@ Created on Fri Jul 29 10:47:48 2022
 
 @author: steffejb
 """
-
 import os
+from pyomo.common.tempfiles import TempfileManager
+basepath = os.getcwd().replace(os.sep, '/')
+TempfileManager.tempdir = basepath+"/temp/pyomo"
+
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
 # os.chdir('C://Users//steffejb//OneDrive - NTNU//Work//GitHub//AIM_Norwegian_Freight_Model//AIM_Norwegian_Freight_Model')
 #os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
