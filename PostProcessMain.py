@@ -13,7 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "SP" #EV, EEV, 'SP
+analyses_type = "EEV" #EV, EEV, 'SP
 scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
 noBalancingTrips = False
 last_time_period = False
@@ -227,7 +227,7 @@ def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
     t0 = base_data.T_TIME_PERIODS[0]
     for index,row in x_flow[x_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,p,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['weight'])
-        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR_WEIGHT # in MTonnes CO2 equivalents
+        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR_EMISSIONS # in MTonnes CO2 equivalents
     for index,row in b_flow[b_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,v,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['weight'])
         emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value/10**6*SCALING_FACTOR_WEIGHT # in MTonnes CO2 equivalents
@@ -460,7 +460,7 @@ output.emission_stats = output.total_emissions.groupby('time_period').agg(
         Std=('weight', np.std))
 output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
 print('Average emissions (in Million TonnesCo2):')
-print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR_WEIGHT/10**9) #this becomes Million TonnesCO2         
+print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR_EMISSIONS/10**9) #this becomes Million TonnesCO2         
 
 print('objective function value: ')
 print(output.ob_function_value*SCALING_FACTOR_MONETARY/10**9)

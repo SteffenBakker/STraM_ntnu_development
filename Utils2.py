@@ -1,13 +1,16 @@
 import sys
 
 class Logger(object):
-    def __init__(self,filename=''):
+    def __init__(self,filename='', log_to_file=False):
         self.terminal = sys.stdout
-        self.log = open("logfile_"+filename+".log", "a")
+        self.log_to_file = log_to_file
+        if log_to_file:
+            self.log = open("logfile_"+filename+".log", "a")
    
     def write(self, message):
         self.terminal.write(message)
-        self.log.write(message)  
+        if self.log_to_file:
+            self.log.write(message)  
 
     def flush(self):
         # this flush method is needed for python 3 compatibility.
@@ -15,5 +18,6 @@ class Logger(object):
         # you might want to specify some extra behavior here.
         #pass 
         self.terminal.flush()
-        self.log.flush()   
+        if self.log_to_file:
+            self.log.flush()   
 
