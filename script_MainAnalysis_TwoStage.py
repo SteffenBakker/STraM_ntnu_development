@@ -59,7 +59,7 @@ cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 
 NoBalancingTrips = False  #default at False
 
-log_to_file = False
+log_to_file = True
 
 #################################################
 #                   main code                   #
