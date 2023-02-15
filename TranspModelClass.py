@@ -719,10 +719,11 @@ class TranspModel:
             #fixing this goes slower
             #self.model.x_flow[(a,f,p,t)].fix(weight)
             
-            self.model.x_flow[(a,f,p,t,s)].fixed = False
-            dev = 0.001
-            self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
-            self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
+            for ss in self.data.S_SCENARIOS:
+                self.model.x_flow[(a,f,p,t,ss)].fixed = False
+                dev = 0.001
+                self.model.x_flow[(a,f,p,t,ss)].setub((1+dev)*weight)
+                self.model.x_flow[(a,f,p,t,ss)].setlb((1-dev)*weight)
 
     def fix_variables_first_stage(self,model_ev):  #this is the EV model that is input.
         

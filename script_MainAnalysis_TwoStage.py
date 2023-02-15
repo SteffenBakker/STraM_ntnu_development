@@ -48,7 +48,7 @@ from Utils2 import Logger
 #################################################
 
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = True  #use EEV as warm start for SP
+wrm_strt = False  #use EEV as warm start for SP
 sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -80,6 +80,7 @@ def solve_init_model(base_data,risk_info):
 
     base_data.init_data = True
     base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_INIT
+    base_data.S_SCENARIOS = ['BBB']
     base_data.combined_sets()
 
     InitModel = TranspModel(data=base_data, risk_info=risk_info)
@@ -124,11 +125,16 @@ def construct_and_solve_SP(base_data,
 
     # ------ CHANGE DATA BACK TO STANDARD ----------#
 
+    base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
+    
     base_data.init_data = False
     if time_periods == None:
-        base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
+        base_data.T_TIME_PERIODS_ALL = base_data.T_TIME_PERIODS_ALL
     else:
-        base_data.update_time_periods(time_periods)
+        base_data.T_TIME_PERIODS_ALL = time_periods 
+
+    base_data.combined_sets()
+
 
     # ------ CONSTRUCT MODEL ----------#
 
@@ -162,8 +168,7 @@ def construct_and_solve_SP(base_data,
 
 def construct_and_solve_EEV(base_data,risk_info):
 
-    base_data.S_SCENARIOS = ['BBB']
-    base_data.combined_sets()
+    
 
         ############################
         ###  1: solve init model ###

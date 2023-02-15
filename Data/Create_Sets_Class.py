@@ -1004,16 +1004,6 @@ class TransportSets():
         self.UT_UPG_CONSTR_S = combinations(self.UT_UPG_CONSTR,self.S_SCENARIOS)
 
 
-
-    # TODO: FIX THIS FOR THE MATURITY PATHS
-    def update_time_periods(self, time_periods):
-        self.T_TIME_PERIODS = time_periods
-        self.combined_sets()
-
-        
-
-    
-
 print("Finished reading sets and classes.")
 
 
