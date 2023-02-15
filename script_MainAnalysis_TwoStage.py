@@ -110,9 +110,6 @@ def solve_init_model(base_data,risk_info):
                     if weight > 0:
                         x_flow_base_period_init.append((a,f,p,t,s,weight))
     EMISSION_CAP_ABSOLUTE_BASE_YEAR = InitModel.model.total_emissions[base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0]].value  #same emissions across all scenarios!
-    print('------------------')
-    print('Emission_cap_absolute_base_year: ', EMISSION_CAP_ABSOLUTE_BASE_YEAR)
-    print('------------------')
 
     return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
 

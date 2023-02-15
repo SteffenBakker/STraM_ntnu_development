@@ -136,7 +136,7 @@ class TransportSets():
         self.scaling_factor_weight = SCALING_FACTOR_WEIGHT
         self.scaling_factor_emissions = SCALING_FACTOR_EMISSIONS
 
-        self.precision_digits = 4
+        self.precision_digits = 3
 
         self.S_SCENARIOS_ALL = self.scenario_information.scenario_names
         self.S_SCENARIOS = self.S_SCENARIOS_ALL
@@ -359,6 +359,8 @@ class TransportSets():
                     else:
                         self.D_DEMAND[(o,d,p,2040)] = float(np.mean([v30,v50]))
         
+        self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
+
         self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS}
         for (o,d,p,t),value in self.D_DEMAND.items():
             self.D_DEMAND_AGGR[t] += value
@@ -510,12 +512,12 @@ class TransportSets():
                     mode_to = k[n+1][2]
                     if mode_from != mode_to: 
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
-                self.C_TRANSFER[(kk,p)] = round(cost,1)
+                self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
             
         CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
         self.CO2_fee = {t: 10000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for index, row in CO2_fee_data.iterrows():
-            self.CO2_fee[row["Year"]] = row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions
+            self.CO2_fee[row["Year"]] = round(row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
             
 
         #base level transport costs (in average scenario)
@@ -556,10 +558,10 @@ class TransportSets():
                         for y in self.T_TIME_PERIODS:
                             for s in self.S_SCENARIOS:
                                 if y in self.T_TIME_FIRST_STAGE_BASE: #only update second-stage costs!
-                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 1 
+                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 1,self.precision_digits)
                                 elif y in self.T_TIME_SECOND_STAGE_BASE:
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
-                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)] 
+                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)],self.precision_digits) 
 
 
         
@@ -689,7 +691,7 @@ class TransportSets():
 
         "Discount rate"
         self.risk_free_interest_rate = RISK_FREE_RATE # 2%
-        self.D_DISCOUNT_RATE = 1 / (1 + self.risk_free_interest_rate)
+        self.D_DISCOUNT_RATE = round(1 / (1 + self.risk_free_interest_rate),self.precision_digits)
         
 
         # --------------------------
@@ -764,7 +766,7 @@ class TransportSets():
                 else:
                     for year in self.T_TIME_PERIODS:
                         #we can remove this one!
-                        self.R_TECH_READINESS_MATURITY[(m, f, year,s)] = self.tech_base_bass_model[(m,f)].A(year) # compute maturity level based on base Bass diffusion model 
+                        self.R_TECH_READINESS_MATURITY[(m, f, year,s)] = round(self.tech_base_bass_model[(m,f)].A(year),self.precision_digits) # compute maturity level based on base Bass diffusion model 
             
 
         #Initializing transport work share in base year
@@ -828,12 +830,12 @@ class TransportSets():
                         for t in self.T_TIME_PERIODS:
                             if t in self.T_TIME_FIRST_STAGE_BASE:
                                 # first stage: follow base bass model
-                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = cur_base_bass_model.A(t)
+                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
                             else:
                                 # second stage: use scenario bass model, with starting point A(2030) from base bass model
                                 t_init = start_of_second_stage #initialize diffusion at start of second stage
                                 A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
-                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = cur_scen_bass_model.A_from_starting_point(t,A_init,t_init)
+                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
 
 
 

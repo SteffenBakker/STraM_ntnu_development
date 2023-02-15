@@ -162,9 +162,9 @@ class TranspModel:
             
             #sum(base_data.D_DISCOUNT_RATE**n for n in list(range(10)))
             if t == self.data.T_TIME_PERIODS[-1]:
-                factor = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE))      #was 2.77, becomes 9
+                factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9
             else:
-                factor = sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t])
+                factor = round(sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t]),self.data.precision_digits)
             opex_costs = factor*(yearly_transp_cost+self.model.TransfCost[t,s]) 
             
             delta = self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0]
