@@ -8,6 +8,7 @@ import os
 from pyomo.common.tempfiles import TempfileManager
 basepath = os.getcwd().replace(os.sep, '/')
 TempfileManager.tempdir = basepath+"/temp/pyomo"
+#Also try to force this to None and see what happens
 
 #Remember to set the right workingdirectory. Otherwise errors with loading the classes
 # os.chdir('C://Users//steffejb//OneDrive - NTNU//Work//GitHub//AIM_Norwegian_Freight_Model//AIM_Norwegian_Freight_Model')
@@ -18,28 +19,10 @@ from ExtractModelResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
 
-#import mpisppy.utils.sputils as sputils
-#from solver_and_scenario_settings import scenario_creator
-#from mpisppy.opt.ph import PH
-
-
-#Pyomo
-import pyomo.opt   # we need SolverFactory,SolverStatus,TerminationCondition
-import pyomo.opt.base as mobase
 from pyomo.environ import *
-import pyomo.environ as pyo
-from pyomo.util.infeasible import log_infeasible_constraints
-from pyomo.solvers.plugins.solvers.persistent_solver import PersistentSolver
-
-import pyomo.environ as pyo
-import numpy as np
-import pandas as pd
-#from mpisppy.opt.ef import ExtensiveForm
-#import mpisppy.scenario_tree as scenario_tree
 import time
 import sys
 import pickle
-import json #works across operating systems
 
 import cProfile
 import pstats
@@ -171,8 +154,6 @@ def construct_and_solve_SP(base_data,
 
 def construct_and_solve_EEV(base_data,risk_info):
 
-    
-
         ############################
         ###  1: solve init model ###
         ############################
@@ -193,7 +174,6 @@ def construct_and_solve_EEV(base_data,risk_info):
         ############################
         ###  #2: solve EV        ###
         ############################
-    
     
     # ------ CONSTRUCT MODEL ----------#
 
@@ -252,15 +232,13 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Solving EEV model...",end='',flush=True)
     start = time.time()
     #options = option_settings_ef()
-    model_instance.solve_model(FeasTol=10**(-3)) #to make sure that the warm start is feasible
+    model_instance.solve_model(FeasTol=10**(-3),num_focus=2) #to make sure that the warm start is feasible
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
-
-
-    # --------- SAVE RESULTS ------------#
-
-    #-----------------------------------
+    # kost nu een kleine drie uur om de EEV op te lossen voor de grote case (num_focus = 3)
+    
+    # --------- SAVE EEV RESULTS -----------
 
     if analysis_type == "SP":
         file_string = 'output_data_' + "EEV" + '_' + sheet_name_scenarios
@@ -292,7 +270,8 @@ def construct_and_solve_SP_warm_start(base_data,
 
     print("Solving SP model with EEV warm start...",end='',flush=True)
     start = time.time()
-    model_instance.solve_model(warmstart=True,FeasTol=10**(-2))
+    model_instance.solve_model(warmstart=True,FeasTol=10**(-2),num_focus=1)
+    #  https://support.gurobi.com/hc/en-us/community/posts/4406728832145-Crossover-Takes-Long
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", flush=True)
@@ -392,17 +371,17 @@ def last_time_period_run():
     base_data.last_time_period = True
     base_data.combined_sets()
 
-    ef = construct_model_template_ef(base_data,risk_info,
-                                fix_first_time_period=False, x_flow_base=None,
-                                fix_first_stage=False,first_stage_variables=None,
-                                scenario_names=base_data.scenario_information.scenario_names,
-                                last_time_period=True)
-    ef = solve_model_template_ef(ef)
+    # ef = construct_model_template_ef(base_data,risk_info,
+    #                             fix_first_time_period=False, x_flow_base=None,
+    #                             fix_first_stage=False,first_stage_variables=None,
+    #                             scenario_names=base_data.scenario_information.scenario_names,
+    #                             last_time_period=True)
+    # ef = solve_model_template_ef(ef)
 
-    file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios +'_last_period' 
-    output = OutputData(ef,base_data,EV_problem=False)
-
-    with open(r"Data//" + file_string, 'wb') as output_file: 
+    #file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios +'_last_period' 
+    #output = OutputData(ef,base_data,EV_problem=False)
+    file_string = 'output_data_' + run_identifier 
+    with open(r'Data//' + file_string, 'wb') as output_file: 
         print("Dumping output in pickle file...", end="")
         pickle.dump(output, output_file)
         print("done.")

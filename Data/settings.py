@@ -29,7 +29,7 @@ NO_INVESTMENTS = False
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
 EMISSION_VIOLATION_PENALTY = 10**11/SCALING_FACTOR_EMISSIONS  
-MAX_TRANSPORT_AMOUNT_PENALTY = 10**7/SCALING_FACTOR_WEIGHT  
+MAX_TRANSPORT_AMOUNT_PENALTY = 10**9/SCALING_FACTOR_WEIGHT  # 10**7 gives problems
 
 #the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)
 GROWTH_ON_ROAD = 1.4 #the transport amount on road can only grow with 40%

@@ -819,14 +819,16 @@ class TranspModel:
     
             
 
-    def solve_model(self, warmstart=False, FeasTol=(10**(-4)),MIP_gap=MIPGAP,num_focus=3):  #GENERAL way to solve a single deterministic model
+    def solve_model(self, warmstart=False, FeasTol=(10**(-4)),MIP_gap=MIPGAP,num_focus=3,Crossover=-1,Method=-1,NodeMethod=-1):  #GENERAL way to solve a single deterministic model
 
         opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
         opt.options['MIPGap']= MIP_gap # 'TimeLimit':600 (seconds)
         opt.options["NumericFocus"] = num_focus # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
-        # numericfocus = 3 seems to remove the max_constraint_violation warning
-        #["ScaleFlag"] = 1 #https://www.gurobi.com/documentation/9.5/refman/scaleflag.html
+        opt.options["BarConvTol"] = 1E-6 # default: 1E-8https://www.gurobi.com/documentation/9.1/refman/barconvtol.html
+        opt.options["Crossover"] = Crossover#default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
+        opt.options["Method"] = Method #def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
+        opt.options["NodeMethod"] = NodeMethod # https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
         opt.solve(self.model, warmstart=warmstart, tee=True, 
                                         symbolic_solver_labels=False,
                                         keepfiles=False)  
