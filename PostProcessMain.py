@@ -22,15 +22,15 @@ last_time_period = False
 #       Output data
 #---------------------------------------------------------#
 
-output_file = 'output_data_'+analyses_type+'_'+scenarios
+run_identifier = analyses_type+'_'+scenarios
 if noBalancingTrips:
-    output_file = output_file + '_NoBalancingTrips'
+    run_identifier = run_identifier + '_NoBalancingTrips'
 if last_time_period:
-    output_file = output_file + '_last_period'
-with open(r'Data\\'+output_file, 'rb') as output_file:
+    run_identifier = run_identifier + '_last_period'
+with open(r'Data\\output\\'+run_identifier+'.pickle', 'rb') as output_file:
     output = pickle.load(output_file)
 
-with open(r'Data\base_data_'+scenarios, 'rb') as data_file:
+with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 

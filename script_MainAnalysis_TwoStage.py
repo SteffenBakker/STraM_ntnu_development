@@ -115,9 +115,9 @@ def construct_and_solve_SP(base_data,
     
     base_data.init_data = False
     if time_periods == None:
-        base_data.T_TIME_PERIODS_ALL = base_data.T_TIME_PERIODS_ALL
+        base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL
     else:
-        base_data.T_TIME_PERIODS_ALL = time_periods 
+        base_data.T_TIME_PERIODS = time_periods 
 
     base_data.combined_sets()
 
@@ -241,13 +241,13 @@ def construct_and_solve_EEV(base_data,risk_info):
     # --------- SAVE EEV RESULTS -----------
 
     if analysis_type == "SP":
-        file_string = 'output_data_' + "EEV" + '_' + sheet_name_scenarios
+        file_string = "EEV_" + sheet_name_scenarios
         if NoBalancingTrips:
             file_string = file_string +'_NoBalancingTrips'
         
         output = OutputData(model_instance.model,base_data)
 
-        with open(r"Data//" + file_string, 'wb') as output_file: 
+        with open(r"Data//output//" + file_string+'.pickle', 'wb') as output_file: 
             print("Dumping EEV output in pickle file.....", end="",flush=True)
             pickle.dump(output, output_file)
             print("done.",flush=True)
@@ -278,7 +278,26 @@ def construct_and_solve_SP_warm_start(base_data,
 
     return model_instance,base_data
 
+def generate_base_data(sheet_name_scenarios):
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
+    risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
+    #add to the base_data class?
+    base_data.risk_information = risk_info
 
+    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+
+    base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
+    
+    base_data.init_data = False
+    if time_periods == None:
+        base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL
+    else:
+        base_data.T_TIME_PERIODS = time_periods 
+
+    base_data.combined_sets()
+
+    with open(r'Data//base_data//'+sheet_name_scenarios+'.pickle', 'wb') as data_file: 
+        pickle.dump(base_data, data_file)
 
 def main(analysis_type):
     
@@ -318,48 +337,20 @@ def main(analysis_type):
     #  --------- SAVE OUTPUT ---------    #
 
     print("Dumping data in pickle file...", end="")
-    with open(r'Data//base_data_'+sheet_name_scenarios, 'wb') as data_file: 
+    with open(r'Data//base_data//'+sheet_name_scenarios+'.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
     print("done.")
 
     #-----------------------------------
-
-    file_string = 'output_data_' + run_identifier   
     
     output = OutputData(model_instance.model,base_data)
 
-    with open(r"Data//" + file_string, 'wb') as output_file: 
+    with open(r"Data//output//" + run_identifier+'.pickle', 'wb') as output_file: 
         print("Dumping output in pickle file.....", end="")
         pickle.dump(output, output_file)
         print("done.")
     
     sys.stdout.flush()
-
-
-def main2():
-
-    print('----------------------------')
-    print('Only do init: ', analysis_type, sheet_name_scenarios)
-    print('----------------------------')
-    sys.stdout.flush()
-    #     --------- DATA  ---------   #
-     
-    print("Reading data...", flush=True)
-    start = time.time()
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
-    print("Done reading data.", flush=True)
-    print("Time used reading the base data:", time.time() - start,flush=True)
-    sys.stdout.flush()
-
-    risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
-    #add to the base_data class?
-    base_data.risk_information = risk_info
-
-    print("solve init model", flush=True)
-    # ------ SOLVE INIT MODEL ----------#
-    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
-    print("finished solving init model", flush=True)
-
 
 def last_time_period_run():
     
@@ -380,19 +371,15 @@ def last_time_period_run():
 
     #file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios +'_last_period' 
     #output = OutputData(ef,base_data,EV_problem=False)
-    file_string = 'output_data_' + run_identifier 
-    with open(r'Data//' + file_string, 'wb') as output_file: 
+    with open(r'Data//output//' + run_identifier+'.pickle', 'wb') as output_file: 
         print("Dumping output in pickle file...", end="")
         pickle.dump(output, output_file)
         print("done.")
 
 if __name__ == "__main__":
     
-    #for analysis_type in ['SP','EEV']:
-    #    main(analysis_type=analysis_type)
-    
     main(analysis_type=analysis_type)
-    #main2()
+    # generate_base_data(sheet_name_scenarios)
 
     #last_time_period_run()
 

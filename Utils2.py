@@ -5,7 +5,7 @@ class Logger(object):
         self.terminal = sys.stdout
         self.log_to_file = log_to_file
         if log_to_file:
-            self.log = open("logfile_"+filename+".log", "a")
+            self.log = open(r"Data/logs/logfile_"+filename+".log", "a")
    
     def write(self, message):
         self.terminal.write(message)

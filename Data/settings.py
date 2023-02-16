@@ -28,7 +28,7 @@ INTERPOLATE_DEMAND_DATA_2040 = True
 NO_INVESTMENTS = False
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
-EMISSION_VIOLATION_PENALTY = 10**11/SCALING_FACTOR_EMISSIONS  
+EMISSION_VIOLATION_PENALTY = 10**12/SCALING_FACTOR_EMISSIONS  
 MAX_TRANSPORT_AMOUNT_PENALTY = 10**9/SCALING_FACTOR_WEIGHT  # 10**7 gives problems
 
 #the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)

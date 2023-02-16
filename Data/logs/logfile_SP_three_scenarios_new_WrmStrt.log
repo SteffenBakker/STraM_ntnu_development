@@ -1,0 +1,140 @@
+----------------------------
+Doing the following analysis: 
+SP
+three_scenarios_new
+Using EEV warm start
+----------------------------
+Reading data...
+Reading and constructing data
+percentage demand removed:  0.5782331525083847 %
+Done reading data.
+Time used reading the base data: 2.8776919841766357
+-----------------
+constructing initialization model
+Time used constructing the model: 2.9910788536071777
+-----------------
+solving initialization model
+Using license file C:\Users\steffejb\gurobi.lic
+Academic license - for non-commercial use only
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\AIM_Norwegian_Freight_Model\AIM_Norwegian_Freight_Model\temp\pyomo\tmp8ru4r9f3.pyomo.lp
+Reading time = 0.22 seconds
+x70670: 4208 rows, 30498 columns, 224993 nonzeros
+Changed value of parameter FeasibilityTol to 0.0001
+   Prev: 1e-06  Min: 1e-09  Max: 0.01  Default: 1e-06
+Changed value of parameter MIPGap to 0.005
+   Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
+Changed value of parameter NumericFocus to 3
+   Prev: 0  Min: 0  Max: 3  Default: 0
+Changed value of parameter BarConvTol to 1e-06
+   Prev: 1e-08  Min: 0.0  Max: 1.0  Default: 1e-08
+Parameter Crossover unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter Method unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter NodeMethod unchanged
+   Value: -1  Min: -1  Max: 2  Default: -1
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 4208 rows, 30498 columns and 224993 nonzeros
+Model fingerprint: 0x2483fb19
+Variable types: 30459 continuous, 39 integer (39 binary)
+Coefficient statistics:
+  Matrix range     [3e-03, 1e+05]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [2e-01, 1e+03]
+Presolve removed 658 rows and 7221 columns
+Presolve time: 0.25s
+Presolved: 3550 rows, 23277 columns, 154396 nonzeros
+Variable types: 23277 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.597768e+10, 3017 iterations, 0.38 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.597768e+10 1.5978e+10  0.00%     -    0s
+
+Explored 1 nodes (3017 simplex iterations) in 0.87 seconds
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.59777e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.597768202954e+10, best bound 1.597768202954e+10, gap 0.0000%
+Time used solving the model: 2.81894850730896
+-----------------
+Constructing EV model.....Done constructing EV model.
+Time used constructing the model: 19.59831738471985
+----------
+Solving EV model.....Using license file C:\Users\steffejb\gurobi.lic
+Academic license - for non-commercial use only
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\AIM_Norwegian_Freight_Model\AIM_Norwegian_Freight_Model\temp\pyomo\tmpxyt4du_p.pyomo.lp
+Reading time = 1.29 seconds
+x353542: 21322 rows, 152722 columns, 1126447 nonzeros
+Changed value of parameter FeasibilityTol to 0.0001
+   Prev: 1e-06  Min: 1e-09  Max: 0.01  Default: 1e-06
+Changed value of parameter MIPGap to 0.005
+   Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
+Changed value of parameter NumericFocus to 3
+   Prev: 0  Min: 0  Max: 3  Default: 0
+Changed value of parameter BarConvTol to 1e-06
+   Prev: 1e-08  Min: 0.0  Max: 1.0  Default: 1e-08
+Parameter Crossover unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter Method unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter NodeMethod unchanged
+   Value: -1  Min: -1  Max: 2  Default: -1
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 21322 rows, 152722 columns and 1126447 nonzeros
+Model fingerprint: 0xadc341ed
+Variable types: 152487 continuous, 235 integer (235 binary)
+Coefficient statistics:
+  Matrix range     [4e-04, 1e+05]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [2e-02, 7e+02]
+  RHS range        [2e-01, 3e+05]
+Presolve removed 3331 rows and 35424 columns
+Presolve time: 2.53s
+Presolved: 17991 rows, 117298 columns, 791701 nonzeros
+Variable types: 117197 continuous, 101 integer (101 binary)
+
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing first log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    1.2273516e+04   1.083669e+04   7.066751e+10      6s
+   11225    1.0196216e+05   6.441632e+02   4.844027e+07     10s
+   18432    3.2264939e+11   0.000000e+00   9.131345e+12     13s
+   21895    1.9701097e+11   0.000000e+00   6.751169e+11     15s
+   29111    1.7774490e+11   0.000000e+00   5.316225e+11     20s
+   39079    1.6317851e+11   0.000000e+00   1.541673e+10     25s
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+
+Root relaxation: objective 3.591309e+10, 24267 iterations, 23.85 seconds
+Total elapsed time = 28.86s
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 3.5913e+10    0   13          - 3.5913e+10      -     -   29s
+H    0     0                    3.591319e+10 3.5913e+10  0.00%     -   31s
+
+Explored 1 nodes (24267 simplex iterations) in 31.49 seconds
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 3.59132e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Warning: max constraint violation (3.5200e-04) exceeds tolerance
+Warning: max bound violation (6.1400e-04) exceeds tolerance
+Best objective 3.591319284811e+10, best bound 3.591309255418e+10, gap 0.0003%
+Done solving model.
+Time used solving the model: 42.363778829574585
+----------
+Constructing EEV model...

@@ -1,0 +1,112 @@
+Reading and constructing data
+percentage demand removed:  0.5782331525083847 %
+-----------------
+constructing initialization model
+Time used constructing the model: 3.025911569595337
+-----------------
+solving initialization model
+Using license file C:\Users\steffejb\gurobi.lic
+Academic license - for non-commercial use only
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\AIM_Norwegian_Freight_Model\AIM_Norwegian_Freight_Model\temp\pyomo\tmpdc85i17w.pyomo.lp
+Reading time = 0.24 seconds
+x70670: 4208 rows, 30498 columns, 224993 nonzeros
+Changed value of parameter FeasibilityTol to 0.0001
+   Prev: 1e-06  Min: 1e-09  Max: 0.01  Default: 1e-06
+Changed value of parameter MIPGap to 0.005
+   Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
+Changed value of parameter NumericFocus to 3
+   Prev: 0  Min: 0  Max: 3  Default: 0
+Changed value of parameter BarConvTol to 1e-06
+   Prev: 1e-08  Min: 0.0  Max: 1.0  Default: 1e-08
+Parameter Crossover unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter Method unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter NodeMethod unchanged
+   Value: -1  Min: -1  Max: 2  Default: -1
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 4208 rows, 30498 columns and 224993 nonzeros
+Model fingerprint: 0x6e98bd85
+Variable types: 30459 continuous, 39 integer (39 binary)
+Coefficient statistics:
+  Matrix range     [3e-03, 2e+04]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [2e-01, 1e+03]
+Presolve removed 658 rows and 7221 columns
+Presolve time: 0.26s
+Presolved: 3550 rows, 23277 columns, 154396 nonzeros
+Variable types: 23277 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.597768e+10, 3017 iterations, 0.42 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.597768e+10 1.5978e+10  0.00%     -    0s
+
+Explored 1 nodes (3017 simplex iterations) in 0.89 seconds
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.59777e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.597768202954e+10, best bound 1.597768202954e+10, gap 0.0000%
+Time used solving the model: 2.9990193843841553
+-----------------
+Reading and constructing data
+percentage demand removed:  0.5782331525083847 %
+-----------------
+constructing initialization model
+Time used constructing the model: 4.135595798492432
+-----------------
+solving initialization model
+Using license file C:\Users\steffejb\gurobi.lic
+Academic license - for non-commercial use only
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\AIM_Norwegian_Freight_Model\AIM_Norwegian_Freight_Model\temp\pyomo\tmp6yvfm6tj.pyomo.lp
+Reading time = 0.19 seconds
+x70670: 4208 rows, 30498 columns, 224993 nonzeros
+Changed value of parameter FeasibilityTol to 0.0001
+   Prev: 1e-06  Min: 1e-09  Max: 0.01  Default: 1e-06
+Changed value of parameter MIPGap to 0.005
+   Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
+Changed value of parameter NumericFocus to 3
+   Prev: 0  Min: 0  Max: 3  Default: 0
+Changed value of parameter BarConvTol to 1e-06
+   Prev: 1e-08  Min: 0.0  Max: 1.0  Default: 1e-08
+Parameter Crossover unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter Method unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter NodeMethod unchanged
+   Value: -1  Min: -1  Max: 2  Default: -1
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 4208 rows, 30498 columns and 224993 nonzeros
+Model fingerprint: 0x6e98bd85
+Variable types: 30459 continuous, 39 integer (39 binary)
+Coefficient statistics:
+  Matrix range     [3e-03, 2e+04]
+  Objective range  [2e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [2e-01, 1e+03]
+Presolve removed 658 rows and 7221 columns
+Presolve time: 0.34s
+Presolved: 3550 rows, 23277 columns, 154396 nonzeros
+Variable types: 23277 continuous, 0 integer (0 binary)
+
+Root relaxation: objective 1.597768e+10, 3017 iterations, 0.40 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0    1.597768e+10 1.5978e+10  0.00%     -    1s
+
+Explored 1 nodes (3017 simplex iterations) in 1.09 seconds
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 1.59777e+10 
+
+Optimal solution found (tolerance 5.00e-03)
+Best objective 1.597768202954e+10, best bound 1.597768202954e+10, gap 0.0000%
+Time used solving the model: 3.176098108291626
+-----------------
