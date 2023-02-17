@@ -33,9 +33,10 @@ from Utils2 import Logger
 #                   user input                  #
 #################################################
 
+
 analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = True  #use EEV as warm start for SP
-sheet_name_scenarios = 'scenarios_base' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -44,20 +45,21 @@ cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 #TODO: test if this is working
 
 NoBalancingTrips = False  #default at False
-
-log_to_file = True
+log_to_file = False
+only_generate_data = False
 
 #################################################
 #                   main code                   #
 #################################################
 
 run_identifier = analysis_type + '_' + sheet_name_scenarios
-if wrm_strt:
-    run_identifier = run_identifier +'_WrmStrt'
 if NoBalancingTrips:
     run_identifier = run_identifier +'_NoBalancingTrips'
+run_identifier2 = run_identifier
+if wrm_strt:
+    run_identifier2 = run_identifier2 +'_WrmStrt'
 
-sys.stdout = Logger(run_identifier,log_to_file)
+sys.stdout = Logger(run_identifier2,log_to_file)
 
 
 def solve_init_model(base_data,risk_info):
@@ -236,7 +238,7 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
-    # kost nu een kleine drie uur om de EEV op te lossen voor de grote case (num_focus = 3)
+    # kost nu iets meer dan twee uur om de EEV op te lossen voor de grote case (num_focus = 2)
     
     # --------- SAVE EEV RESULTS -----------
 
@@ -378,8 +380,11 @@ def last_time_period_run():
 
 if __name__ == "__main__":
     
-    main(analysis_type=analysis_type)
-    # generate_base_data(sheet_name_scenarios)
+    
+    if only_generate_data:
+        generate_base_data(sheet_name_scenarios)
+    else:
+        main(analysis_type=analysis_type)
 
     #last_time_period_run()
 

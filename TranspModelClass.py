@@ -305,10 +305,11 @@ class TranspModel:
 
         # Emission limit
         # IF ERROR HERE -> REMEMBER TO RUN INITIALIZATION MODEL TO DETERMINE THE ABSOLUTE EMISSION AMOUNT
-        def EmissionCapRule(model, t,s):
-            return  (self.model.z_emission[t,s] >= self.model.total_emissions[t,s] - self.data.EMISSION_CAP_RELATIVE[t]/100*self.data.EMISSION_CAP_ABSOLUTE_BASE_YEAR*1.01 
-            - model.feas_relax )
-        self.model.EmissionCap = Constraint(self.data.TS_NO_BASE_YEAR_CONSTR_S, rule=EmissionCapRule)
+        if not self.solve_base_year:
+            def EmissionCapRule(model, t,s):
+                return  (self.model.z_emission[t,s] >= self.model.total_emissions[t,s] - self.data.EMISSION_CAP_RELATIVE[t]/100*self.data.EMISSION_CAP_ABSOLUTE_BASE_YEAR*1.001 
+                - model.feas_relax )
+            self.model.EmissionCap = Constraint(self.data.TS_CONSTR_S, rule=EmissionCapRule)
         
         #-----------------------------------------------#
         
@@ -710,8 +711,8 @@ class TranspModel:
 
                     #self.model.x_flow[(a,f,p,t,s)].fix(0)   #seems to be a little bit faster
 
-                    self.model.x_flow[(a,f,p,t,s)].setlb(-1)
-                    self.model.x_flow[(a,f,p,t,s)].setub(1)
+                    self.model.x_flow[(a,f,p,t,s)].setlb(-0.001)
+                    self.model.x_flow[(a,f,p,t,s)].setub(0.001)
                     
 
         for (a,f,p,t,s,weight)in x_flow_base_period_init:
@@ -734,22 +735,21 @@ class TranspModel:
         
         base_scenario = 'BBB'
 
-        #We quickly get infeasibilities 
         for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
             a = (i,j,m,r)
             self.model.x_flow[(a,f,p,t,s)].fixed = False
             if t in self.data.T_TIME_FIRST_STAGE:
                 weight = model_ev.x_flow[(a,f,p,t,base_scenario)].value
                 if weight is not None:
-                    if weight > 0: #weight > 9:
+                    if weight > 0: 
                         dev = 0.001
                         self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
                         self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
                         #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
                     else:
-                        #self.model.x_flow[(a,f,p,t,s)].fix(0) 
-                        self.model.x_flow[(a,f,p,t,s)].setlb(-1)
-                        self.model.x_flow[(a,f,p,t,s)].setub(1)
+                        #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+                        self.model.x_flow[(a,f,p,t,s)].setlb(-0.001)
+                        self.model.x_flow[(a,f,p,t,s)].setub(0.001)
                 else:
                     pass #this does not happen
 
@@ -758,7 +758,7 @@ class TranspModel:
                 e = (i,j,m,r)
                 weight = model_ev.epsilon_edge[(e,t,base_scenario)].value
                 if weight is not None:
-                    if weight > 0.05:
+                    if weight > 0:
                         self.model.epsilon_edge[(e,t,s)].fix(weight) 
                     else:
                         self.model.epsilon_edge[(e,t,s)].fix(0) 
@@ -766,7 +766,7 @@ class TranspModel:
             if t in self.data.T_TIME_FIRST_STAGE:
                 weight = model_ev.upsilon_upg[(e,f,t,base_scenario)].value
                 if weight is not None:
-                    if weight > 0.05:
+                    if weight > 0:
                         self.model.upsilon_upg[(e,f,t,s)].fix(weight) 
                     else:
                         self.model.upsilon_upg[(e,f,t,s)].fix(0)
@@ -775,7 +775,7 @@ class TranspModel:
             if t in self.data.T_TIME_FIRST_STAGE:
                 weight = model_ev.nu_node[(i,c,m,t,base_scenario)].value
                 if weight is not None:
-                    if weight > 0.05:
+                    if weight > 0:
                         self.model.nu_node[(i,c,m,t,s)].fix(weight)
                     else:
                         self.model.nu_node[(i,c,m,t,s)].fix(0)
@@ -784,7 +784,7 @@ class TranspModel:
             if t in self.data.T_TIME_FIRST_STAGE:
                 weight = model_ev.y_charge[(e,f,t,base_scenario)].value
                 if weight is not None:
-                    if weight > 0.05:
+                    if weight > 0:
                         self.model.y_charge[(e,f,t,s)].fix(weight)
                     else:
                         self.model.y_charge[(e,f,t,s)].fix(0)
@@ -792,7 +792,7 @@ class TranspModel:
         
     def unfix_variables_first_stage(self):
         
-        relax= 0#5*10**(-2)
+        relax= 0  #5*10**(-2)
         self.model.feas_relax.setlb(relax)
         self.model.feas_relax.setub(relax)
 
@@ -800,8 +800,9 @@ class TranspModel:
             a = (i,j,m,r)
             self.model.x_flow[(a,f,p,t,s)].fixed = False
             if t in self.data.T_TIME_FIRST_STAGE:
-                self.model.x_flow[(a,f,p,t,s)].setlb(-1)
-                self.model.x_flow[(a,f,p,t,s)].setub(10**10/SCALING_FACTOR)   #maximum value is below 1000
+                if t is not self.data.T_TIME_FIRST_STAGE[0]: #still keep the first one fixed!!
+                    self.model.x_flow[(a,f,p,t,s)].setlb(-1)
+                    self.model.x_flow[(a,f,p,t,s)].setub(10**10/SCALING_FACTOR)   #maximum value is below 1000
 
         for (i,j,m,r,t,s) in self.data.ET_RAIL_S:
             e = (i,j,m,r)

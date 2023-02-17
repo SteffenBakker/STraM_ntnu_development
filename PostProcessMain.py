@@ -14,7 +14,7 @@ import json
 #---------------------------------------------------------#
 
 analyses_type = "EEV" #EV, EEV, 'SP
-scenarios = "scenarios_base"   # 'three_scenarios_new', 'scenarios_base'
+scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
 noBalancingTrips = False
 last_time_period = False
 
