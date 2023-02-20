@@ -13,7 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
+scenarios = "4Scen"   # '4Scen', 'AllScen'
 
 
 #---------------------------------------------------------#
@@ -22,7 +22,7 @@ scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
 
 with open(r'Data\\output\\'+"SP"+'_'+scenarios+'.pickle', 'rb') as output_file:
     output_SP = pickle.load(output_file)
-with open(r'Data\\output\\'+"SP"+'_'+scenarios+'.pickle', 'rb') as output_file:
+with open(r'Data\\output\\'+"EEV"+'_'+scenarios+'.pickle', 'rb') as output_file:
     output_EEV = pickle.load(output_file)
 
 with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
@@ -138,8 +138,8 @@ if True:
         #fig = ax.get_figure()
         ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
     
-    output_SP = cost_and_investment_table(base_data,output_SP)
-    output_EEV = cost_and_investment_table(base_data,output_EEV)
+    #output_SP = cost_and_investment_table(base_data,output_SP)
+    #output_EEV = cost_and_investment_table(base_data,output_EEV)
 
     
     #---------------------------------------------------------#

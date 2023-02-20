@@ -33,10 +33,9 @@ from Utils2 import Logger
 #                   user input                  #
 #################################################
 
-
-analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = True  #use EEV as warm start for SP
-sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
+scenario_tree = "4Scen" #AllScen,4Scen
+analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+wrm_strt = False  #use EEV as warm start for SP
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
@@ -51,8 +50,12 @@ only_generate_data = False
 #################################################
 #                   main code                   #
 #################################################
+if scenario_tree == 'AllScen':
+    sheet_name_scenarios = 'scenarios_base' 
+elif scenario_tree == '4Scen':
+    sheet_name_scenarios = 'three_scenarios_new' 
 
-run_identifier = analysis_type + '_' + sheet_name_scenarios
+run_identifier = analysis_type + '_' + scenario_tree
 if NoBalancingTrips:
     run_identifier = run_identifier +'_NoBalancingTrips'
 run_identifier2 = run_identifier
@@ -242,19 +245,18 @@ def construct_and_solve_EEV(base_data,risk_info):
     
     # --------- SAVE EEV RESULTS -----------
 
-    if analysis_type == "SP":
-        file_string = "EEV_" + sheet_name_scenarios
-        if NoBalancingTrips:
-            file_string = file_string +'_NoBalancingTrips'
-        
-        output = OutputData(model_instance.model,base_data)
+    file_string = "EEV_" + scenario_tree
+    if NoBalancingTrips:
+        file_string = file_string +'_NoBalancingTrips'
+    
+    output = OutputData(model_instance.model,base_data)
 
-        with open(r"Data//output//" + file_string+'.pickle', 'wb') as output_file: 
-            print("Dumping EEV output in pickle file.....", end="",flush=True)
-            pickle.dump(output, output_file)
-            print("done.",flush=True)
-        
-        sys.stdout.flush()
+    with open(r"Data//output//" + file_string+'.pickle', 'wb') as output_file: 
+        print("Dumping EEV output in pickle file.....", end="",flush=True)
+        pickle.dump(output, output_file)
+        print("done.",flush=True)
+    
+    sys.stdout.flush()
 
 
     return model_instance, base_data
@@ -298,7 +300,7 @@ def generate_base_data(sheet_name_scenarios):
 
     base_data.combined_sets()
 
-    with open(r'Data//base_data//'+sheet_name_scenarios+'.pickle', 'wb') as data_file: 
+    with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
 
 def main(analysis_type):
@@ -306,7 +308,7 @@ def main(analysis_type):
     print('----------------------------')
     print('Doing the following analysis: ')
     print(analysis_type)
-    print(sheet_name_scenarios)
+    print(scenario_tree)
     if wrm_strt:
         print('Using EEV warm start')
     print('----------------------------')
@@ -339,7 +341,7 @@ def main(analysis_type):
     #  --------- SAVE OUTPUT ---------    #
 
     print("Dumping data in pickle file...", end="")
-    with open(r'Data//base_data//'+sheet_name_scenarios+'.pickle', 'wb') as data_file: 
+    with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
     print("done.")
 

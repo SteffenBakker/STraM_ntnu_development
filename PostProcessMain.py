@@ -13,8 +13,8 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "EEV" #EV, EEV, 'SP
-scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
+analyses_type = "SP" #EV, EEV, 'SP
+scenarios = "4Scen"   # AllScen, 4Scen
 noBalancingTrips = False
 last_time_period = False
 
@@ -185,7 +185,7 @@ def plot_costs(output,which_costs,ylabel,filename):
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
+    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
 
 output = cost_and_investment_table(base_data,output)
 opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
@@ -288,7 +288,7 @@ def plot_emission_results(output,base_data):
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\emissions.pdf",dpi=300,bbox_inches='tight')
+    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_emissions.pdf",dpi=300,bbox_inches='tight')
     
     #fig = ax.get_figure()
     #fig.savefig('/path/to/figure.pdf')
@@ -394,7 +394,7 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,absolute_transp_work=True, analy
         ax.axvline(x = 1.5, color = 'black',ls='--') 
         #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
         #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
-        fig.savefig(r"Data\\Figures\\modemix"+m+".pdf",dpi=300,bbox_inches='tight')
+        fig.savefig(r"Data\\Figures\\"+run_identifier+"_modemix"+m+".pdf",dpi=300,bbox_inches='tight')
         
 
 
