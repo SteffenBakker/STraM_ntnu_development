@@ -28,10 +28,10 @@ INTERPOLATE_DEMAND_DATA_2040 = True
 NO_INVESTMENTS = False
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
-EMISSION_VIOLATION_PENALTY = 10**12/SCALING_FACTOR_EMISSIONS  
+EMISSION_VIOLATION_PENALTY = 0 #10**12/SCALING_FACTOR_EMISSIONS  
 MAX_TRANSPORT_AMOUNT_PENALTY = 10**9/SCALING_FACTOR_WEIGHT  # 10**7 gives problems
 
 #the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)
-GROWTH_ON_ROAD = 1.4 #the transport amount on road can only grow with 40%
+GROWTH_ON_ROAD = 2 #the transport amount on road can only grow with 40%
 INIT_MODE_SPLIT_LOWER = {"Sea":0.65,"Road":0.20,"Rail":0.015}  #rail = 0.03, road = 0.25
 INIT_MODE_SPLIT_UPPER = {"Sea":0.75,"Road":0.30,"Rail":0.025}  #rail = 0.03, road = 0.25

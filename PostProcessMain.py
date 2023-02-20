@@ -185,7 +185,7 @@ def plot_costs(output,which_costs,ylabel,filename):
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
+    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_costs_"+filename+".png",dpi=300,bbox_inches='tight')
 
 output = cost_and_investment_table(base_data,output)
 opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
@@ -235,8 +235,9 @@ def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
     print('indirect: ',round(emission_empty*10**(-6),2))
     print('both: ',round((emissions_direct+emission_empty)*10**(-6),2))
 
-for domestic in [True,False]:
-    calculate_emissions_base_year(output.x_flow,output.b_flow,base_data,domestic)
+if False:
+    for domestic in [True,False]:
+        calculate_emissions_base_year(output.x_flow,output.b_flow,base_data,domestic)
 
 
 def plot_emission_results(output,base_data):
@@ -288,10 +289,10 @@ def plot_emission_results(output,base_data):
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_emissions.pdf",dpi=300,bbox_inches='tight')
+    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_emissions.png",dpi=300,bbox_inches='tight')
     
     #fig = ax.get_figure()
-    #fig.savefig('/path/to/figure.pdf')
+    #fig.savefig('/path/to/figure.png')
     
 #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
 # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
@@ -394,7 +395,7 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,absolute_transp_work=True, analy
         ax.axvline(x = 1.5, color = 'black',ls='--') 
         #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
         #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
-        fig.savefig(r"Data\\Figures\\"+run_identifier+"_modemix"+m+".pdf",dpi=300,bbox_inches='tight')
+        fig.savefig(r"Data\\Figures\\"+run_identifier+"_modemix"+m+".png",dpi=300,bbox_inches='tight')
         
 
 
@@ -469,39 +470,41 @@ print(output.ob_function_value_without_emission*SCALING_FACTOR_MONETARY/10**9) #
 
 #2000NOK per Tonne CO2 is this in line? Do the comparison for
 
-#---------------------------------------------------------#
-#       DEMAND ANALYSIS
-#---------------------------------------------------------#
 
-print('--------------------------')
+if False:
+    #---------------------------------------------------------#
+    #       DEMAND ANALYSIS
+    #---------------------------------------------------------#
 
-
-base_data.D_DEMAND_AGGR
-total_demand = {t:0 for t in base_data.T_TIME_PERIODS}
-total_demand_european = {t:0 for t in base_data.T_TIME_PERIODS}
-total_demand_domestic = {t:0 for t in base_data.T_TIME_PERIODS}
-for key,value in base_data.D_DEMAND.items():
-    (i,j,p,t) = key
-    val = round(value/10**6*SCALING_FACTOR_WEIGHT,2)
-    total_demand[t] += val
-    if (i not in ['Europa','Verden']) and (j not in ['Europa','Verden']):
-        total_demand_domestic[t] += val
-    if (i not in ['Verden']) and (j not in ['Verden']):
-         total_demand_european[t] += val
+    print('--------------------------')
 
 
-data = [total_demand,total_demand_european,total_demand_domestic]
-demand_overview = pd.DataFrame.from_dict(data,orient='columns') 
-demand_overview.index = ['all','european','domestic']
-print('total demand in MTonnes')
-print(demand_overview)
+    base_data.D_DEMAND_AGGR
+    total_demand = {t:0 for t in base_data.T_TIME_PERIODS}
+    total_demand_european = {t:0 for t in base_data.T_TIME_PERIODS}
+    total_demand_domestic = {t:0 for t in base_data.T_TIME_PERIODS}
+    for key,value in base_data.D_DEMAND.items():
+        (i,j,p,t) = key
+        val = round(value/10**6*SCALING_FACTOR_WEIGHT,2)
+        total_demand[t] += val
+        if (i not in ['Europa','Verden']) and (j not in ['Europa','Verden']):
+            total_demand_domestic[t] += val
+        if (i not in ['Verden']) and (j not in ['Verden']):
+            total_demand_european[t] += val
 
 
-#DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
-#pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
+    data = [total_demand,total_demand_european,total_demand_domestic]
+    demand_overview = pd.DataFrame.from_dict(data,orient='columns') 
+    demand_overview.index = ['all','european','domestic']
+    print('total demand in MTonnes')
+    print(demand_overview)
 
 
-#conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
+    #DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
+    #pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
+
+
+    #conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
 
 
 

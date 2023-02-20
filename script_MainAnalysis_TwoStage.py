@@ -34,7 +34,7 @@ from Utils2 import Logger
 #################################################
 
 scenario_tree = "4Scen" #AllScen,4Scen
-analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
@@ -206,6 +206,19 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Time used solving the model:", time.time() - start)
     print("----------",  flush=True)
 
+    # --------- SAVE EV RESULTS -----------
+
+    file_string = "EV_" + scenario_tree
+    if NoBalancingTrips:
+        file_string = file_string +'_NoBalancingTrips'
+    
+    output = OutputData(model_instance_EV.model,base_data)
+
+    with open(r"Data//output//" + file_string+'.pickle', 'wb') as output_file: 
+        print("Dumping EV output in pickle file.....", end="",flush=True)
+        pickle.dump(output, output_file)
+        print("done.",flush=True)
+    
 
         ############################
         ###  #3: solve EEV       ###
@@ -224,9 +237,6 @@ def construct_and_solve_EEV(base_data,risk_info):
     model_instance.construct_model()
     model_instance.fix_variables_first_stage(model_instance_EV.model)
     
-    #if fix_first_stage:
-    #    model_instance.fix_variables_first_stage(output_EV)
-
     print("Done constructing EEV model.",flush=True)
     print("Time used constructing the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
