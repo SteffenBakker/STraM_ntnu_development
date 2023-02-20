@@ -14,7 +14,7 @@ import json
 #---------------------------------------------------------#
 
 analyses_type = "SP" #EV, EEV, 'SP
-scenarios = "three_scenarios_new"   # 'three_scenarios_new', 'scenarios_base'
+scenarios = "4Scen"   # AllScen, 4Scen
 noBalancingTrips = False
 last_time_period = False
 
@@ -22,20 +22,19 @@ last_time_period = False
 #       Output data
 #---------------------------------------------------------#
 
-output_file = 'output_data_'+analyses_type+'_'+scenarios
+run_identifier = analyses_type+'_'+scenarios
 if noBalancingTrips:
-    output_file = output_file + '_NoBalancingTrips'
+    run_identifier = run_identifier + '_NoBalancingTrips'
 if last_time_period:
-    output_file = output_file + '_last_period'
-with open(r'Data\\'+output_file, 'rb') as output_file:
+    run_identifier = run_identifier + '_last_period'
+with open(r'Data\\output\\'+run_identifier+'.pickle', 'rb') as output_file:
     output = pickle.load(output_file)
 
-with open(r'Data\base_data_'+scenarios, 'rb') as data_file:
+with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 
-
-print('objective function value: ', output.ob_function_value*SCALING_FACTOR/10**9)
+print('objective function value: ', output.ob_function_value*SCALING_FACTOR_MONETARY/10**9)
 #SHOULD REMOVE THE MISSION PENALTY: DOES NOT MAKE SENSE NOW
 
 #---------------------------------------------------------#
@@ -74,11 +73,11 @@ def accuracy_of_q_max(output,base_data):
 
 result_q_max = accuracy_of_q_max(output,base_data)
 print('--------------------------------------------------------')
-print('Total deviation from tha actual max transport amount: ' + str(result_q_max))
+print('Total deviation from the actual max transport amount: ' + str(result_q_max))
 print('--------------------------------------------------------')
 if result_q_max>1:
     #pass
-    raise Exception('Total deviation from tha actual max transport amount: ' + str(result_q_max))
+    raise Exception('Total deviation from the actual max transport amount: ' + str(result_q_max))
 
 
 #---------------------------------------------------------#
@@ -119,15 +118,15 @@ def cost_and_investment_table(base_data,output):
     for var in cost_vars:
         var2 = legend_names[var]
         for key, value in output.all_costs[var2].items():
-            output.all_costs[legend_names[var]][key] = round(value / 10**9*SCALING_FACTOR,3) # in GNOK
+            output.all_costs[legend_names[var]][key] = round(value / 10**9*SCALING_FACTOR_MONETARY,3) # in GNOK
 
     output.all_costs_table = pd.DataFrame.from_dict(output.all_costs, orient='index')
-
+    
     for t in base_data.T_TIME_PERIODS: 
         #t = base_data.T_TIME_PERIODS[0]
-        level_values =  output.all_costs_table.columns.get_level_values(1)
+        level_values =  output.all_costs_table.columns.get_level_values(1) #move into loop?
         columns = ((output.all_costs_table.columns.get_level_values(0)==t) & 
-                    ([level_values[i] in output.scenarios for i in range(len(level_values))]))
+                    ([level_values[i] in base_data.S_SCENARIOS for i in range(len(level_values))]))
         mean = output.all_costs_table.iloc[:,columns].mean(axis=1)
         std = output.all_costs_table.iloc[:,columns ].std(axis=1)
         output.all_costs_table[(t,'mean')] = mean
@@ -186,7 +185,7 @@ def plot_costs(output,which_costs,ylabel,filename):
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\costs_"+filename+".pdf",dpi=300,bbox_inches='tight')
+    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_costs_"+filename+".png",dpi=300,bbox_inches='tight')
 
 output = cost_and_investment_table(base_data,output)
 opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
@@ -201,7 +200,7 @@ plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
 ##total_emission_penalty = sum(output.costs["EmissionCosts"].values())]
 #for t in base_data.T_TIME_PERIODS:
-#    for t in output.scenarios:
+#    for t in base_data.S_SCENARIOS:
 
 #rather resolve the model. FIX EVERYTHING. But remove the penalty from objective...
 
@@ -228,16 +227,17 @@ def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
     t0 = base_data.T_TIME_PERIODS[0]
     for index,row in x_flow[x_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,p,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['weight'])
-        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR # in MTonnes CO2 equivalents
+        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR_EMISSIONS # in MTonnes CO2 equivalents
     for index,row in b_flow[b_flow["time_period"]==t0].iterrows():
         (i,j,m,r,f,v,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['weight'])
-        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value/10**6*SCALING_FACTOR # in MTonnes CO2 equivalents
+        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value/10**6*SCALING_FACTOR_WEIGHT # in MTonnes CO2 equivalents
     print('direct: ',round(emissions_direct*10**(-6),2))
     print('indirect: ',round(emission_empty*10**(-6),2))
     print('both: ',round((emissions_direct+emission_empty)*10**(-6),2))
 
-for domestic in [True,False]:
-    calculate_emissions_base_year(output.x_flow,output.b_flow,base_data,domestic)
+if False:
+    for domestic in [True,False]:
+        calculate_emissions_base_year(output.x_flow,output.b_flow,base_data,domestic)
 
 
 def plot_emission_results(output,base_data):
@@ -289,10 +289,10 @@ def plot_emission_results(output,base_data):
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\emissions.pdf",dpi=300,bbox_inches='tight')
+    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_emissions.png",dpi=300,bbox_inches='tight')
     
     #fig = ax.get_figure()
-    #fig.savefig('/path/to/figure.pdf')
+    #fig.savefig('/path/to/figure.png')
     
 #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
 # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
@@ -395,7 +395,7 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,absolute_transp_work=True, analy
         ax.axvline(x = 1.5, color = 'black',ls='--') 
         #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
         #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
-        fig.savefig(r"Data\\Figures\\modemix"+m+".pdf",dpi=300,bbox_inches='tight')
+        fig.savefig(r"Data\\Figures\\"+run_identifier+"_modemix"+m+".png",dpi=300,bbox_inches='tight')
         
 
 
@@ -405,7 +405,7 @@ def mode_mix_calculations(output,base_data):
     for index, row in output.x_flow.iterrows():
         output.x_flow.at[index,'Distance'] = base_data.AVG_DISTANCE[(row['from'],row['to'],row['mode'],row['route'])]
 
-    output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] /10**9*SCALING_FACTOR # in GTonnes KM
+    output.x_flow['TransportArbeid'] = output.x_flow['Distance']*output.x_flow['weight'] /10**9*SCALING_FACTOR_WEIGHT # in GTonnes KM
 
     #for i in [1]:  #we only do one type, discuss what foreign transport needs to be excluded
     i = 1
@@ -429,7 +429,7 @@ def mode_mix_calculations(output,base_data):
     
     TranspArb['RelTranspArb_std'] = TranspArb['RelTranspArb']
     TranspArb['TranspArb_std'] = TranspArb['TranspArb']
-    MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in output.scenarios]
+    MFTS = [(m,f,t,s) for (m,f,t) in base_data.MFT for s in base_data.S_SCENARIOS]
     all_rows = pd.DataFrame(MFTS, columns = ['mode', 'fuel', 'time_period','scenario'])
     TranspArb = pd.merge(all_rows,TranspArb,how='left',on=['mode','fuel','time_period','scenario']).fillna(0)
 
@@ -461,48 +461,50 @@ output.emission_stats = output.total_emissions.groupby('time_period').agg(
         Std=('weight', np.std))
 output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
 print('Average emissions (in Million TonnesCo2):')
-print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR/10**9) #this becomes Million TonnesCO2         
+print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR_EMISSIONS/10**9) #this becomes Million TonnesCO2         
 
 print('objective function value: ')
-print(output.ob_function_value*SCALING_FACTOR/10**9)
+print(output.ob_function_value*SCALING_FACTOR_MONETARY/10**9)
 print('objective function value without emission penalty (Billion NOK): ')
-print(output.ob_function_value_without_emission*SCALING_FACTOR/10**9) #without emission penalty
+print(output.ob_function_value_without_emission*SCALING_FACTOR_MONETARY/10**9) #without emission penalty
 
 #2000NOK per Tonne CO2 is this in line? Do the comparison for
 
-#---------------------------------------------------------#
-#       DEMAND ANALYSIS
-#---------------------------------------------------------#
 
-print('--------------------------')
+if False:
+    #---------------------------------------------------------#
+    #       DEMAND ANALYSIS
+    #---------------------------------------------------------#
 
-
-base_data.D_DEMAND_AGGR
-total_demand = {t:0 for t in base_data.T_TIME_PERIODS}
-total_demand_european = {t:0 for t in base_data.T_TIME_PERIODS}
-total_demand_domestic = {t:0 for t in base_data.T_TIME_PERIODS}
-for key,value in base_data.D_DEMAND.items():
-    (i,j,p,t) = key
-    val = round(value/10**6*SCALING_FACTOR,2)
-    total_demand[t] += val
-    if (i not in ['Europa','Verden']) and (j not in ['Europa','Verden']):
-        total_demand_domestic[t] += val
-    if (i not in ['Verden']) and (j not in ['Verden']):
-         total_demand_european[t] += val
+    print('--------------------------')
 
 
-data = [total_demand,total_demand_european,total_demand_domestic]
-demand_overview = pd.DataFrame.from_dict(data,orient='columns') 
-demand_overview.index = ['all','european','domestic']
-print('total demand in MTonnes')
-print(demand_overview)
+    base_data.D_DEMAND_AGGR
+    total_demand = {t:0 for t in base_data.T_TIME_PERIODS}
+    total_demand_european = {t:0 for t in base_data.T_TIME_PERIODS}
+    total_demand_domestic = {t:0 for t in base_data.T_TIME_PERIODS}
+    for key,value in base_data.D_DEMAND.items():
+        (i,j,p,t) = key
+        val = round(value/10**6*SCALING_FACTOR_WEIGHT,2)
+        total_demand[t] += val
+        if (i not in ['Europa','Verden']) and (j not in ['Europa','Verden']):
+            total_demand_domestic[t] += val
+        if (i not in ['Verden']) and (j not in ['Verden']):
+            total_demand_european[t] += val
 
 
-#DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
-#pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
+    data = [total_demand,total_demand_european,total_demand_domestic]
+    demand_overview = pd.DataFrame.from_dict(data,orient='columns') 
+    demand_overview.index = ['all','european','domestic']
+    print('total demand in MTonnes')
+    print(demand_overview)
 
 
-#conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
+    #DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
+    #pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
+
+
+    #conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
 
 
 

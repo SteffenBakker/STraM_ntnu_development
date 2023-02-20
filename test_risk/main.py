@@ -7,9 +7,9 @@ os.chdir("\\\\home.ansatt.ntnu.no\\egbertrv\\Documents\\GitHub\\AIM_Norwegian_Fr
 # 0. IMPORTS
 import pyomo.environ as pyo
 import numpy as np
-import mpisppy.utils.sputils as sputils
-from mpisppy.opt.ef import ExtensiveForm
-import mpisppy.scenario_tree as scenario_tree
+#import mpisppy.utils.sputils as sputils
+#from mpisppy.opt.ef import ExtensiveForm
+#import mpisppy.scenario_tree as scenario_tree
 
 # custom:
 from data import Data

@@ -2,3 +2,8 @@
 __pycache__/
 Data/maps/basisdata_norge
 Data/maps/NUTS
+temp/
+Data/Figures/
+Data/base_data/
+Data/output/
+Data/logs/
