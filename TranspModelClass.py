@@ -18,6 +18,9 @@ import numpy as np
 
 ############# Class ################
 
+ABSOLUTE_DEVIATION = 0.0001
+RELATIVE_DEVIATION = 0.0001
+
 class RiskInformation:
 
     def __init__(self, cvar_coeff, cvar_alpha):
@@ -74,18 +77,13 @@ class TranspModel:
                                         # bounds=emission_bound)  # just a variable to help with output
         
         self.model.q_transp_amount = Var(self.data.MFT_S, within=NonNegativeReals)
-        self.model.q_max_transp_amount = Var(self.data.MF_S, within=NonNegativeReals)
+        self.model.q_transp_delta = Var(self.data.MFT_MIN0_S, within=NonNegativeReals)
 
         # auxiliary transport amount for tracking diffusion paths:
         self.model.q_aux_transp_amount = Var(self.data.MFT_NEW_YEARLY_S, within = NonNegativeReals) 
         # total transport amount per mode
         self.model.q_mode_total_transp_amount = Var(self.data.MT_S, within = NonNegativeReals) #note: only measured in decision years
         
-        MAX_TRANSP_PENALTY = MAX_TRANSPORT_AMOUNT_PENALTY
-        if self.calculate_max_transp_amount_exact:
-            self.model.chi_max_transp = Var(self.data.MFT_S, within = Binary)
-            MAX_TRANSP_PENALTY = 0
-
         self.model.feas_relax = Var(within=NonNegativeReals)  
         self.model.feas_relax.setlb(0)
         self.model.feas_relax.setub(0)
@@ -149,12 +147,7 @@ class TranspModel:
             return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING) 
             - model.feas_relax)
         self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=ChargeCost)
-        
-        self.model.MaxTranspPenaltyCost = Var(self.data.S_SCENARIOS, within=NonNegativeReals)
-        def MaxTranspPenaltyCost(model,s): #TEST
-            return (self.model.MaxTranspPenaltyCost[s] >= MAX_TRANSP_PENALTY*sum(self.model.q_max_transp_amount[m,f,s] for m in self.data.M_MODES for f in self.data.FM_FUEL[m]) 
-            - model.feas_relax) 
-        self.model.MaxTranspPenaltyCostConstr = Constraint(self.data.S_SCENARIOS, rule=MaxTranspPenaltyCost)
+    
 
         # CVaR variables
         
@@ -199,7 +192,7 @@ class TranspModel:
         self.model.SecondStageCosts = Var(self.data.S_SCENARIOS, within = Reals)
         def SecondStageCostsRule(model,s):
             return (self.model.SecondStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_SECOND_STAGE) + 
-                self.model.MaxTranspPenaltyCost[s] - model.feas_relax )
+                - model.feas_relax )
         self.model.SecondStageCostsConstr = Constraint(self.data.S_SCENARIOS,rule = SecondStageCostsRule)
 
         # scenario objective value variable (risk-neutral model would take expectation over this in the objective)
@@ -253,8 +246,12 @@ class TranspModel:
         # DEMAND
                 
         def FlowRule(model, o, d, p, t,s):
-            return (sum(self.model.h_path[(k, p, t,s)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
-                (o, d, p, t)] - model.feas_relax )
+            if self.data.D_DEMAND[(o, d, p, t)] < ABSOLUTE_DEVIATION:
+                return Constraint.Skip
+            else:
+                return (sum(self.model.h_path[(k,p,t,s)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
+                    (o, d, p, t)] - model.feas_relax)
+                
         # THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.Flow = Constraint(self.data.ODPTS_CONSTR_S, rule=FlowRule)
         
@@ -276,15 +273,12 @@ class TranspModel:
             self.model.PathArcRelBalance = Constraint(self.data.AVT_CONSTR_S, rule=PathArcRuleBalancing)
 
             # FLEET BALANCING
-
-            deviation = 1
-
             def FleetBalance1(model, n,m,f,v, t,s):
                 disbalance_in_node = (sum(self.model.x_flow[(a, f, p, t,s)] for a in self.data.ANM_ARCS_IN[(n,m)] for p in self.data.PV_PRODUCTS[v]) - 
                         sum(self.model.x_flow[(a, f, p, t, s)] for a in self.data.ANM_ARCS_OUT[(n,m)] for p in self.data.PV_PRODUCTS[v]))  
                 empty_trips = (sum(self.model.b_flow[(a, f, v, t,s)] for a in self.data.ANM_ARCS_OUT[(n,m)]) -
                             sum(self.model.b_flow[(a, f, v, t,s)] for a in self.data.ANM_ARCS_IN[(n,m)]))            
-                return  (-deviation, disbalance_in_node - empty_trips,deviation)  
+                return  (-ABSOLUTE_DEVIATION, disbalance_in_node - empty_trips,ABSOLUTE_DEVIATION)  
             self.model.FleetBalance1 = Constraint(self.data.NMFVT_CONSTR_S, rule=FleetBalance1)
 
 
@@ -396,31 +390,20 @@ class TranspModel:
                 return (self.model.q_transp_amount[(m,f,t,s)] <= self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
             self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
             
-
-            #Max TransportArbeid
-            def MaxTransportAmountRule(model,m,f,t,s):
-                return (self.model.q_max_transp_amount[m,f,s] >= self.model.q_transp_amount[m,f,t,s] 
-                - model.feas_relax )
-            self.model.MaxTranspAmount = Constraint(self.data.MFT_S, rule = MaxTransportAmountRule)
-            
-            if self.calculate_max_transp_amount_exact:  #this goes much slower!
-                def MaxTransportAmountRule2(model,m,f,t,s):
-                    M = np.max(list(self.data.AVG_DISTANCE.values())) * self.data.D_DEMAND_AGGR[t]  #maybe we can use mean as well
-                    return (self.model.q_max_transp_amount[m,f,s] <= self.model.q_transp_amount[m,f,t,s] + M*(1-self.model.chi_max_transp[m,f,t,s]))
-                self.model.MaxTranspAmount2 = Constraint(self.data.MFT_S, rule = MaxTransportAmountRule2)
-
-                def MaxTransportAmountRule3(model,m,f,s):
-                    return (sum(self.model.chi_max_transp[m,f,t,s] for t in self.data.T_TIME_PERIODS) == 1)
-                self.model.MaxTranspAmount3 = Constraint(self.data.MF_S, rule = MaxTransportAmountRule3)
                 
             #Fleet Renewal
-            def FleetRenewalRule(model,m,f, t,s):
-                decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)] - self.model.q_transp_amount[(m,f,t,s)]
-                factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
-                return (decrease <= factor*self.model.q_max_transp_amount[m,f,s])
-            self.model.FleetRenewal = Constraint(self.data.MFT_MIN0_S, rule = FleetRenewalRule)
-
+            def FleetRenewalRule(model,m,t,s):
+                all_decreases = sum(self.model.q_transp_delta[(m,f,t,s)] for f in self.data.FM_FUEL[m])
+                factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[m]
+                return (all_decreases <= factor*self.model.q_mode_total_transp_amount[m,t,s])
+            self.model.FleetRenewal = Constraint(self.data.MT_MIN0_S, rule = FleetRenewalRule)
             
+            def FleetRenewalPosPartRule(model,m,f,t,s):
+                decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)] - self.model.q_transp_amount[(m,f,t,s)]
+                return (self.model.q_transp_delta[(m,f,t,s)] >= decrease)
+            self.model.FleetRenewalPosPart = Constraint(self.data.MFT_MIN0_S, rule = FleetRenewalPosPartRule)
+
+
             #-- Bass diffusion ----------------------
 
             #most likely not needed
@@ -494,6 +477,7 @@ class TranspModel:
             return output
 
         if len(self.data.S_SCENARIOS)>1:
+
 
             def Nonanticipativity_x(model,i,j,m,r,f,p,t,s,ss):
                 a = i,j,m,r
@@ -584,10 +568,12 @@ class TranspModel:
                     return Constraint.Skip
             self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
 
-            #this is different across scenarios!!
-            #def Nonanticipativity_q_max(model,m,f,s,ss): 
-            #    return (self.model.q_max_transp_amount[(m,f,s)]- self.model.q_max_transp_amount[(m,f,ss)]==0) 
-            #self.model.Nonanticipativity_qmax_Constr = Constraint(combinations(self.data.MF,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_max)
+            def Nonanticipativity_q_delta(model,m,f,t,s,ss): 
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    return (self.model.q_transp_delta[(m,f,t,s)]- self.model.q_transp_delta[(m,f,t,ss)]==0) 
+                else:
+                    return Constraint.Skip    
+            self.model.Nonanticipativity_qdelta_Constr = Constraint(combinations(self.data.MFT_MIN0,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_delta)
 
             def Nonanticipativity_q_aux(model,m,f,t,s,ss):
                 if (t in self.data.T_YEARLY_TIME_FIRST_STAGE) and (s is not ss): 
@@ -703,6 +689,16 @@ class TranspModel:
         #not providing a value in the fix operator leads to the following error:
         #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
 
+
+        for (a,f,p,t,s,weight)in x_flow_base_period_init:
+            for ss in self.data.S_SCENARIOS:
+                #fixing this goes slower,
+                #self.model.x_flow[(a,f,p,t,ss)].fix(weight)
+                
+                #self.model.x_flow[(a,f,p,t,ss)].fixed = False
+                self.model.x_flow[(a,f,p,t,ss)].setub((1+RELATIVE_DEVIATION)*weight)
+                self.model.x_flow[(a,f,p,t,ss)].setlb((1-RELATIVE_DEVIATION)*weight)
+        
         #fixing those leads to infeasibility? 
         for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
             a = (i,j,m,r)
@@ -711,20 +707,8 @@ class TranspModel:
 
                     #self.model.x_flow[(a,f,p,t,s)].fix(0)   #seems to be a little bit faster
 
-                    self.model.x_flow[(a,f,p,t,s)].setlb(-0.001)
-                    self.model.x_flow[(a,f,p,t,s)].setub(0.001)
-                    
-
-        for (a,f,p,t,s,weight)in x_flow_base_period_init:
-            
-            #fixing this goes slower
-            #self.model.x_flow[(a,f,p,t)].fix(weight)
-            
-            for ss in self.data.S_SCENARIOS:
-                self.model.x_flow[(a,f,p,t,ss)].fixed = False
-                dev = 0.001
-                self.model.x_flow[(a,f,p,t,ss)].setub((1+dev)*weight)
-                self.model.x_flow[(a,f,p,t,ss)].setlb((1-dev)*weight)
+                    self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
+                    self.model.x_flow[(a,f,p,t,s)].setub(ABSOLUTE_DEVIATION)
 
     def fix_variables_first_stage(self,model_ev):  #this is the EV model that is input.
         
@@ -741,15 +725,31 @@ class TranspModel:
             if t in self.data.T_TIME_FIRST_STAGE:
                 weight = model_ev.x_flow[(a,f,p,t,base_scenario)].value
                 if weight is not None:
-                    if weight > 0: 
-                        dev = 0.001
-                        self.model.x_flow[(a,f,p,t,s)].setub((1+dev)*weight)
-                        self.model.x_flow[(a,f,p,t,s)].setlb((1-dev)*weight)
+                    if weight != 0: 
+                        self.model.x_flow[(a,f,p,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+                        self.model.x_flow[(a,f,p,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
                         #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
                     else:
                         #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-                        self.model.x_flow[(a,f,p,t,s)].setlb(-0.001)
-                        self.model.x_flow[(a,f,p,t,s)].setub(0.001)
+                        self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
+                        self.model.x_flow[(a,f,p,t,s)].setub(ABSOLUTE_DEVIATION)
+                else:
+                    pass #this does not happen
+
+        for (i,j,m,r,f,v,t,s) in self.data.AFVT_S:
+            a = (i,j,m,r)
+            self.model.b_flow[(a,f,v,t,s)].fixed = False
+            if t in self.data.T_TIME_FIRST_STAGE:
+                weight = model_ev.b_flow[(a,f,v,t,base_scenario)].value
+                if weight is not None:
+                    if weight != 0: 
+                        self.model.b_flow[(a,f,v,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+                        self.model.b_flow[(a,f,v,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+                        #self.model.b_flow[(a,f,v,t,s)].fix(weight) 
+                    else:
+                        #self.model.b_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+                        self.model.b_flow[(a,f,v,t,s)].setlb(-ABSOLUTE_DEVIATION)
+                        self.model.b_flow[(a,f,v,t,s)].setub(ABSOLUTE_DEVIATION)
                 else:
                     pass #this does not happen
 
@@ -792,17 +792,28 @@ class TranspModel:
         
     def unfix_variables_first_stage(self):
         
-        relax= 0  #5*10**(-2)
+        relax=0.001  #5*10**(-2)
         self.model.feas_relax.setlb(relax)
         self.model.feas_relax.setub(relax)
-
+        
+        upperbound = max(self.data.D_DEMAND.values())*2
         for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
             a = (i,j,m,r)
             self.model.x_flow[(a,f,p,t,s)].fixed = False
             if t in self.data.T_TIME_FIRST_STAGE:
                 if t is not self.data.T_TIME_FIRST_STAGE[0]: #still keep the first one fixed!!
-                    self.model.x_flow[(a,f,p,t,s)].setlb(-1)
-                    self.model.x_flow[(a,f,p,t,s)].setub(10**10/SCALING_FACTOR)   #maximum value is below 1000
+                    self.model.x_flow[(a,f,p,t,s)].fixed = False
+                    self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
+                    self.model.x_flow[(a,f,p,t,s)].setub(upperbound)   #maximum value is below 1000
+
+        for (i,j,m,r,f,v,t,s) in self.data.AFVT_S:
+            a = (i,j,m,r)
+            self.model.b_flow[(a,f,v,t,s)].fixed = False
+            if t in self.data.T_TIME_FIRST_STAGE:
+                if t is not self.data.T_TIME_FIRST_STAGE[0]: #still keep the first one fixed!!
+                    self.model.b_flow[(a,f,v,t,s)].fixed = False
+                    self.model.b_flow[(a,f,v,t,s)].setlb(-ABSOLUTE_DEVIATION)
+                    self.model.b_flow[(a,f,v,t,s)].setub(upperbound)   #maximum value is below 1000
 
         for (i,j,m,r,t,s) in self.data.ET_RAIL_S:
             e = (i,j,m,r)
@@ -820,18 +831,18 @@ class TranspModel:
     
             
 
-    def solve_model(self, warmstart=False, FeasTol=(10**(-4)),MIP_gap=MIPGAP,num_focus=3,Crossover=-1,Method=-1,NodeMethod=-1):  #GENERAL way to solve a single deterministic model
+    def solve_model(self, warmstart=False, FeasTol=(10**(-4)),MIP_gap=MIPGAP,num_focus=0,Crossover=-1,Method=-1,NodeMethod=-1):  #GENERAL way to solve a single deterministic model
 
         opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
         opt.options['MIPGap']= MIP_gap # 'TimeLimit':600 (seconds)
         opt.options["NumericFocus"] = num_focus # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
-        opt.options["BarConvTol"] = 1E-6 # default: 1E-8https://www.gurobi.com/documentation/9.1/refman/barconvtol.html
+        opt.options["BarConvTol"] = 1E-8 # default: 1E-8https://www.gurobi.com/documentation/9.1/refman/barconvtol.html
         opt.options["Crossover"] = Crossover#default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
         opt.options["Method"] = Method #def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
         opt.options["NodeMethod"] = NodeMethod # https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
         opt.solve(self.model, warmstart=warmstart, tee=True, 
-                                        symbolic_solver_labels=False,
+                                        symbolic_solver_labels=True,
                                         keepfiles=False)  
                                         #https://pyomo.readthedocs.io/en/stable/working_abstractmodels/pyomo_command.html
         if False:

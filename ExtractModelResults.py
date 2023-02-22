@@ -67,7 +67,10 @@ class OutputData():
         costs = {var:{(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in scenario_names} for var in vars}
         costs['MaxTranspPenaltyCost'] = {scen:0 for scen in scenario_names}
 
-        second_stage_costs = {scen_name:None for scen_name in scenario_names}
+        self.SecondStageCosts = {scen_name:None for scen_name in scenario_names}
+        self.CvarPosPart = {scen_name:None for scen_name in scenario_names}
+        self.MaxTranspPenaltyCost = {scen_name:None for scen_name in scenario_names}
+        
         second_stage_costs_no_emissions = {scen_name:None for scen_name in scenario_names}
         second_stage_emission_costs = {scen_name:None for scen_name in scenario_names}
         
@@ -85,7 +88,7 @@ class OutputData():
                         for p in base_data.P_PRODUCTS:
                             weight = modell.x_flow[(a,f,p,t,scen_name)].value
                             if weight is not None: 
-                                if weight > 0:
+                                if weight != 0:
                                     a_series = pd.Series([variable,i,j,m,r,f,p,t,weight, scen_name], index=x_flow.columns)
                                     x_flow = pd.concat([x_flow, a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'b_flow'
@@ -96,7 +99,7 @@ class OutputData():
                         for v in base_data.VEHICLE_TYPES_M[m]:
                             weight = modell.b_flow[(a,f,v,t,scen_name)].value
                             if weight is not None: 
-                                if weight > 0:
+                                if weight != 0:
                                     a_series = pd.Series([variable,i,j,m,r,f,v,t,weight, scen_name], index=b_flow.columns)
                                     b_flow = pd.concat([b_flow, a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'h_path'
@@ -170,14 +173,7 @@ class OutputData():
                             if weight > 0:
                                 a_series = pd.Series([variable,m, f, t, weight, scen_name], index=q_transp_amount.columns)
                                 q_transp_amount = pd.concat([q_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'q_max_transp_amount'
-            for m in base_data.M_MODES:
-                for f in base_data.FM_FUEL[m]:
-                    weight = modell.q_max_transp_amount[(m, f,scen_name)].value
-                    if weight is not None:
-                        if weight > 0:
-                            a_series = pd.Series([variable,m, f, weight, scen_name], index=q_max_transp_amount.columns)
-                            q_max_transp_amount = pd.concat([q_max_transp_amount,a_series.to_frame().T],axis=0, ignore_index=True)
+
             
             #########
             # COSTS #
@@ -185,18 +181,18 @@ class OutputData():
 
             for t in base_data.T_TIME_PERIODS:
                 for var in vars:
-                    costs[var][(t,scen_name)] = getattr(modell,str(var))[(t,scen_name)].value
-            costs['MaxTranspPenaltyCost'][scen_name] = modell.MaxTranspPenaltyCost[(scen_name)].value
-
+                    weight = getattr(modell,str(var))[(t,scen_name)].value
+                    costs[var][(t,scen_name)] = weight
 
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
                         z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount],ignore_index=True)
 
 
             #SECOND STAGE COSTS
-            second_stage_costs[scen_name] = modell.SecondStageCosts[scen_name].value
+            self.SecondStageCosts[scen_name] = modell.SecondStageCosts[scen_name].value
+            self.CvarPosPart[scen_name] = modell.CvarPosPart[scen_name].value
             second_stage_emission_costs[scen_name] = sum(modell.z_emission[(t,scen_name)].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_SECOND_STAGE)
-            second_stage_costs_no_emissions[scen_name] = second_stage_costs[scen_name] - second_stage_emission_costs[scen_name]
+            second_stage_costs_no_emissions[scen_name] = self.SecondStageCosts[scen_name] - second_stage_emission_costs[scen_name]
         
         #first stage costs should be the same across scenarios -> pick the first
         self.first_stage_emission_costs = sum(modell.z_emission[(t,base_data.S_SCENARIOS[0])].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
@@ -220,13 +216,15 @@ class OutputData():
         self.q_max_transp_amount=q_max_transp_amount
         
         #just take from the last run as it is a first stage decision
-        self.FirstStageCosts = modell.FirstStageCosts[base_data.S_SCENARIOS[0]].value  
+        self.FirstStageCosts = modell.FirstStageCosts[base_data.S_SCENARIOS[0]].value 
+        self.CvarAux = modell.CvarAux.value
+        
 
 
         ######################################
         ### COSTS WITHOUT EMISSION PENALTY ###
         
-        #value_at_risk = np.quantile(second_stage_costs.values(), base_data.risk_information.cvar_alpha)     #0.8
+        #value_at_risk = np.quantile(self.SecondStageCosts.values(), base_data.risk_information.cvar_alpha)     #0.8
         # do not use this -> can lead to errors with discrete distributions. Only works in continuous time
 
 
@@ -252,7 +250,7 @@ class OutputData():
     
         if not EV_problem:
 
-            second_stage_cost_with = calculate_cvar(list(second_stage_costs.values()),alpha_tail)
+            second_stage_cost_with = calculate_cvar(list(self.SecondStageCosts.values()),alpha_tail)
             second_stage_cost_without = calculate_cvar(list(second_stage_costs_no_emissions.values()),alpha_tail)
             cvar_difference = second_stage_cost_with - second_stage_cost_without
             self.avg_second_stage_emission_costs = 1/len(scenario_names)*sum(second_stage_emission_costs.values())

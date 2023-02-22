@@ -34,14 +34,14 @@ from Utils2 import Logger
 #################################################
 
 scenario_tree = "4Scen" #AllScen,4Scen
-analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = False  #use EEV as warm start for SP
+analysis_type = 'SP' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+wrm_strt = True  #use EEV as warm start for SP
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
 cvar_coeff = 0.2    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
-#TODO: test if this is working
+# TODO: test if this is working
 
 NoBalancingTrips = False  #default at False
 log_to_file = False
@@ -86,7 +86,7 @@ def solve_init_model(base_data,risk_info):
 
     print('solving initialization model',flush=True)
     start = time.time()
-    InitModel.solve_model()
+    InitModel.solve_model(FeasTol=(10**(-6)))
     print("Time used solving the model:", time.time() - start,flush=True)
     print('-----------------')
     sys.stdout.flush()
@@ -137,9 +137,6 @@ def construct_and_solve_SP(base_data,
     model_instance.last_time_period = last_time_period
     model_instance.construct_model()
     model_instance.fix_variables_first_time_period(x_flow_base_period_init)
-    
-    #if fix_first_stage:
-    #    model_instance.fix_variables_first_stage(output_EV)
 
     print("Done constructing model.")
     print("Time used constructing the model:", time.time() - start)
@@ -201,7 +198,7 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     print("Solving EV model.....",end="",flush=True)
     start = time.time()
-    model_instance_EV.solve_model()
+    model_instance_EV.solve_model(FeasTol=(10**(-5)))
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
     print("----------",  flush=True)

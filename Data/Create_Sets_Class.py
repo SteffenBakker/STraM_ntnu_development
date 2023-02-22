@@ -9,9 +9,10 @@ Adapted by Ruben
 "Example data"
 
 import os
+import sys
 #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
 #os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
-
+#sys.path.insert(0, '') #make sure the modules are found in the new working directory
 
 from Data.settings import *
 from collections import Counter
@@ -136,7 +137,7 @@ class TransportSets():
         self.scaling_factor_weight = SCALING_FACTOR_WEIGHT
         self.scaling_factor_emissions = SCALING_FACTOR_EMISSIONS
 
-        self.precision_digits = 3
+        self.precision_digits = 4 #this is necessary, otherwise C_TRANSP dissapears!
 
         self.S_SCENARIOS_ALL = self.scenario_information.scenario_names
         self.S_SCENARIOS = self.S_SCENARIOS_ALL
@@ -291,8 +292,6 @@ class TransportSets():
         ####################################
 
 
-        self.OD_PAIRS = []
-        
 
         #Start with filtering of demand data. What to include and what not.
         D_DEMAND_ALL = {}  #5330 entries, after cutting off the small elements, only 4105 entries
@@ -310,17 +309,18 @@ class TransportSets():
                 
         demands = pd.Series(D_DEMAND_ALL.values())         
         
-        # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES?
+        # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES? should not matter too much. distances are somewhat similar
 
-        # demands.describe()   #huge spread -> remove the very small stuff. Even demand of 5E-1
-        # demands.plot.hist(by=None, bins=1000)
-        # demands.hist(cumulative=True, density=1, bins=100)
+        #print(demands.describe())   #huge spread -> remove the very small stuff. Even demand of 5E-1
+        #demands.plot.hist(by=None, bins=1000)
+        #demands.hist(cumulative=True, density=1, bins=100)
         
-        total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
-        cutoff = demands.quantile(0.4) #HARDCODED, requires some analyses
-        demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
-        reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
-        print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  #NOT EVEN 0.1% removed!!
+        # total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
+        # cutoff = demands.quantile(0.01) #HARDCODED, requires some analyses. Do not remove too much. These are actual things that need to be transported. And not too much complexity because of it
+        # print('cutoff (in Tonnes):', cutoff)
+        # demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
+        # reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
+        # print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  
         
         # demands2.plot.hist(by=None, bins=1000)
         # demands2.hist(cumulative=True, density=1, bins=100)
@@ -328,8 +328,12 @@ class TransportSets():
         # print("{:e}".format(round(cutoff,0)))    # '3.306000e+03'
         # print("{:e}".format(round(demands.max(),0)))           # '2.739037e+07'
     
-        D_DEMAND_CUT = {key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
+        D_DEMAND_CUT = D_DEMAND_ALL #{key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
         
+        #print('D_DEMAND_CUT:')
+        #print(pd.Series(list(D_DEMAND_CUT.values())).describe())
+
+        #ODP
         self.OD_PAIRS = {p: [] for p in self.P_PRODUCTS}
         for (o,d,p,t), value in D_DEMAND_CUT.items():
             if ((o,d) not in self.OD_PAIRS[p]):
@@ -342,12 +346,13 @@ class TransportSets():
                 self.ODP.append((o, d, p))
         self.OD_PAIRS_ALL = list(self.OD_PAIRS_ALL)
         
-
-        #demand
         self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS for (o,d,p) in self.ODP}        
         for (o,d,p,t), value in D_DEMAND_CUT.items():
-            self.D_DEMAND[(o,d,p,t)] = round(value/self.scaling_factor_weight,self.precision_digits)
+            self.D_DEMAND[(o,d,p,t)] = round(value / self.scaling_factor_weight,self.precision_digits)
         
+        #print('D_DEMAND:')
+        #print(pd.Series(list(self.D_DEMAND.values())).describe())
+
         if INTERPOLATE_DEMAND_DATA_2040:
             for (o,d,p,t), value in self.D_DEMAND.items(): 
                 if t == 2040:
@@ -359,19 +364,16 @@ class TransportSets():
                     else:
                         self.D_DEMAND[(o,d,p,2040)] = float(np.mean([v30,v50]))
         
-        self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
+        #self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
+        #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
+
+        
+
 
         self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS}
         for (o,d,p,t),value in self.D_DEMAND.items():
             self.D_DEMAND_AGGR[t] += value
 
-
-        # To do_ What was happening here?
-        # self.A_LINKS = {l: [] for l in self.A_ARCS}
-        # for (i,j,m,r) in self.A_ARCS:
-        #     for f in self.FM_FUEL[m]:
-        #         if not (f == "HFO" and i in self.N_NODES_NORWAY and j in self.N_NODES_NORWAY):
-        #             self.A_LINKS[(i,j,m,r)].append((i,j,m,f,r))
 
         # ------------------------
         # ----LOAD ALL PATHS------
@@ -520,19 +522,20 @@ class TransportSets():
             self.CO2_fee[row["Year"]] = round(row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
             
 
+        COST_BIG_M = 10**8
         #base level transport costs (in average scenario)
-        self.C_TRANSP_COST_BASE = {(i,j,m,r, f, p, t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.C_TRANSP_COST_BASE = {(i,j,m,r, f, p, t): COST_BIG_M for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/T
         #scenario-dependent transport cost (computed using base cost)
-        self.C_TRANSP_COST_NORMALIZED = {(m,f, p, t): 1000000 for m in self.M_MODES for f in self.FM_FUEL[m] 
+        self.C_TRANSP_COST_NORMALIZED = {(m,f, p, t): COST_BIG_M for m in self.M_MODES for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: NOK/Tkm
-        self.E_EMISSIONS_NORMALIZED = {(m,f,p,t): 1000000 for m in self.M_MODES for f in self.FM_FUEL[m] 
+        self.E_EMISSIONS_NORMALIZED = {(m,f,p,t): COST_BIG_M for m in self.M_MODES for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
-        self.C_TRANSP_COST = {(i,j,m,r, f, p, t,s): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.C_TRANSP_COST = {(i,j,m,r, f, p, t,s): COST_BIG_M for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                               for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS for s in self.S_SCENARIOS}   #UNIT: NOK/T
-        self.E_EMISSIONS = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.E_EMISSIONS = {(i,j,m,r,f,p,t): COST_BIG_M for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
-        self.C_CO2 = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
+        self.C_CO2 = {(i,j,m,r,f,p,t): COST_BIG_M for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
 
         for index, row in self.cost_data.iterrows():
@@ -782,7 +785,7 @@ class TransportSets():
         self.lifespan_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='lifetimes')
         self.LIFETIME = {}
         for index, row in self.lifespan_data.iterrows():
-            self.LIFETIME[(row['Mode'], row['Fuel'])] = row['Lifetime']
+            self.LIFETIME[row['Mode']] = row['Lifetime']
 
           
         #update R_TECH_READINESS_MATURITY based on scenario information
@@ -943,6 +946,7 @@ class TransportSets():
                             for tau in self.T_TIME_PERIODS if tau <= t]
         self.MFT_MIN0 = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] 
                                     for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
+        self.MT_MIN0 = [(m,t) for m in self.M_MODES for t in self.T_TIME_PERIODS if t!=self.T_TIME_PERIODS[0]]
 
         self.MT = [(m,t) for m in self.M_MODES for t in self.T_TIME_PERIODS]
 
@@ -984,6 +988,7 @@ class TransportSets():
         self.MFT_NEW_YEARLY_S = combinations(self.MFT_NEW_YEARLY,self.S_SCENARIOS)
         self.MFT_NEW_S = combinations(self.MFT_NEW,self.S_SCENARIOS)
         self.MFT_MIN0_S = combinations(self.MFT_MIN0,self.S_SCENARIOS)
+        self.MT_MIN0_S = combinations(self.MT_MIN0,self.S_SCENARIOS)
         self.MFT_INIT_TRANSP_SHARE_S = combinations(self.MFT_INIT_TRANSP_SHARE,self.S_SCENARIOS)
         self.MFT_NEW_FIRST_PERIOD_S = combinations(self.MFT_NEW_FIRST_PERIOD,self.S_SCENARIOS)
         self.MFT_NEW_YEARLY_FIRST_STAGE_MIN0_S = combinations(self.MFT_NEW_YEARLY_FIRST_STAGE_MIN0,self.S_SCENARIOS)
@@ -1006,7 +1011,7 @@ class TransportSets():
 
 print("Finished reading sets and classes.")
 
-
+#base_data = TransportSets()
 
 #Testing:
 """

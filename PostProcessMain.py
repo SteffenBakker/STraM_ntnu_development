@@ -13,10 +13,11 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "SP" #EV, EEV, 'SP
+analyses_type = "EV" #EV, EEV, 'SP
 scenarios = "4Scen"   # AllScen, 4Scen
 noBalancingTrips = False
 last_time_period = False
+total_dev_check = False
 
 #---------------------------------------------------------#
 #       Output data
@@ -34,56 +35,15 @@ with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 
-print('objective function value: ', output.ob_function_value*SCALING_FACTOR_MONETARY/10**9)
+print('objective function value: ', output.ob_function_value)  
 #SHOULD REMOVE THE MISSION PENALTY: DOES NOT MAKE SENSE NOW
-
-#---------------------------------------------------------#
-#       Accuracy of Q MAX approximation due to penalty -> should become zero
-#---------------------------------------------------------#
-
-def accuracy_of_q_max(output,base_data):
-    max_transp_amount_df = None
-
-    temp_df = output.q_max_transp_amount
-    temp_df = temp_df.rename(columns={'weight': 'max_value'})
-
-    max_transp_amount_df = pd.merge(output.q_transp_amount,temp_df.drop('variable',axis=1),how='left',on=['mode','fuel','scenario'])
-    max_transp_amount_df = max_transp_amount_df.sort_values(by=['mode','fuel','scenario','time_period']).reset_index()
-    max_transp_amount_df['max_value_true'] = 0
-
-    for index,row in max_transp_amount_df.iterrows():
-        m = row['mode']
-        f = row['fuel']
-        t = row['time_period']
-        s = row['scenario']
-        max_q = 0
-        subset = max_transp_amount_df[(max_transp_amount_df['mode']==m) & (max_transp_amount_df['fuel']==f) &
-                                (max_transp_amount_df['scenario']==s)]
-        for tau in base_data.T_TIME_PERIODS:
-            #if (tau <= t):
-            if len(subset[subset['time_period']==tau])==1:
-            # pick the specific row
-                val = subset[subset['time_period']==tau]['weight'].iloc[0]
-                if (val > max_q):
-                    max_q = val
-        max_transp_amount_df.at[index,'max_value_true'] = max_q
-    max_transp_amount_df['diff'] = max_transp_amount_df['max_value']-max_transp_amount_df['max_value_true']
-
-    return round(sum(max_transp_amount_df['diff']),2)
-
-result_q_max = accuracy_of_q_max(output,base_data)
-print('--------------------------------------------------------')
-print('Total deviation from the actual max transport amount: ' + str(result_q_max))
-print('--------------------------------------------------------')
-if result_q_max>1:
-    #pass
-    raise Exception('Total deviation from the actual max transport amount: ' + str(result_q_max))
 
 
 #---------------------------------------------------------#
 #       COSTS
 #---------------------------------------------------------#
 
+#create the all_cost_table
 def cost_and_investment_table(base_data,output):
 
     keys = list(zip(output.z_emission_violation["time_period"],output.z_emission_violation["scenario"]))
@@ -111,6 +71,7 @@ def cost_and_investment_table(base_data,output):
         "Upg":"teal", 
         "Charge":"forestgreen",
         "EmissionPenalty":"red"}
+    
     output.all_costs = {legend_names[var]:output.costs[var] for var in cost_vars}
     
     
@@ -118,7 +79,8 @@ def cost_and_investment_table(base_data,output):
     for var in cost_vars:
         var2 = legend_names[var]
         for key, value in output.all_costs[var2].items():
-            output.all_costs[legend_names[var]][key] = round(value / 10**9*SCALING_FACTOR_MONETARY,3) # in GNOK
+            output.all_costs[legend_names[var]][key] = round(value/10**9*SCALING_FACTOR_MONETARY,3) # in GNOK
+            #EMISSIONS ALSO IN MONETARY VALUE, SO IT STAYS COMPARABLE....
 
     output.all_costs_table = pd.DataFrame.from_dict(output.all_costs, orient='index')
     
@@ -142,10 +104,7 @@ def cost_and_investment_table(base_data,output):
 
     output.all_costs_table = pd.concat([output.all_costs_table, discount_factors],axis=0, ignore_index=False)
 
-    pd.set_option('display.float_format', '{:.2g}'.format)
-    print(round(output.all_costs_table,2))
-
-    return output
+    return output   
 
 def plot_costs(output,which_costs,ylabel,filename):
 
@@ -188,6 +147,9 @@ def plot_costs(output,which_costs,ylabel,filename):
     ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_costs_"+filename+".png",dpi=300,bbox_inches='tight')
 
 output = cost_and_investment_table(base_data,output)
+pd.set_option('display.float_format', '{:.2g}'.format)
+print(round(output.all_costs_table,2))
+
 opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
 investment_variables = ['Edge', 'Node', 'Upg','Charge']
 plot_costs(output,opex_variables,'Annual costs (GNOK)',"opex")
