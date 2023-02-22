@@ -33,7 +33,7 @@ from Utils2 import Logger
 #                   user input                  #
 #################################################
 
-scenario_tree = "4Scen" #AllScen,4Scen
+scenario_tree = "AllScen" #AllScen,4Scen
 analysis_type = 'SP' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = True  #use EEV as warm start for SP
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
