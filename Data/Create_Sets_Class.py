@@ -275,12 +275,11 @@ class TransportSets():
         # ------- Other--------
         # -----------------------
 
-        self.P_PRODUCTS = ['Dry bulk', 'Fish', 'General cargo', 'Industrial goods', 'Other thermo',
-                           'Timber', 'Wet bulk']
+        self.P_PRODUCTS = [ 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Timber'] #'Dry bulk','Wet bulk'
         
         self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]}
         
-        self.PT = {"Combination": ['Dry bulk', 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Wet bulk'],
+        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk','Dry bulk', 
                    "Timber": ['Timber'],
                    "All": self.P_PRODUCTS}
 
@@ -303,9 +302,10 @@ class TransportSets():
             from_node = row['from_fylke_zone']
             to_node = row['to_fylke_zone']
             product = row['commodity_aggr']
-            if from_node !=  to_node and from_node in self.N_NODES and to_node in self.N_NODES:
+            if product in self.P_PRODUCTS:
+                if from_node !=  to_node and from_node in self.N_NODES and to_node in self.N_NODES:
                 #if from_node not in ['Europa', 'Verden','Kontinentalsokkelen']: #TO DO, change back: temporary solution
-                D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
+                    D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
                 
         demands = pd.Series(D_DEMAND_ALL.values())         
         
@@ -451,8 +451,9 @@ class TransportSets():
         self.VEHICLE_TYPE_MP = {}
         self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
         for (m,p,v) in zip(self.prod_to_vehicle_type['Mode'], self.prod_to_vehicle_type['Product group'], self.prod_to_vehicle_type['Vehicle type']):
-            self.VEHICLE_TYPE_MP[(m,p)] = v
-            self.VEHICLE_TYPES_M[m].append(v)
+            if p in self.P_PRODUCTS:
+                self.VEHICLE_TYPE_MP[(m,p)] = v
+                self.VEHICLE_TYPES_M[m].append(v)
         for m in self.M_MODES:
             self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
         self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
@@ -490,11 +491,12 @@ class TransportSets():
         # self.MULTI_MODE_PATHS_DICT = {q: [] for q in self.PATH_TYPES}
         self.C_MULTI_MODE_PATH = {(q,p): 0  for q in self.PATH_TYPES for p in self.P_PRODUCTS}
         for p in self.P_PRODUCTS:
-            for q in self.PATH_TYPES:
-                data_index = transfer_data.loc[(transfer_data['Product'] == p) & (transfer_data['Transfer type'] == q)]
-                self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost']/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)  #10E6NOK/10E6TONNES
-                #No immediate need for scaling, as already in NOK/Tonnes
-        
+            if p in self.P_PRODUCTS:
+                for q in self.PATH_TYPES:
+                    data_index = transfer_data.loc[(transfer_data['Product'] == p) & (transfer_data['Transfer type'] == q)]
+                    self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost']/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)  #10E6NOK/10E6TONNES
+                    #No immediate need for scaling, as already in NOK/Tonnes
+            
         mode_to_transfer = {('Sea','Rail'):'sea-rail',
                             ('Sea','Road'):'sea-road',
                             ('Rail','Road'):'rail-road',
