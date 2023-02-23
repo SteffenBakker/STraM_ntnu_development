@@ -33,7 +33,7 @@ from Utils2 import Logger
 #                   user input                  #
 #################################################
 
-only_generate_data = False
+only_generate_data = True
 log_to_file = False
 scenario_tree = "4Scen" #AllScen,4Scen
 analysis_type = 'SP' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
