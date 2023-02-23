@@ -275,11 +275,11 @@ class TransportSets():
         # ------- Other--------
         # -----------------------
 
-        self.P_PRODUCTS = [ 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Timber','Dry bulk','Wet bulk'] #'Dry bulk','Wet bulk'
+        self.P_PRODUCTS = [ 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Timber'] #'Dry bulk','Wet bulk'
         
         self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]}
         
-        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo','Dry bulk','Wet bulk'], #,'Wet bulk','Dry bulk', 
+        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk','Dry bulk', 
                    "Timber": ['Timber'],
                    "All": self.P_PRODUCTS}
 

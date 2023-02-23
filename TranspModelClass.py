@@ -806,7 +806,7 @@ class TranspModel:
         opt.options["Method"] = Method #def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
         opt.options["NodeMethod"] = NodeMethod # https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
         opt.solve(self.model, warmstart=warmstart, tee=True, 
-                                        symbolic_solver_labels=True,
+                                        symbolic_solver_labels=False, #goes faster, but turn to true with errors!
                                         keepfiles=False)  
                                         #https://pyomo.readthedocs.io/en/stable/working_abstractmodels/pyomo_command.html
         if False:
