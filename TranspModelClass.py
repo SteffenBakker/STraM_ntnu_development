@@ -70,11 +70,6 @@ class TranspModel:
         self.model.upsilon_upg = Var(self.data.UT_UPG_S, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
         self.model.nu_node = Var(self.data.NCMT_S, within = Binary) #step-wise investment in terminals
         self.model.y_charge = Var(self.data.EFT_CHARGE_S, within=NonNegativeReals)
-
-        self.model.z_emission = Var(self.data.TS_S, within = NonNegativeReals)
-
-        self.model.total_emissions = Var(self.data.TS_S, within=NonNegativeReals) #instead of T_PERIODS!
-                                        # bounds=emission_bound)  # just a variable to help with output
         
         self.model.q_transp_amount = Var(self.data.MFT_S, within=NonNegativeReals)
         self.model.q_transp_delta = Var(self.data.MFT_MIN0_S, within=NonNegativeReals)
@@ -93,50 +88,50 @@ class TranspModel:
         self.model.TranspOpexCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCost(model, t,s):
             return (self.model.TranspOpexCost[t,s] >= sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t,s)])*self.model.x_flow[(i,j,m,r,f,p,t,s)] 
-                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) )  
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m])- model.feas_relax )  
         self.model.TranspOpexCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspOpexCost)
         
         self.model.TranspCO2Cost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspCO2Cost(model, t,s):
             return (self.model.TranspCO2Cost[t,s] >= sum((self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t,s)] 
-                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) )  
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) -model.feas_relax )  
         self.model.TranspCO2CostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspCO2Cost)
         
         self.model.TranspOpexCostB = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCostB(model, t,s):
             return (self.model.TranspOpexCostB[t,s] >= sum( EMPTY_VEHICLE_FACTOR*(self.data.C_TRANSP_COST[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t,s)]) * self.model.b_flow[(i,j,m,r,f,v,t,s)] 
-                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] )  )  
+                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) - model.feas_relax )  
         self.model.TranspOpexCostBConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspOpexCostB)
         
         self.model.TranspCO2CostB = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspCO2CostB(model, t,s):
             return (self.model.TranspCO2CostB[t,s] >= sum( EMPTY_VEHICLE_FACTOR*(self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t,s)] 
-                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) )  
+                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) -model.feas_relax)  
         self.model.TranspCO2CostBConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspCO2CostB)
         
         self.model.TransfCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TransfCost(model, t,s):
-            return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS) )  
+            return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)-model.feas_relax )  
         self.model.TransfCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TransfCost)
         
         self.model.EdgeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def EdgeCost(model, t,s):
-            return (self.model.EdgeCost[t,s] >= sum(self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t,s)] for e in self.data.E_EDGES_RAIL) )  
+            return (self.model.EdgeCost[t,s] >= sum(self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t,s)] for e in self.data.E_EDGES_RAIL)- model.feas_relax )  
         self.model.EdgeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=EdgeCost)
         
         self.model.NodeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def NodeCost(model, t,s):
-            return (self.model.NodeCost[t,s] >= sum(self.data.C_NODE[(i,c,m)]*self.model.nu_node[(i,c,m,t,s)] for (i, m) in self.data.NM_LIST_CAP for c in self.data.TERMINAL_TYPE[m]) )  
+            return (self.model.NodeCost[t,s] >= sum(self.data.C_NODE[(i,c,m)]*self.model.nu_node[(i,c,m,t,s)] for (i, m) in self.data.NM_LIST_CAP for c in self.data.TERMINAL_TYPE[m])- model.feas_relax )  
         self.model.NodeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=NodeCost)
         
         self.model.UpgCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def UpgCost(model, t,s):
-            return (self.model.UpgCost[t,s] >= sum(self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t,s)] for (e,f) in self.data.U_UPGRADE) )  
+            return (self.model.UpgCost[t,s] >= sum(self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t,s)] for (e,f) in self.data.U_UPGRADE) - model.feas_relax)  
         self.model.UpgCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=UpgCost)
         
         self.model.ChargeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def ChargeCost(model, t,s):
-            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING) )
+            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING)- model.feas_relax )
         self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=ChargeCost)
     
 
@@ -167,20 +162,21 @@ class TranspModel:
             delta = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0],self.data.precision_digits)
             investment_costs = self.model.EdgeCost[t,s] + self.model.NodeCost[t,s] + self.model.UpgCost[t,s] + self.model.ChargeCost[t,s] 
             
-            return (self.model.StageCosts[t,s] >= (opex_costs + delta*investment_costs + EMISSION_VIOLATION_PENALTY*self.model.z_emission[(t,s)])) 
+            return (self.model.StageCosts[t,s] >= (opex_costs + delta*investment_costs ) - model.feas_relax ) 
+        
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS_S, rule = StageCostsVar)
         
      
         # first-stage objective value variable
         self.model.FirstStageCosts = Var(self.data.S_SCENARIOS, within = Reals)
         def FirstStageCostsRule(model,s):
-            return (self.model.FirstStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_FIRST_STAGE) ) 
+            return (self.model.FirstStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_FIRST_STAGE) - model.feas_relax ) 
         self.model.FirstStageCostsConstr = Constraint(self.data.S_SCENARIOS, rule = FirstStageCostsRule)
 
         # second-stage objective value variable
         self.model.SecondStageCosts = Var(self.data.S_SCENARIOS, within = Reals)
         def SecondStageCostsRule(model,s):
-            return (self.model.SecondStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_SECOND_STAGE))
+            return (self.model.SecondStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_SECOND_STAGE) - model.feas_relax)
         self.model.SecondStageCostsConstr = Constraint(self.data.S_SCENARIOS,rule = SecondStageCostsRule)
 
         # scenario objective value variable (risk-neutral model would take expectation over this in the objective)
@@ -191,7 +187,7 @@ class TranspModel:
         
         #CVaR positive part constraint
         def CvarRule(model,s):
-            return (self.model.CvarPosPart[s] >= self.model.SecondStageCosts[s] - self.model.CvarAux )     # z \geq v - u
+            return (self.model.CvarPosPart[s] >= self.model.SecondStageCosts[s] - self.model.CvarAux - model.feas_relax  )     # z \geq v - u
         self.model.CvarPosPartConstr = Constraint(self.data.S_SCENARIOS, rule=CvarRule) # add to model
 
         # lower bound on auxiliary CVaR variable (needed to avoid numerical issues)
@@ -276,25 +272,17 @@ class TranspModel:
         #-----------------------------------------------#
 
         # EMISSIONS
-        def emissions_rule(model, t,s):
-            return (
-                self.model.total_emissions[t,s] >= sum(
-                self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t,s] for p in self.data.P_PRODUCTS
-                for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
-                sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t,s] 
-                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
-                - model.feas_relax )
+        # def emissions_rule(model, t,s):
+        #     return (
+        #         self.model.total_emissions[t,s] >= sum(
+        #         self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t,s] for p in self.data.P_PRODUCTS
+        #         for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
+        #         sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t,s] 
+        #             for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
+        #         - model.feas_relax )
         
-        self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
+        # self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
 
-        # Emission limit
-        # IF ERROR HERE -> REMEMBER TO RUN INITIALIZATION MODEL TO DETERMINE THE ABSOLUTE EMISSION AMOUNT
-        if not self.solve_base_year:
-            def EmissionCapRule(model, t,s):
-                return  (self.model.z_emission[t,s] >= self.model.total_emissions[t,s] - self.data.EMISSION_CAP_RELATIVE[t]/100*self.data.EMISSION_CAP_ABSOLUTE_BASE_YEAR*1.001 
-                - model.feas_relax )
-            self.model.EmissionCap = Constraint(self.data.TS_CONSTR_S, rule=EmissionCapRule)
-        
         #-----------------------------------------------#
         
         #CAPACITY
@@ -536,20 +524,6 @@ class TranspModel:
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
-
-            def Nonanticipativity_z(model,t,s,ss):
-                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                    return (self.model.z_emission[(t,s)]- self.model.z_emission[(t,ss)]==0)
-                else:
-                    return Constraint.Skip
-            self.model.Nonanticipativity_z_Constr = Constraint(combinations(self.data.TS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_z)
-
-            def Nonanticipativity_totem(model,t,s,ss):
-                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
-                    return (self.model.total_emissions[(t,s)]- self.model.total_emissions[(t,ss)]==0)
-                else:
-                    return Constraint.Skip 
-            self.model.Nonanticipativity_totem_Constr = Constraint(combinations(self.data.TS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_totem)
 
             def Nonanticipativity_q(model,m,f,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 

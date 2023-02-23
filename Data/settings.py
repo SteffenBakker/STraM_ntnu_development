@@ -8,7 +8,7 @@ SCALING_FACTOR = 10**5 #for computational purposes, from TONNES -> MEGATONNES   
 #THE OLD FACTOR was 10**4, more intuitive with 10^6, However, 10**5 is a bit faster (10%)
 SCALING_FACTOR_MONETARY = 10**7
 SCALING_FACTOR_WEIGHT = 10**5
-SCALING_FACTOR_EMISSIONS = 10**7
+SCALING_FACTOR_EMISSIONS = 10**8 #if smaller, then the CO2_FEE disappears, needs to be small as emissions are in GRAM CO2
 
 #gurobi's tolerance is 10^-6
 #(minimum demand is now 3.3*10^3 tonnes, so should be OK)
@@ -26,8 +26,6 @@ INTERPOLATE_DEMAND_DATA_2040 = False #there
 
 NO_INVESTMENTS = False
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
-
-EMISSION_VIOLATION_PENALTY = SCALING_FACTOR_EMISSIONS/SCALING_FACTOR_MONETARY*10**(-1) # the level of the emission penalty gets around the total transport cost when penalty equals 10**9
 
 #the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)
 GROWTH_ON_ROAD = 2 #the transport amount on road can only grow with 100%

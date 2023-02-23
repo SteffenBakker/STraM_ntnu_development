@@ -35,7 +35,11 @@ with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 
-print('objective function value: ', output.ob_function_value)  
+print('objective function value: ', output.ob_function_value)
+print('objective function value normalized: ', round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY,2))  
+
+
+
 #SHOULD REMOVE THE MISSION PENALTY: DOES NOT MAKE SENSE NOW
 
 
@@ -45,12 +49,8 @@ print('objective function value: ', output.ob_function_value)
 
 #create the all_cost_table
 def cost_and_investment_table(base_data,output):
-
-    keys = list(zip(output.z_emission_violation["time_period"],output.z_emission_violation["scenario"]))
-    values = list(output.z_emission_violation["weight"])
-    output.costs["EmissionCosts"] = {keys[i]:EMISSION_VIOLATION_PENALTY*values[i] for i in range(len(values))}
     
-    cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost","EmissionCosts"]
+    cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost"]
     legend_names = {"TranspOpexCost":"OPEX",
         "TranspOpexCostB":"OPEX_Empty",
         "TranspCO2Cost":"Carbon",
@@ -60,7 +60,7 @@ def cost_and_investment_table(base_data,output):
         "NodeCost":"Node",
         "UpgCost":"Upg", 
         "ChargeCost":"Charge",
-        "EmissionCosts":"EmissionPenalty"}
+        }
     output.cost_var_colours =  {"OPEX":"royalblue",
         "OPEX_Empty":"cornflowerblue",
         "Carbon":"dimgrey",
@@ -70,7 +70,7 @@ def cost_and_investment_table(base_data,output):
         "Node":"darkred",
         "Upg":"teal", 
         "Charge":"forestgreen",
-        "EmissionPenalty":"red"}
+        }
     
     output.all_costs = {legend_names[var]:output.costs[var] for var in cost_vars}
     
@@ -80,7 +80,6 @@ def cost_and_investment_table(base_data,output):
         var2 = legend_names[var]
         for key, value in output.all_costs[var2].items():
             output.all_costs[legend_names[var]][key] = round(value/10**9*SCALING_FACTOR_MONETARY,3) # in GNOK
-            #EMISSIONS ALSO IN MONETARY VALUE, SO IT STAYS COMPARABLE....
 
     output.all_costs_table = pd.DataFrame.from_dict(output.all_costs, orient='index')
     
@@ -155,52 +154,56 @@ investment_variables = ['Edge', 'Node', 'Upg','Charge']
 plot_costs(output,opex_variables,'Annual costs (GNOK)',"opex")
 plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
-
-#Total costs without emission penalty:
-
-#output.ob_function_value
-
-##total_emission_penalty = sum(output.costs["EmissionCosts"].values())]
-#for t in base_data.T_TIME_PERIODS:
-#    for t in base_data.S_SCENARIOS:
-
-#rather resolve the model. FIX EVERYTHING. But remove the penalty from objective...
-
-
-if False:
-    if sum(output.z_emission_violation["weight"])>1:
-        raise Exception('We cannot decarbonize in time scenario:  -> z_emission_violation is non-negative')
-
 #---------------------------------------------------------#
 #       EMISSIONS 
 #---------------------------------------------------------#
 
-def calculate_emissions_base_year(x_flow,b_flow,base_data,domestic=False):
-    print('')
+def calculate_emissions(output,base_data,domestic=True):
+    output.total_yearly_emissions = {(t,s):0 for t in base_data.T_TIME_PERIODS for s in base_data.S_SCENARIOS} # in MTonnes CO2 equivalents
+
+    x_flow = output.x_flow 
+    b_flow = output.b_flow
+    
     if domestic:
         x_flow = x_flow[(x_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
-        b_flow = b_flow[(b_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
-        print('domestic emissions (millioner tonn CO2 equivalents)')
-    else:
-        print('all emissions (millioner tonn CO2 equivalents)')
-    print('')
-    emissions_direct = 0
-    emission_empty = 0
-    t0 = base_data.T_TIME_PERIODS[0]
-    for index,row in x_flow[x_flow["time_period"]==t0].iterrows():
-        (i,j,m,r,f,p,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['weight'])
-        emissions_direct += base_data.E_EMISSIONS[i,j,m,r,f, p, t0]*value/10**6*SCALING_FACTOR_EMISSIONS # in MTonnes CO2 equivalents
-    for index,row in b_flow[b_flow["time_period"]==t0].iterrows():
-        (i,j,m,r,f,v,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['weight'])
-        emission_empty += base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t0,v)], t0]*value/10**6*SCALING_FACTOR_WEIGHT # in MTonnes CO2 equivalents
-    print('direct: ',round(emissions_direct*10**(-6),2))
-    print('indirect: ',round(emission_empty*10**(-6),2))
-    print('both: ',round((emissions_direct+emission_empty)*10**(-6),2))
+        b_flow = b_flow[(b_flow['from'].isin(base_data.N_NODES_NORWAY))&(b_flow['to'].isin(base_data.N_NODES_NORWAY))]
 
-if False:
-    for domestic in [True,False]:
-        calculate_emissions_base_year(output.x_flow,output.b_flow,base_data,domestic)
+    for index,row in x_flow.iterrows():
+        (i,j,m,r,f,p,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['time_period'],row['scenario'],row['weight']) 
+        output.total_yearly_emissions[(t,s)] += ((base_data.E_EMISSIONS[i,j,m,r,f,p,t]*SCALING_FACTOR_EMISSIONS/SCALING_FACTOR_WEIGHT)*(value*SCALING_FACTOR_WEIGHT))/(10**12) #   gCO2 / tonnes*km     *   tonnes/km     ->  in MTonnes CO2 equivalents
+    for index,row in b_flow.iterrows():
+        (i,j,m,r,f,v,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['time_period'],row['scenario'],row['weight'])
+        output.total_yearly_emissions[(t,s)] += ((base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t,v)], t]*SCALING_FACTOR_EMISSIONS)*(value*SCALING_FACTOR_WEIGHT))/(10**6*10**6) # in MTonnes CO2 equivalents
 
+    output.total_emissions = pd.DataFrame.from_dict({'time_period': [t for (t,s) in output.total_yearly_emissions.keys()],	
+                                                        'weight': list(output.total_yearly_emissions.values())	,
+                                                        'scenario': [s for (t,s) in output.total_yearly_emissions.keys()]})
+        
+    # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
+    output.emission_stats = output.total_emissions.groupby('time_period').agg(
+        AvgEmission=('weight', np.mean),
+        Std=('weight', np.std))
+    output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
+
+    #output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
+    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.total_yearly_emissions[(base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0])]*100  #NEW: 2022
+    #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
+    output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
+    goals = list(base_data.EMISSION_CAP_RELATIVE.values())
+    output.emission_stats['Goal'] = goals
+    output.emission_stats['StdGoals'] = [0 for g in goals]       
+
+    return output
+
+output = calculate_emissions(output,base_data,domestic=False)
+output_domestic = calculate_emissions(output,base_data,domestic=True)
+print('----------------')
+print('domestic emissions:')
+print(output_domestic.emission_stats)
+#I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
+# https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
+
+#We are off with a factor 100!
 
 def plot_emission_results(output,base_data):
 
@@ -212,22 +215,6 @@ def plot_emission_results(output,base_data):
     #means = list(output.total_emissions.groupby(['time_period']).agg({'weight':'mean'})['weight'])
     #errors = list(output.total_emissions.groupby(['time_period']).agg({'weight':'std'})['weight'])
 
-    
-    
-    # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
-    output.emission_stats = output.total_emissions.groupby('time_period').agg(
-        AvgEmission=('weight', np.mean),
-        Std=('weight', np.std))
-    output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
-
-    #output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
-    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR*100  #NEW: 2022
-    #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
-    output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2022,'AvgEmission']*100  #NEW: 2022
-    goals = list(base_data.EMISSION_CAP_RELATIVE.values())
-    output.emission_stats['Goal'] = goals
-    output.emission_stats['StdGoals'] = [0 for g in goals]       
-    print(output.emission_stats)
 
     #output.emission_stats['Std'] = 0.1*output.emission_stats['AvgEmission']  #it works when there is some deviation!!
     
@@ -256,8 +243,7 @@ def plot_emission_results(output,base_data):
     #fig = ax.get_figure()
     #fig.savefig('/path/to/figure.png')
     
-#I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
-# https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
+
 
     
 plot_emission_results(output,base_data)
@@ -407,30 +393,14 @@ output = mode_mix_calculations(output,base_data)
 
 
 
-# dir(output)
-# decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t])] - self.model.q_transp_amount[(m,f,t)]
-# factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[(m,f)]
-# return (decrease <= factor*self.model.q_max_transp_amount[m,f,t])
 
 
-#---------------------------------------------------------#
-#       COST AND EMISSION TRADE-OFF
-#---------------------------------------------------------#
-print('--------------------------')
 
-output.emission_stats = output.total_emissions.groupby('time_period').agg(
-        AvgEmission=('weight', np.mean),
-        Std=('weight', np.std))
-output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
-print('Average emissions (in Million TonnesCo2):')
-print(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR_EMISSIONS/10**9) #this becomes Million TonnesCO2         
 
-print('objective function value: ')
-print(output.ob_function_value*SCALING_FACTOR_MONETARY/10**9)
-print('objective function value without emission penalty (Billion NOK): ')
-print(output.ob_function_value_without_emission*SCALING_FACTOR_MONETARY/10**9) #without emission penalty
 
-#2000NOK per Tonne CO2 is this in line? Do the comparison for
+
+
+
 
 
 if False:
@@ -469,14 +439,27 @@ if False:
     #conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
 
 
+#TRANSPORTARBEID / transport performance analysis
+if False:
 
+    output.transport_performance = {(t,s):0 for t in base_data.T_TIME_PERIODS for s in base_data.S_SCENARIOS} # in MTonnes CO2 equivalents
+    x_flow = output.x_flow
+    b_flow = output.b_flow
 
+    if False:
+        x_flow = x_flow[(x_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
+        b_flow = b_flow[(b_flow['from'].isin(base_data.N_NODES_NORWAY))&(b_flow['to'].isin(base_data.N_NODES_NORWAY))]
 
+    for index,row in x_flow.iterrows():
+        (i,j,m,r,f,p,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['time_period'],row['scenario'],row['weight']) 
+        if p not in ['Dry bulk','Wet bulk']:
+            output.transport_performance[(t,s)] += ((base_data.AVG_DISTANCE[(i,j,m,r)])*(value*SCALING_FACTOR_WEIGHT))/(10**6) #   Million tonnes*km
+    for index,row in b_flow.iterrows():
+        (i,j,m,r,f,v,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['time_period'],row['scenario'],row['weight'])
+        if p not in ['Dry bulk','Wet bulk']:
+            output.transport_performance[(t,s)] += ((base_data.AVG_DISTANCE[(i,j,m,r)])*(value*SCALING_FACTOR_WEIGHT))/(10**6) # Million tonnes*km
 
-
-
-
-
+    output.transport_performance
 
 
 

@@ -28,19 +28,11 @@ class OutputData():
         self.nu_node=None
         self.epsilon_edge=None
         self.upsilon_upgrade= None
-        self.z_emission_violation=None
-        self.total_emissions=None
         self.q_transp_amount=None
         self.q_max_transp_amount=None
         self.FirstStageCosts = None
-
         
-        self.scenarios = []
-        if EV_problem:
-            self.scenarios = ['BBB']
-        else:
-            scenarios = base_data.S_SCENARIOS
-            self.ob_function_value = pyo.value(modell.objective_function)
+        self.ob_function_value = pyo.value(modell.objective_function)
                 
         self.extract_model_results(base_data,modell, EV_problem)
 
@@ -58,8 +50,6 @@ class OutputData():
         nu_node =               pd.DataFrame(columns = ['variable','from', 'terminal_type','mode', 'time_period', 'weight', 'scenario'])
         epsilon_edge =               pd.DataFrame(columns = ['variable','from','to','mode','route','time_period','weight','scenario'])
         upsilon_upgrade =            pd.DataFrame(columns = ['variable','from', 'to', 'mode', 'route','fuel', 'time_period', 'weight', 'scenario'])
-        z_emission_violation = pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
-        total_emissions =      pd.DataFrame(columns = ['variable','time_period','weight','scenario'])
         q_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','time_period','weight','scenario'])
         q_max_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','weight','scenario'])
         
@@ -70,9 +60,7 @@ class OutputData():
         self.SecondStageCosts = {scen_name:None for scen_name in scenario_names}
         self.CvarPosPart = {scen_name:None for scen_name in scenario_names}
         self.MaxTranspPenaltyCost = {scen_name:None for scen_name in scenario_names}
-        
-        second_stage_costs_no_emissions = {scen_name:None for scen_name in scenario_names}
-        second_stage_emission_costs = {scen_name:None for scen_name in scenario_names}
+    
         
             #############
             # Variables #
@@ -150,20 +138,6 @@ class OutputData():
                         weight = 0
                     a_series = pd.Series([variable,i,j,m,r,f,t, weight, scen_name],index=y_charging.columns)
                     y_charging = pd.concat([y_charging,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'z_emission'
-            for t in base_data.T_TIME_PERIODS:
-                weight = modell.z_emission[(t,scen_name)].value
-                if weight is None:
-                    weight = 0 
-                a_series = pd.Series([variable,t, weight, scen_name],index=z_emission_violation.columns)
-                z_emission_violation = pd.concat([z_emission_violation,a_series.to_frame().T],axis=0, ignore_index=True)
-            variable = 'total_emissions'
-            for t in base_data.T_TIME_PERIODS:
-                weight = modell.total_emissions[(t,scen_name)].value
-                if weight is None:
-                    weight = 0 
-                a_series2 = pd.Series([variable,t, weight, scen_name],index=total_emissions.columns)
-                total_emissions = pd.concat([total_emissions,a_series2.to_frame().T],axis=0, ignore_index=True)
             variable = 'q_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
@@ -185,18 +159,13 @@ class OutputData():
                     costs[var][(t,scen_name)] = weight
 
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
-                        z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount],ignore_index=True)
+                        q_transp_amount,q_max_transp_amount],ignore_index=True)
 
 
             #SECOND STAGE COSTS
             self.SecondStageCosts[scen_name] = modell.SecondStageCosts[scen_name].value
             self.CvarPosPart[scen_name] = modell.CvarPosPart[scen_name].value
-            second_stage_emission_costs[scen_name] = sum(modell.z_emission[(t,scen_name)].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_SECOND_STAGE)
-            second_stage_costs_no_emissions[scen_name] = self.SecondStageCosts[scen_name] - second_stage_emission_costs[scen_name]
-        
-        #first stage costs should be the same across scenarios -> pick the first
-        self.first_stage_emission_costs = sum(modell.z_emission[(t,base_data.S_SCENARIOS[0])].value*EMISSION_VIOLATION_PENALTY for t in base_data.T_TIME_FIRST_STAGE)
-
+            
         #########
         # ----- #
         #########
@@ -210,8 +179,7 @@ class OutputData():
         self.nu_node=nu_node
         self.epsilon_edge=epsilon_edge
         self.upsilon_upgrade= upsilon_upgrade
-        self.z_emission_violation=z_emission_violation
-        self.total_emissions=total_emissions
+
         self.q_transp_amount=q_transp_amount
         self.q_max_transp_amount=q_max_transp_amount
         
@@ -221,48 +189,6 @@ class OutputData():
         
 
 
-        ######################################
-        ### COSTS WITHOUT EMISSION PENALTY ###
         
-        #value_at_risk = np.quantile(self.SecondStageCosts.values(), base_data.risk_information.cvar_alpha)     #0.8
-        # do not use this -> can lead to errors with discrete distributions. Only works in continuous time
-
-
-        
-
-        #LAST PART = value_at_risk
-
-        lambda_weight = base_data.risk_information.cvar_coeff  
-        alpha_tail = base_data.risk_information.cvar_alpha 
-
-        def calculate_cvar(costs,alpha):  #costs is a list,  alpha is typically around 0.8, so we then take the 20% worst cases
-            prob_per_scenario = 1/len(costs)
-            fraction = (1-alpha)/prob_per_scenario   
-            num_scenarios_worst = np.floor(fraction)
-            remaining = fraction-num_scenarios_worst
-            costs.sort(reverse=True) #Reverse =True -> Descending
-            if 1-alpha > 0:
-                cvar = (sum(prob_per_scenario*costs[i] for i in range(int(num_scenarios_worst))) + 
-                        prob_per_scenario*remaining*costs[int(num_scenarios_worst)])/(1-alpha)
-            else:
-                cvar = 0
-            return cvar
-    
-        if not EV_problem:
-
-            second_stage_cost_with = calculate_cvar(list(self.SecondStageCosts.values()),alpha_tail)
-            second_stage_cost_without = calculate_cvar(list(second_stage_costs_no_emissions.values()),alpha_tail)
-            cvar_difference = second_stage_cost_with - second_stage_cost_without
-            self.avg_second_stage_emission_costs = 1/len(scenario_names)*sum(second_stage_emission_costs.values())
-            self.total_emission_cost_contribution = (self.first_stage_emission_costs + 
-                                                (1-lambda_weight)*self.avg_second_stage_emission_costs + 
-                                                lambda_weight*cvar_difference)
-            self.ob_function_value_without_emission = self.ob_function_value - self.total_emission_cost_contribution 
-            
-
-            #return [all_variables, costs, x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,z_emission_violation,total_emissions,q_transp_amount,q_max_transp_amount]
-
-                
-            
     
 

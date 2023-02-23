@@ -33,10 +33,11 @@ from Utils2 import Logger
 #                   user input                  #
 #################################################
 
-scenario_tree = "AllScen" #AllScen,4Scen
+only_generate_data = False
+log_to_file = False
+scenario_tree = "4Scen" #AllScen,4Scen
 analysis_type = 'SP' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = True  #use EEV as warm start for SP
-time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 # risk parameters
 cvar_coeff = 0.2    # \lambda: coefficient for CVaR in mean-CVaR objective
@@ -44,8 +45,7 @@ cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 # TODO: test if this is working
 
 NoBalancingTrips = False  #default at False
-log_to_file = False
-only_generate_data = False
+time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 #################################################
 #                   main code                   #
@@ -102,9 +102,8 @@ def solve_init_model(base_data,risk_info):
                     weight = InitModel.model.x_flow[(a,f,p,t,s)].value
                     if weight > 0:
                         x_flow_base_period_init.append((a,f,p,t,s,weight))
-    EMISSION_CAP_ABSOLUTE_BASE_YEAR = InitModel.model.total_emissions[base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0]].value  #same emissions across all scenarios!
 
-    return x_flow_base_period_init, EMISSION_CAP_ABSOLUTE_BASE_YEAR
+    return x_flow_base_period_init 
 
 def construct_and_solve_SP(base_data,
                             risk_info, 
@@ -112,7 +111,7 @@ def construct_and_solve_SP(base_data,
                             time_periods = None):
     
     # ------ SOLVE INIT MODEL ----------#
-    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+    x_flow_base_period_init = solve_init_model(base_data,risk_info)   
 
     # ------ CHANGE DATA BACK TO STANDARD ----------#
 
@@ -161,7 +160,7 @@ def construct_and_solve_EEV(base_data,risk_info):
         ############################
     
     #first solve the init model to initialize values
-    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+    x_flow_base_period_init = solve_init_model(base_data,risk_info) 
 
     #focus on all data this time
         
@@ -295,7 +294,7 @@ def generate_base_data(sheet_name_scenarios):
     #add to the base_data class?
     base_data.risk_information = risk_info
 
-    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+    x_flow_base_period_init = solve_init_model(base_data,risk_info) 
 
     base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
     
@@ -367,7 +366,7 @@ def last_time_period_run():
     
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
-    x_flow_base_period_init, base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR = solve_init_model(base_data,risk_info)
+    x_flow_base_period_init= solve_init_model(base_data,risk_info)  #
     base_data.init_data = False
     base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
     base_data.last_time_period = True

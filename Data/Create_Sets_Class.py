@@ -517,7 +517,7 @@ class TransportSets():
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
             
         CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
-        self.CO2_fee = {t: 10000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
+        self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for index, row in CO2_fee_data.iterrows():
             self.CO2_fee[row["Year"]] = round(row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
             
