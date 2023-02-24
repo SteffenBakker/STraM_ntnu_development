@@ -784,7 +784,8 @@ class TransportSets():
         self.INIT_MODE_SPLIT = {m:None for m in self.M_MODES}
         for index, row in self.init_mode_share.iterrows():
             (mm,share) = (row['Mode'], row['Share'])
-            self.INIT_MODE_SPLIT[m] = share
+            self.INIT_MODE_SPLIT[mm] = share
+
 
         #lifetime / lifespan
         self.lifespan_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='lifetimes')
