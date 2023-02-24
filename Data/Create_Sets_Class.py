@@ -100,7 +100,7 @@ test_scenario_information = ScenarioInformation('Data/')
 #Activating a scenario means that all relevant parameters are changed to their scenario values
 class TransportSets():
 
-    def __init__(self,init_data=False,sheet_name_scenarios='scenarios_base'):# or (self)
+    def __init__(self,sheet_name_scenarios='scenarios_base'):# or (self)
         self.run_file = "main"  # "sets" or "main"
         self.prefix = '' 
         if self.run_file == "main":
@@ -108,7 +108,6 @@ class TransportSets():
         elif self.run_file =="sets":
             self.prefix = '' 
         
-        self.init_data = init_data #set T_TIME_PERIODS to first period
         self.last_time_period = False #only solve last time period -> remove all operational constraints for the other periods
 
         #read/construct scenario information
@@ -120,8 +119,6 @@ class TransportSets():
 
         #read/construct data                
         self.construct_pyomo_data()
-        if init_data:
-            self.T_TIME_PERIODS = self.T_TIME_PERIODS_INIT
         self.combined_sets()
 
     def construct_pyomo_data(self):

@@ -35,9 +35,9 @@ from Utils2 import Logger
 
 only_generate_data = False
 log_to_file = True
-scenario_tree = "AllScen" #AllScen,4Scen
+scenario_tree = "4Scen" #AllScen,4Scen
 analysis_type = 'SP' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
-wrm_strt = True  #use EEV as warm start for SP
+wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
 cvar_coeff = 0.2    # \lambda: coefficient for CVaR in mean-CVaR objective
@@ -135,7 +135,7 @@ def construct_and_solve_SP(base_data,
     model_instance.NoBalancingTrips = NoBalancingTrips
     model_instance.last_time_period = last_time_period
     model_instance.construct_model()
-    model_instance.fix_variables_first_time_period(x_flow_base_period_init)
+    #model_instance.fix_variables_first_time_period(x_flow_base_period_init)
 
     print("Done constructing model.")
     print("Time used constructing the model:", time.time() - start)
