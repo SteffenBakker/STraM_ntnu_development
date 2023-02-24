@@ -36,7 +36,7 @@ from Utils2 import Logger
 only_generate_data = False
 log_to_file = True
 scenario_tree = "4Scen" #AllScen,4Scen
-analysis_type = 'EEV' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = 'SP' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters

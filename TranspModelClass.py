@@ -448,12 +448,14 @@ class TranspModel:
             return output
 
         if len(self.data.S_SCENARIOS)>1:
+            
+            ABSOLUTE_DEVIATION_NONANT = 0
 
             def Nonanticipativity_x(model,i,j,m,r,f,p,t,s,ss):
                 a = i,j,m,r
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): # AND NOT ALREADY ADDED? -> do not care, gurobi fixes
                     diff = (self.model.x_flow[(a,f,p,t,s)]- self.model.x_flow[(a,f,p,t,ss)]) # TO DO: some slack here to improve feasibility? 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip   # https://pyomo.readthedocs.io/en/stable/_modules/pyomo/core/base/constraint.html
             self.model.Nonanticipativity_x_Constr = Constraint(combinations(self.data.AFPT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_x)
@@ -462,7 +464,7 @@ class TranspModel:
                 a = i,j,m,r
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = self.model.b_flow[(a,f,v,t,s)]- self.model.b_flow[(a,f,v,t,ss)]
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_b_Constr = Constraint(combinations(self.data.AFVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_b)
@@ -470,7 +472,7 @@ class TranspModel:
             def Nonanticipativity_h(model,k,p,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.h_path[(k,p,t,s)]- self.model.h_path[(k,p,t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_h_Constr = Constraint(combinations(self.data.KPT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h)
@@ -478,7 +480,7 @@ class TranspModel:
             def Nonanticipativity_h_bal(model,k,v,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.h_path_balancing[(k,v,t,s)]- self.model.h_path_balancing[(k,v,t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_h_bal_Constr = Constraint(combinations(self.data.KVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h_bal)
@@ -486,7 +488,7 @@ class TranspModel:
             def Nonanticipativity_stage(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.StageCosts[(t,s)]- self.model.StageCosts[(t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_stage_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_stage)
@@ -495,7 +497,7 @@ class TranspModel:
                 e = (i,j,m,r)
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.epsilon_edge[(e,t,s)]- self.model.epsilon_edge[(e,t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_RAIL,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
@@ -504,7 +506,7 @@ class TranspModel:
                 e = (i,j,m,r)
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.upsilon_upg[(e,f,t,s)]- self.model.upsilon_upg[(e,f,t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_upg_Constr = Constraint(combinations(self.data.UT_UPG,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upg)
@@ -512,7 +514,7 @@ class TranspModel:
             def Nonanticipativity_nu(model,n,c,m,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.nu_node[(n,c,m,t,s)]- self.model.nu_node[(n,c,m,t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NCMT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
@@ -521,7 +523,7 @@ class TranspModel:
                 e = (i,j,m,r)
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.y_charge[(e,f,t,s)]- self.model.y_charge[(e,f,t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
@@ -529,7 +531,7 @@ class TranspModel:
             def Nonanticipativity_q(model,m,f,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.q_transp_amount[(m,f,t,s)]- self.model.q_transp_amount[(m,f,t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
@@ -537,7 +539,7 @@ class TranspModel:
             def Nonanticipativity_q_delta(model,m,f,t,s,ss): 
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.q_transp_delta[(m,f,t,s)]- self.model.q_transp_delta[(m,f,t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip    
             self.model.Nonanticipativity_qdelta_Constr = Constraint(combinations(self.data.MFT_MIN0,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_delta)
@@ -545,7 +547,7 @@ class TranspModel:
             def Nonanticipativity_q_aux(model,m,f,t,s,ss):
                 if (t in self.data.T_YEARLY_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.q_aux_transp_amount[(m,f,t,s)]- self.model.q_aux_transp_amount[(m,f,t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_qaux_Constr = Constraint(combinations(self.data.MFT_NEW_YEARLY,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_aux)
@@ -553,7 +555,7 @@ class TranspModel:
             def Nonanticipativity_qmode(model,m,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff= (self.model.q_mode_total_transp_amount[(m,t,s)]- self.model.q_mode_total_transp_amount[(m,t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_qmode_Constr = Constraint(combinations(self.data.MT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_qmode)
@@ -561,7 +563,7 @@ class TranspModel:
             def Nonanticipativity_opex(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.TranspOpexCost[(t,s)]- self.model.TranspOpexCost[(t,ss)])
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION) 
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT) 
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_opex_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_opex)
@@ -569,7 +571,7 @@ class TranspModel:
             def Nonanticipativity_co2(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.TranspCO2Cost[(t,s)]- self.model.TranspCO2Cost[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_co2_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2)
@@ -577,7 +579,7 @@ class TranspModel:
             def Nonanticipativity_opexb(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.TranspOpexCostB[(t,s)]- self.model.TranspOpexCostB[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_opexb_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_opexb)
@@ -585,7 +587,7 @@ class TranspModel:
             def Nonanticipativity_co2b(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.TranspCO2CostB[(t,s)]- self.model.TranspCO2CostB[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_co2b_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2b)
@@ -593,7 +595,7 @@ class TranspModel:
             def Nonanticipativity_transf(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.TransfCost[(t,s)]- self.model.TransfCost[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_transf_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_transf)
@@ -601,7 +603,7 @@ class TranspModel:
             def Nonanticipativity_edge(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.EdgeCost[(t,s)]- self.model.EdgeCost[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_edge_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_edge)
@@ -609,7 +611,7 @@ class TranspModel:
             def Nonanticipativity_node(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.NodeCost[(t,s)]- self.model.NodeCost[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_node_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_node)
@@ -617,7 +619,7 @@ class TranspModel:
             def Nonanticipativity_upgcost(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.UpgCost[(t,s)]- self.model.UpgCost[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_upgcost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upgcost)
@@ -625,7 +627,7 @@ class TranspModel:
             def Nonanticipativity_chargecost(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.ChargeCost[(t,s)]- self.model.ChargeCost[(t,ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_chargecost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_chargecost)
@@ -633,7 +635,7 @@ class TranspModel:
             def Nonanticipativity_firststagecost(model,s,ss):
                 if  (s is not ss): 
                     diff = (self.model.FirstStageCosts[(s)]- self.model.FirstStageCosts[(ss)]) 
-                    return (-ABSOLUTE_DEVIATION,diff,ABSOLUTE_DEVIATION)
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_firststagecost_Constr = Constraint(self.data.SS_SCENARIOS_NONANT,rule = Nonanticipativity_firststagecost)
