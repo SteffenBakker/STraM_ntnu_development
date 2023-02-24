@@ -374,7 +374,7 @@ class TranspModel:
                 modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
                 diff = self.data.INIT_MODE_SPLIT[m]*total_transport_amount - modal_transport_amount
                 return (-0.01,diff,0.01) 
-            self.model.InitialModeSplit = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
+            self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
                 
             #Fleet Renewal
             def FleetRenewalRule(model,m,t,s):
@@ -799,7 +799,7 @@ class TranspModel:
         opt.options["NodeMethod"] = NodeMethod # https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
         #opt.options["DualReductions"] = 0 #default 1, at zero, figure out if unbounded or infeasible.
         opt.solve(self.model, warmstart=warmstart, tee=True, 
-                                        symbolic_solver_labels=True, #goes faster, but turn to true with errors!
+                                        symbolic_solver_labels=False, #goes faster, but turn to true with errors!
                                         keepfiles=False)  
                                         #https://pyomo.readthedocs.io/en/stable/working_abstractmodels/pyomo_command.html
         if False:
