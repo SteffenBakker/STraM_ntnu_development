@@ -101,8 +101,7 @@ class OutputData():
                                 a_series = pd.Series([variable,kk, p, t, weight, scen_name], index=h_path.columns)
                                 h_path = pd.concat([h_path,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'epsilon_edge'
-            for t in base_data.T_TIME_PERIODS:
-                for i,j,m,r in base_data.E_EDGES_RAIL:
+            for (i,j,m,r,t) in base_data.ET_RAIL:
                     e = (i,j,m,r)
                     weight = modell.epsilon_edge[(e, t,scen_name)].value
                     if weight is None:
@@ -110,8 +109,7 @@ class OutputData():
                     a_series = pd.Series([variable,i,j,m,r, t, weight, scen_name], index=epsilon_edge.columns)
                     epsilon_edge = pd.concat([epsilon_edge,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'upsilon_upg'
-            for t in base_data.T_TIME_PERIODS:
-                for (e,f) in base_data.U_UPGRADE:
+            for (e,f,t) in base_data.UT_UPG:
                     (i,j,m,r) = e
                     weight = modell.upsilon_upg[(i,j,m,r,f,t,scen_name)].value
                     if math.isnan(weight):
@@ -121,23 +119,20 @@ class OutputData():
                     a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen_name],index=upsilon_upgrade.columns)
                     upsilon_upgrade = pd.concat([upsilon_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'nu_node'
-            for t in base_data.T_TIME_PERIODS:
-                for (i, m) in base_data.NM_LIST_CAP:
-                    for c in base_data.TERMINAL_TYPE[m]:
-                        weight = modell.nu_node[(i, c, m, t,scen_name)].value
-                        if weight is None:
-                            weight = 0
-                        a_series = pd.Series([variable,i, c, m, t, weight, scen_name],index=nu_node.columns)
-                        nu_node = pd.concat([nu_node,a_series.to_frame().T],axis=0, ignore_index=True)
+            for (i,c,m,t) in base_data.NCMT:
+                weight = modell.nu_node[(i, c, m, t,scen_name)].value
+                if weight is None:
+                    weight = 0
+                a_series = pd.Series([variable,i, c, m, t, weight, scen_name],index=nu_node.columns)
+                nu_node = pd.concat([nu_node,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'y_charging'
-            for t in base_data.T_TIME_PERIODS:
-                for (e,f) in base_data.EF_CHARGING:
-                    (i,j,m,r) = e
-                    weight = modell.y_charge[(i,j,m,r,f,t,scen_name)].value
-                    if weight is None:
-                        weight = 0
-                    a_series = pd.Series([variable,i,j,m,r,f,t, weight, scen_name],index=y_charging.columns)
-                    y_charging = pd.concat([y_charging,a_series.to_frame().T],axis=0, ignore_index=True)
+            for (e,f,t) in base_data.EFT_CHARGE:
+                (i,j,m,r) = e
+                weight = modell.y_charge[(i,j,m,r,f,t,scen_name)].value
+                if weight is None:
+                    weight = 0
+                a_series = pd.Series([variable,i,j,m,r,f,t, weight, scen_name],index=y_charging.columns)
+                y_charging = pd.concat([y_charging,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'q_transp_amount'
             for m in base_data.M_MODES:
                 for f in base_data.FM_FUEL[m]:
