@@ -65,66 +65,10 @@ if wrm_strt:
 sys.stdout = Logger(run_identifier2,log_to_file)
 
 
-def solve_init_model(base_data,risk_info):
-        
-    #set the data to focus only on base year
-
-    base_data.init_data = True
-    base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_INIT
-    base_data.S_SCENARIOS = ['BBB']
-    base_data.combined_sets()
-
-    InitModel = TranspModel(data=base_data, risk_info=risk_info)
-    InitModel.NoBalancingTrips = NoBalancingTrips
-    InitModel.solve_base_year = True
-    print('-----------------')
-    print('constructing initialization model',flush=True)
-    start = time.time()
-    InitModel.construct_model()
-    print("Time used constructing the model:", time.time() - start,flush=True)
-    print('-----------------')
-
-    print('solving initialization model',flush=True)
-    start = time.time()
-    InitModel.solve_model(FeasTol=(10**(-6)))
-    print("Time used solving the model:", time.time() - start,flush=True)
-    print('-----------------')
-    sys.stdout.flush()
-
-    #extract the important output
-    x_flow_base_period_init = []
-    t = base_data.T_TIME_PERIODS[0]
-    for (i,j,m,r) in base_data.A_ARCS:
-        a = (i,j,m,r)
-        for f in base_data.FM_FUEL[m]:
-            for p in base_data.P_PRODUCTS:
-                for s in base_data.S_SCENARIOS:
-                    weight = InitModel.model.x_flow[(a,f,p,t,s)].value
-                    if weight > 0:
-                        x_flow_base_period_init.append((a,f,p,t,s,weight))
-
-    return x_flow_base_period_init 
-
 def construct_and_solve_SP(base_data,
                             risk_info, 
                             last_time_period=False,
                             time_periods = None):
-    
-    # ------ SOLVE INIT MODEL ----------#
-    x_flow_base_period_init = solve_init_model(base_data,risk_info)   
-
-    # ------ CHANGE DATA BACK TO STANDARD ----------#
-
-    base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
-    
-    base_data.init_data = False
-    if time_periods == None:
-        base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL
-    else:
-        base_data.T_TIME_PERIODS = time_periods 
-
-    base_data.combined_sets()
-
 
     # ------ CONSTRUCT MODEL ----------#
 
@@ -135,7 +79,6 @@ def construct_and_solve_SP(base_data,
     model_instance.NoBalancingTrips = NoBalancingTrips
     model_instance.last_time_period = last_time_period
     model_instance.construct_model()
-    #model_instance.fix_variables_first_time_period(x_flow_base_period_init)
 
     print("Done constructing model.")
     print("Time used constructing the model:", time.time() - start)
@@ -155,27 +98,14 @@ def construct_and_solve_SP(base_data,
 
 def construct_and_solve_EEV(base_data,risk_info):
 
-        ############################
-        ###  1: solve init model ###
-        ############################
-    
-    #first solve the init model to initialize values
-    x_flow_base_period_init = solve_init_model(base_data,risk_info) 
-
-    #focus on all data this time
-        
-    base_data.init_data = False
-    if time_periods == None:
-        base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL    
-    else:
-        base_data.T_TIME_PERIODS = time_periods
-    base_data.combined_sets()
-
 
         ############################
         ###  #2: solve EV        ###
         ############################
     
+    base_data.S_SCENARIOS = ['BBB']
+    base_data.combined_sets()
+
     # ------ CONSTRUCT MODEL ----------#
 
     print("Constructing EV model.....", end="", flush=True)
@@ -185,8 +115,6 @@ def construct_and_solve_EEV(base_data,risk_info):
     model_instance_EV.NoBalancingTrips = NoBalancingTrips
     #constructing
     model_instance_EV.construct_model()
-    #fixing variables
-    model_instance_EV.fix_variables_first_time_period(x_flow_base_period_init)
 
     print("Done constructing EV model.",flush=True)
     print("Time used constructing the model:", time.time() - start,flush=True)
@@ -289,16 +217,13 @@ def construct_and_solve_SP_warm_start(base_data,
     return model_instance,base_data
 
 def generate_base_data(sheet_name_scenarios):
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     #add to the base_data class?
     base_data.risk_information = risk_info
 
-    x_flow_base_period_init = solve_init_model(base_data,risk_info) 
-
     base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
     
-    base_data.init_data = False
     if time_periods == None:
         base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL
     else:
@@ -324,7 +249,7 @@ def main(analysis_type):
             
     print("Reading data...", flush=True)
     start = time.time()
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
     print("Done reading data.", flush=True)
     print("Time used reading the base data:", time.time() - start,flush=True)
     sys.stdout.flush()
@@ -365,9 +290,8 @@ def main(analysis_type):
 def last_time_period_run():
     
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
-    x_flow_base_period_init= solve_init_model(base_data,risk_info)  #
-    base_data.init_data = False
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
+
     base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
     base_data.last_time_period = True
     base_data.combined_sets()

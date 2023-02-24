@@ -368,6 +368,13 @@ class TranspModel:
                 return (self.model.q_transp_amount[(m,f,t,s)] <= self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
             self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
             
+            def InitialModeSplit(model,m,s):
+                t0 = self.data.T_TIME_PERIODS[0]
+                total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+                modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
+                diff = self.data.INIT_MODE_SPLIT[m]*total_transport_amount - modal_transport_amount
+                return (-0.01,diff,0.01) 
+            self.model.InitialModeSplit = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
                 
             #Fleet Renewal
             def FleetRenewalRule(model,m,t,s):
@@ -423,19 +430,6 @@ class TranspModel:
             self.model.RoadDevelopment = Constraint(self.data.T_TIME_PERIODS_S, rule = RoadDevelopmentRule)
 
 
-        def InitialModeSplitLower(model,m,s):
-            t0 = self.data.T_TIME_PERIODS[0]
-            total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-            modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
-            return ( INIT_MODE_SPLIT_LOWER[m]*total_transport_amount <= modal_transport_amount ) 
-        self.model.InitModeSplitLower = Constraint(self.data.M_MODES_S,rule = InitialModeSplitLower)
-
-        def InitialModeSplitUpper(model,m,s):
-            t0 = self.data.T_TIME_PERIODS[0]
-            total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-            modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
-            return (modal_transport_amount <= INIT_MODE_SPLIT_UPPER[m]*total_transport_amount) 
-        self.model.InitModeSplitUpper = Constraint(self.data.M_MODES_S,rule = InitialModeSplitUpper)
 
         #-----------------------------------------------#
 
@@ -661,7 +655,9 @@ class TranspModel:
 
         return self.model
     
-    def fix_variables_first_time_period(self,x_flow_base_period_init):
+    
+    def fix_variables_first_stage(self,model_ev):  #this is the EV model that is input.
+        
         
         # for v in solved_init_model.model.component_objects(pyo.Var, active=True):
         #     #print("Variable",v)  
@@ -671,32 +667,7 @@ class TranspModel:
         #             var_big_model = getattr(self.model,str(v))
         #             var_big_model[index].fix(v[index].value)  
 
-        #not providing a value in the fix operator leads to the following error:
-        #TypeError: unsupported operand type(s) for *: 'int' and 'NoneType'
 
-
-        for (a,f,p,t,s,weight) in x_flow_base_period_init:
-            for ss in self.data.S_SCENARIOS:
-                #fixing this goes slower,
-                #self.model.x_flow[(a,f,p,t,ss)].fix(weight)
-                
-                #self.model.x_flow[(a,f,p,t,ss)].fixed = False
-                self.model.x_flow[(a,f,p,t,ss)].setub((1+RELATIVE_DEVIATION)*weight)
-                self.model.x_flow[(a,f,p,t,ss)].setlb((1-RELATIVE_DEVIATION)*weight)
-        
-        #fixing those leads to infeasibility? 
-        for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
-            a = (i,j,m,r)
-            if (a,f,p,t,s) not in [(aa,ff,pp,tt,ss) for (aa,ff,pp,tt,ss,ww) in x_flow_base_period_init]:
-                if t == self.data.T_TIME_PERIODS[0]:
-
-                    #self.model.x_flow[(a,f,p,t,s)].fix(0)   #seems to be a little bit faster
-
-                    self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
-                    self.model.x_flow[(a,f,p,t,s)].setub(ABSOLUTE_DEVIATION)
-
-    def fix_variables_first_stage(self,model_ev):  #this is the EV model that is input.
-        
         # for (i,j,m,r,f,p,t) in self.data.AFPT_S:    
         #     a = (i,j,m,r)
         #     if t in self.data.T_TIME_FIRST_STAGE:
@@ -826,7 +797,7 @@ class TranspModel:
         opt.options["Crossover"] = Crossover#default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
         opt.options["Method"] = Method #def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
         opt.options["NodeMethod"] = NodeMethod # https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
-        opt.options["DualReductions"] = 0 #default 1, at zero, figure out if unbounded or infeasible.
+        #opt.options["DualReductions"] = 0 #default 1, at zero, figure out if unbounded or infeasible.
         opt.solve(self.model, warmstart=warmstart, tee=True, 
                                         symbolic_solver_labels=True, #goes faster, but turn to true with errors!
                                         keepfiles=False)  

@@ -29,5 +29,3 @@ MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
 #the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)
 GROWTH_ON_ROAD = 2 #the transport amount on road can only grow with 100%
-INIT_MODE_SPLIT_LOWER = {"Sea":0.65,"Road":0.20,"Rail":0.015}  #rail = 0.03, road = 0.25
-INIT_MODE_SPLIT_UPPER = {"Sea":0.75,"Road":0.30,"Rail":0.025}  #rail = 0.03, road = 0.25
