@@ -35,8 +35,8 @@ from Utils2 import Logger
 
 only_generate_data = False
 log_to_file = True
-scenario_tree = "4Scen" #AllScen,4Scen
-analysis_type = 'SP' #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+scenario_tree = "AllScen" #AllScen,4Scen
+analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -265,10 +265,10 @@ def main(analysis_type):
             model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info,time_periods=time_periods)
         else:
             model_instance,base_data = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
-
     elif analysis_type == "EEV":
         model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
-    
+    else:
+        Exception('analysis type feil = '+analysis_type)
     #  --------- SAVE OUTPUT ---------    #
 
     print("Dumping data in pickle file...", end="")

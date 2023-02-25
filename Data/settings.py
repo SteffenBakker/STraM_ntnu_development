@@ -17,6 +17,7 @@ SCALING_FACTOR_EMISSIONS = 10**8 #if smaller, then the CO2_FEE disappears, needs
 # Data settings (create_sets_class)
 
 RISK_FREE_RATE = 0.038 # social discount rate, ref Ruben (Old:  https://tradingeconomics.com/norway/government-bond-yield  -> 3.2%)
+CO2_PRICE_FACTOR = 1
 MAX_TRUCK_CAP = 30 #to do: check this value
 EMPTY_VEHICLE_FACTOR = 0.6
 

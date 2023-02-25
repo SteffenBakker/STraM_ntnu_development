@@ -13,7 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "SP" #EV, EEV, 'SP
+analyses_type = "EEV" #EV, EEV, 'SP
 scenarios = "4Scen"   # AllScen, 4Scen
 noBalancingTrips = False
 last_time_period = False
@@ -36,7 +36,7 @@ with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
 
 
 print('objective function value: ', output.ob_function_value)
-print('objective function value normalized: ', round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY,2))  
+print('objective function value normalized (BILLION NOK): ', round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY,2))  
 
 
 
