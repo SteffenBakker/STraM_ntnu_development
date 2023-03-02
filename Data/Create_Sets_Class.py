@@ -134,7 +134,7 @@ class TransportSets():
         self.scaling_factor_weight = SCALING_FACTOR_WEIGHT
         self.scaling_factor_emissions = SCALING_FACTOR_EMISSIONS
 
-        self.precision_digits = 4 #this is necessary, otherwise C_TRANSP dissapears!
+        self.precision_digits = NUM_DIGITS_PRECISION #this is necessary, otherwise C_TRANSP dissapears!
 
         self.S_SCENARIOS_ALL = self.scenario_information.scenario_names
         self.S_SCENARIOS = self.S_SCENARIOS_ALL
@@ -272,16 +272,19 @@ class TransportSets():
         # ------- Other--------
         # -----------------------
 
-        self.P_PRODUCTS = [ 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Timber'] #'Dry bulk','Wet bulk'
+        self.P_PRODUCTS = [ 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Timber'] #'Wet bulk'
         
+
         self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]}
         
-        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk','Dry bulk', 
+        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk', 
                    "Timber": ['Timber'],
                    "All": self.P_PRODUCTS}
 
-        
-            
+        if INCLUDE_DRY_BULK:
+            self.P_PRODUCTS.append('Dry bulk')
+            self.PT["Combination"].append('Dry bulk')
+            self.PT["All"] = self.P_PRODUCTS
 
         ####################################
         ### ORIGIN, DESTINATION AND DEMAND #
@@ -307,17 +310,17 @@ class TransportSets():
         demands = pd.Series(D_DEMAND_ALL.values())         
         
         # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES? should not matter too much. distances are somewhat similar
-
+        print('describing original demand data')
         #print(demands.describe())   #huge spread -> remove the very small stuff. Even demand of 5E-1
         #demands.plot.hist(by=None, bins=1000)
         #demands.hist(cumulative=True, density=1, bins=100)
         
-        # total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
-        # cutoff = demands.quantile(0.01) #HARDCODED, requires some analyses. Do not remove too much. These are actual things that need to be transported. And not too much complexity because of it
-        # print('cutoff (in Tonnes):', cutoff)
-        # demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
-        # reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
-        # print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  
+        total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
+        cutoff = demands.quantile(0.12) #HARDCODED, requires some analyses. Do not remove too much. These are actual things that need to be transported. And not too much complexity because of it
+        print('cutoff (in Tonnes):', cutoff)
+        demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
+        reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
+        print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  
         
         # demands2.plot.hist(by=None, bins=1000)
         # demands2.hist(cumulative=True, density=1, bins=100)
@@ -325,7 +328,8 @@ class TransportSets():
         # print("{:e}".format(round(cutoff,0)))    # '3.306000e+03'
         # print("{:e}".format(round(demands.max(),0)))           # '2.739037e+07'
     
-        D_DEMAND_CUT = D_DEMAND_ALL #{key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
+        #D_DEMAND_CUT = D_DEMAND_ALL #
+        D_DEMAND_CUT = {key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
         
         #print('D_DEMAND_CUT:')
         #print(pd.Series(list(D_DEMAND_CUT.values())).describe())
@@ -378,7 +382,10 @@ class TransportSets():
 
 
         self.K_PATHS = []
-        all_generated_paths = pd.read_csv(self.prefix+r'generated_paths_Ruben_2_modes.csv', converters={'paths': eval})
+        filename = r'generated_paths_Ruben.csv'
+        if TWO_MODE_PATHS:
+            filename = r'generated_paths_Ruben_2_modes.csv'
+        all_generated_paths = pd.read_csv(self.prefix+filename, converters={'paths': eval})
         self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
         for index, row in all_generated_paths.iterrows():
             elem = tuple(row['paths']) 
@@ -518,7 +525,8 @@ class TransportSets():
         CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for index, row in CO2_fee_data.iterrows():
-            self.CO2_fee[row["Year"]] = round(CO2_PRICE_FACTOR*row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
+            t=row["Year"]
+            self.CO2_fee[t] = round(CO2_PRICE_FACTOR[t]*row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
             
 
         COST_BIG_M = 10**8
@@ -777,14 +785,14 @@ class TransportSets():
         self.MFT_INIT_TRANSP_SHARE = []
         for index, row in self.init_transport_share.iterrows():
             (m,f,t) = (row['Mode'], row['Fuel'],row['Year'])
-            self.Q_SHARE_INIT_MAX[(m,f,t)] = row['Max_transp_share']
+            self.Q_SHARE_INIT_MAX[(m,f,t)] = round(row['Max_transp_share'],self.precision_digits)
             self.MFT_INIT_TRANSP_SHARE.append((m,f,t))
 
         self.init_mode_share = pd.read_excel(self.prefix+r'init_mode_fuel_mix.xlsx',sheet_name="InitModeMix")
         self.INIT_MODE_SPLIT = {m:None for m in self.M_MODES}
         for index, row in self.init_mode_share.iterrows():
             (mm,share) = (row['Mode'], row['Share'])
-            self.INIT_MODE_SPLIT[mm] = share
+            self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
 
 
         #lifetime / lifespan

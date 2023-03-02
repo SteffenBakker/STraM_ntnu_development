@@ -34,13 +34,14 @@ from Utils2 import Logger
 #################################################
 
 only_generate_data = False
-log_to_file = True
-scenario_tree = "AllScen" #AllScen,4Scen
+log_to_file = False
+
+scenario_tree = "4Scen" #AllScen,4Scen
 analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
-cvar_coeff = 0.2    # \lambda: coefficient for CVaR in mean-CVaR objective
+cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 # TODO: test if this is working
 
@@ -89,7 +90,7 @@ def construct_and_solve_SP(base_data,
 
     print("Solving model...",flush=True)
     start = time.time()
-    model_instance.solve_model(FeasTol=10**(-2),num_focus=0) 
+    model_instance.solve_model(FeasTol=10**(-4)) #FeasTol=10**(-4),num_focus=0
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", end="", flush=True)
@@ -125,7 +126,7 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     print("Solving EV model.....",end="",flush=True)
     start = time.time()
-    model_instance_EV.solve_model(FeasTol=(10**(-5)))
+    model_instance_EV.solve_model() #FeasTol=(10**(-5))
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
     print("----------",  flush=True)
@@ -233,6 +234,8 @@ def generate_base_data(sheet_name_scenarios):
 
     with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
+    
+    return base_data
 
 def main(analysis_type):
     
@@ -314,7 +317,7 @@ if __name__ == "__main__":
     
     
     if only_generate_data:
-        generate_base_data(sheet_name_scenarios)
+        base_data = generate_base_data(sheet_name_scenarios)
     else:
         main(analysis_type=analysis_type)
 

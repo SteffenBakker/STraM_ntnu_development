@@ -6,6 +6,7 @@ import pyomo.opt.base as mobase
 from pyomo.environ import *
 import pyomo.environ as pyo
 from pyomo.util.infeasible import log_infeasible_constraints
+import logging
 
 import logging
 from Data.settings import *
@@ -20,7 +21,7 @@ import numpy as np
 
 ABSOLUTE_DEVIATION = 0.0001
 RELATIVE_DEVIATION = 0.0001
-
+FEAS_RELAX = 0
 class RiskInformation:
 
     def __init__(self, cvar_coeff, cvar_alpha):
@@ -79,60 +80,60 @@ class TranspModel:
         # total transport amount per mode
         self.model.q_mode_total_transp_amount = Var(self.data.MT_S, within = NonNegativeReals) #note: only measured in decision years
         
-        self.model.feas_relax = Var(within=NonNegativeReals)  
-        self.model.feas_relax.setlb(0)
-        self.model.feas_relax.setub(0)
+        #self.model.feas_relax = Var(within=NonNegativeReals)  
+        #self.model.feas_relax.setlb(0)
+        #self.model.feas_relax.setub(0)
 
         #COST_VARIABLES
 
         self.model.TranspOpexCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCost(model, t,s):
             return (self.model.TranspOpexCost[t,s] >= sum((self.data.C_TRANSP_COST[(i,j,m,r,f,p,t,s)])*self.model.x_flow[(i,j,m,r,f,p,t,s)] 
-                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m])- model.feas_relax )  
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m])- FEAS_RELAX )  
         self.model.TranspOpexCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspOpexCost)
         
         self.model.TranspCO2Cost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspCO2Cost(model, t,s):
             return (self.model.TranspCO2Cost[t,s] >= sum((self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t,s)] 
-                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) -model.feas_relax )  
+                                      for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) -FEAS_RELAX )  
         self.model.TranspCO2CostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspCO2Cost)
         
         self.model.TranspOpexCostB = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCostB(model, t,s):
             return (self.model.TranspOpexCostB[t,s] >= sum( EMPTY_VEHICLE_FACTOR*(self.data.C_TRANSP_COST[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t,s)]) * self.model.b_flow[(i,j,m,r,f,v,t,s)] 
-                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) - model.feas_relax )  
+                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) - FEAS_RELAX )  
         self.model.TranspOpexCostBConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspOpexCostB)
         
         self.model.TranspCO2CostB = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspCO2CostB(model, t,s):
             return (self.model.TranspCO2CostB[t,s] >= sum( EMPTY_VEHICLE_FACTOR*(self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t,s)] 
-                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) -model.feas_relax)  
+                                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) -FEAS_RELAX)  
         self.model.TranspCO2CostBConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspCO2CostB)
         
         self.model.TransfCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TransfCost(model, t,s):
-            return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)-model.feas_relax )  
+            return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)-FEAS_RELAX )  
         self.model.TransfCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TransfCost)
         
         self.model.EdgeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def EdgeCost(model, t,s):
-            return (self.model.EdgeCost[t,s] >= sum(self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t,s)] for e in self.data.E_EDGES_RAIL if e +(t,) in self.data.ET_RAIL)- model.feas_relax )  
+            return (self.model.EdgeCost[t,s] >= sum(self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t,s)] for e in self.data.E_EDGES_RAIL if e +(t,) in self.data.ET_RAIL)- FEAS_RELAX )  
         self.model.EdgeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=EdgeCost)
         
         self.model.NodeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def NodeCost(model, t,s):
             return (self.model.NodeCost[t,s] >= sum(self.data.C_NODE[(i,c,m)]*self.model.nu_node[(i,c,m,t,s)] for (i, m) in self.data.NM_LIST_CAP 
-                                                    for c in self.data.TERMINAL_TYPE[m] if (i,c,m,t) in self.data.NCMT)- model.feas_relax )  
+                                                    for c in self.data.TERMINAL_TYPE[m] if (i,c,m,t) in self.data.NCMT)- FEAS_RELAX )  
         self.model.NodeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=NodeCost)
         
         self.model.UpgCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def UpgCost(model, t,s):
-            return (self.model.UpgCost[t,s] >= sum(self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t,s)] for (e,f) in self.data.U_UPGRADE if (e,f,t) in self.data.UT_UPG) - model.feas_relax)  
+            return (self.model.UpgCost[t,s] >= sum(self.data.C_UPG[(e,f)]*self.model.upsilon_upg[(e,f,t,s)] for (e,f) in self.data.U_UPGRADE if (e,f,t) in self.data.UT_UPG) - FEAS_RELAX)  
         self.model.UpgCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=UpgCost)
         
         self.model.ChargeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def ChargeCost(model, t,s):
-            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING if (e,f,t) in self.data.EFT_CHARGE)- model.feas_relax )
+            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING if (e,f,t) in self.data.EFT_CHARGE)- FEAS_RELAX )
         self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=ChargeCost)
     
 
@@ -163,7 +164,7 @@ class TranspModel:
             delta = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0],self.data.precision_digits)
             investment_costs = self.model.EdgeCost[t,s] + self.model.NodeCost[t,s] + self.model.UpgCost[t,s] + self.model.ChargeCost[t,s] 
             
-            return (self.model.StageCosts[t,s] >= (opex_costs + delta*investment_costs ) - model.feas_relax ) 
+            return (self.model.StageCosts[t,s] >= (opex_costs + delta*investment_costs ) - FEAS_RELAX ) 
         
         self.model.stage_costs = Constraint(self.data.T_TIME_PERIODS_S, rule = StageCostsVar)
         
@@ -171,13 +172,13 @@ class TranspModel:
         # first-stage objective value variable
         self.model.FirstStageCosts = Var(self.data.S_SCENARIOS, within = Reals)
         def FirstStageCostsRule(model,s):
-            return (self.model.FirstStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_FIRST_STAGE) - model.feas_relax ) 
+            return (self.model.FirstStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_FIRST_STAGE) - FEAS_RELAX ) 
         self.model.FirstStageCostsConstr = Constraint(self.data.S_SCENARIOS, rule = FirstStageCostsRule)
 
         # second-stage objective value variable
         self.model.SecondStageCosts = Var(self.data.S_SCENARIOS, within = Reals)
         def SecondStageCostsRule(model,s):
-            return (self.model.SecondStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_SECOND_STAGE) - model.feas_relax)
+            return (self.model.SecondStageCosts[s] >= sum(self.model.StageCosts[t,s] for t in self.data.T_TIME_PERIODS if t in self.data.T_TIME_SECOND_STAGE) - FEAS_RELAX)
         self.model.SecondStageCostsConstr = Constraint(self.data.S_SCENARIOS,rule = SecondStageCostsRule)
 
         # scenario objective value variable (risk-neutral model would take expectation over this in the objective)
@@ -188,7 +189,7 @@ class TranspModel:
         
         #CVaR positive part constraint
         def CvarRule(model,s):
-            return (self.model.CvarPosPart[s] >= self.model.SecondStageCosts[s] - self.model.CvarAux - model.feas_relax  )     # z \geq v - u
+            return (self.model.CvarPosPart[s] >= self.model.SecondStageCosts[s] - self.model.CvarAux - FEAS_RELAX  )     # z \geq v - u
         self.model.CvarPosPartConstr = Constraint(self.data.S_SCENARIOS, rule=CvarRule) # add to model
 
         # lower bound on auxiliary CVaR variable (needed to avoid numerical issues)
@@ -235,7 +236,7 @@ class TranspModel:
                 return Constraint.Skip
             else:
                 return (sum(self.model.h_path[(k,p,t,s)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
-                    (o, d, p, t)] - model.feas_relax)
+                    (o, d, p, t)] - FEAS_RELAX)
                 
         # THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.Flow = Constraint(self.data.ODPTS_CONSTR_S, rule=FlowRule)
@@ -280,7 +281,7 @@ class TranspModel:
         #         for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
         #         sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t,s] 
         #             for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
-        #         - model.feas_relax )
+        #         - FEAS_RELAX )
         
         # self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
 
@@ -297,7 +298,7 @@ class TranspModel:
                                                     if (tau <= (t-self.data.LEAD_TIME_EDGE_RAIL[e]))    #and((e,tau) in self.data.ET_RAIL)
                                                     )
                                                     )   
-                   + model.feas_relax )
+                   + FEAS_RELAX )
         self.model.CapacitatedFlow = Constraint(self.data.EAT_RAIL_CONSTR_S, rule = CapacitatedFlowRule)
         
         #Num expansions
@@ -317,7 +318,7 @@ class TranspModel:
                                                                             for tau in self.data.T_TIME_PERIODS 
                                                                             if ((tau <= (t-self.data.LEAD_TIME_NODE[i,c,m])) )
                                                                             ) #and((i,c,m,tau) in self.data.NCMT)
-                   + model.feas_relax )
+                   + FEAS_RELAX )
         self.model.TerminalCap = Constraint(self.data.NCMT_CONSTR_S, rule = TerminalCapRule)
         
         #Num expansions of terminal NEW -- how many times you can perform a step-wise increase of the capacity
@@ -338,7 +339,7 @@ class TranspModel:
                        for tau in self.data.T_TIME_PERIODS 
                        if ( (tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)]))  )   # and ((e,f,tau) in self.data.EFT_CHARGE)
                        ) 
-                   + model.feas_relax )
+                   + FEAS_RELAX )
         self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE_CONSTR_S, rule=ChargingCapArcRule)
         #AIM also looked into charging infrastructure in NODES
 
@@ -350,7 +351,7 @@ class TranspModel:
                                                   for tau in self.data.T_TIME_PERIODS 
                                                   if (tau <= (t-self.data.LEAD_TIME_UPGRADE[(e,f)]))   #and((e,f,tau) in self.data.UT_UPG)
                                                   )   
-                    + model.feas_relax )
+                    + FEAS_RELAX )
         self.model.InvestmentInfra = Constraint(self.data.UT_UPG_CONSTR_S, rule = InvestmentInfraRule)
     
         #-----------------------------------------------#
@@ -363,13 +364,30 @@ class TranspModel:
 
         #Technology maturity limit upper bound (which also comes from bass diffusion)
         def TechMaturityLimitRule(model, m, f, t,s):
-            return (self.model.q_transp_amount[(m,f,t,s)] <= self.data.R_TECH_READINESS_MATURITY[(m,f,t,s)]/100*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m])
-            + model.feas_relax )   #TO DO: CHANGE THIS Q_TECH to R*M
+            return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.R_TECH_READINESS_MATURITY[(m,f,t,s)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m])
+            + FEAS_RELAX )   #TO DO: CHANGE THIS Q_TECH to R*M
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY_CONSTR_S, rule = TechMaturityLimitRule)
 
 
         if not self.last_time_period:
-
+            
+            if True:
+                #Initialize the transport amounts (put an upper bound at first)
+                def InitTranspAmountRule(model, m, f, t,s):
+                    return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
+                self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
+                
+                #THIS ONE QUICKLY LEADS TO INFEASIBILITY DUE TO CAPACITY ISSUES ON RAIL. Make sure that we do not use too much RAIL. 
+                def InitialModeSplit(model,m,s):
+                    if m=='Rail':
+                        return Constraint.Skip
+                    else:
+                        t0 = self.data.T_TIME_PERIODS[0]
+                        total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+                        modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
+                        return modal_transport_amount >= (self.data.INIT_MODE_SPLIT[m]-0.025)*total_transport_amount    #To give som leeway to rail!
+                self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
+            
             #Auxiliary transport amount (q_aux equal to q in all decision periods t)
             def AuxTransportAmountRule(model,m,f,t,s):
                 return (self.model.q_aux_transp_amount[m,f,t,s] == self.model.q_transp_amount[m,f,t,s]) #auxiliary q variable equal to "normal" q variable 
@@ -380,19 +398,8 @@ class TranspModel:
                 return (self.model.q_mode_total_transp_amount[m,t,s] == sum( self.model.q_transp_amount[m,f,t,s] for f in self.data.FM_FUEL[m] ))
             self.model.ModeTotalTransportAmount = Constraint(self.data.MT_S, rule = ModeTotalTransportAmountRule) 
 
-            #Initialize the transport amounts (put an upper bound at first)
-            def InitTranspAmountRule(model, m, f, t,s):
-                return (self.model.q_transp_amount[(m,f,t,s)] <= self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
-            self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
             
-            def InitialModeSplit(model,m,s):
-                t0 = self.data.T_TIME_PERIODS[0]
-                total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-                modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
-                diff = self.data.INIT_MODE_SPLIT[m]*total_transport_amount - modal_transport_amount
-                return (-0.01,diff,0.01) 
-            self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
-                
+                    
             #Fleet Renewal
             def FleetRenewalRule(model,m,t,s):
                 all_decreases = sum(self.model.q_transp_delta[(m,f,t,s)] for f in self.data.FM_FUEL[m])
@@ -439,12 +446,13 @@ class TranspModel:
         #    Specific constraints
         #-----------------------------------------------#
 
-            #Do not use too much road
-            def RoadDevelopmentRule(model, t,s):
-                m = "Road"
-                return (sum(self.model.q_transp_amount[(m,f,t,s)] for f in self.data.FM_FUEL[m]) <= \
-                    GROWTH_ON_ROAD*sum(self.model.q_transp_amount[(m,f,self.data.T_TIME_PERIODS[0],s)] for f in self.data.FM_FUEL[m]))   
-            self.model.RoadDevelopment = Constraint(self.data.T_TIME_PERIODS_S, rule = RoadDevelopmentRule)
+            if False:
+                #Do not use too much road
+                def RoadDevelopmentRule(model, t,s):
+                    m = "Road"
+                    return (sum(self.model.q_transp_amount[(m,f,t,s)] for f in self.data.FM_FUEL[m]) <= \
+                        GROWTH_ON_ROAD*sum(self.model.q_transp_amount[(m,f,self.data.T_TIME_PERIODS[0],s)] for f in self.data.FM_FUEL[m]))   
+                self.model.RoadDevelopment = Constraint(self.data.T_TIME_PERIODS_S, rule = RoadDevelopmentRule)
 
 
 
@@ -465,7 +473,7 @@ class TranspModel:
             return output
 
         if len(self.data.S_SCENARIOS)>1:
-            
+        #if False:    
             ABSOLUTE_DEVIATION_NONANT = 0
 
             def Nonanticipativity_x(model,i,j,m,r,f,p,t,s,ss):
@@ -767,9 +775,9 @@ class TranspModel:
         
     def unfix_variables_first_stage(self):
         
-        relax=0.001  #5*10**(-2)
-        self.model.feas_relax.setlb(relax)
-        self.model.feas_relax.setub(relax)
+        #relax=0.001  #5*10**(-2)
+        #self.model.feas_relax.setlb(relax)
+        #self.model.feas_relax.setub(relax)
         
         upperbound = max(self.data.D_DEMAND.values())*2
         for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
@@ -806,7 +814,7 @@ class TranspModel:
     
             
 
-    def solve_model(self, warmstart=False, FeasTol=(10**(-4)),MIP_gap=MIPGAP,num_focus=0,Crossover=-1,Method=-1,NodeMethod=-1):  #GENERAL way to solve a single deterministic model
+    def solve_model(self, warmstart=False, FeasTol=(10**(-6)),MIP_gap=MIPGAP,num_focus=0,Crossover=-1,Method=-1,NodeMethod=-1):  #GENERAL way to solve a single deterministic model
 
         opt = pyomo.opt.SolverFactory('gurobi') #gurobi
         opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
@@ -816,18 +824,20 @@ class TranspModel:
         opt.options["Crossover"] = Crossover#default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
         opt.options["Method"] = Method #def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
         opt.options["NodeMethod"] = NodeMethod # https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
-        #opt.options["DualReductions"] = 0 #default 1, at zero, figure out if unbounded or infeasible.
-        opt.solve(self.model, warmstart=warmstart, tee=True, 
+        #opt.options["DualReductions"] = 0 #default 1. At zero, figure out if unbounded or infeasible.
+        results = opt.solve(self.model, warmstart=warmstart, tee=True, 
                                         symbolic_solver_labels=False, #goes faster, but turn to true with errors!
                                         keepfiles=False)  
                                         #https://pyomo.readthedocs.io/en/stable/working_abstractmodels/pyomo_command.html
-        if False:
+        if True:
             if (results.solver.status == pyomo.opt.SolverStatus.ok) and (
                     results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal):
                 print('the solution is feasible and optimal')
             elif results.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
                 print('the model is infeasible')
-                #log_infeasible_constraints(self.model,log_expression=True, log_variables=True)
+                log_infeasible_constraints(self.model)
+                log_infeasible_constraints(self.model, log_expression=True, log_variables=True)
+                logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
                 raise Exception('the model is infeasible')
                 #logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
                 #print(value(model.z))

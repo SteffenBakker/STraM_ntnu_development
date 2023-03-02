@@ -13,7 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "EEV" #EV, EEV, 'SP
+analyses_type = "SP" #EV, EEV, 'SP
 scenarios = "4Scen"   # AllScen, 4Scen
 noBalancingTrips = False
 last_time_period = False
@@ -392,6 +392,7 @@ def mode_mix_calculations(output,base_data):
     return output
 
 output = mode_mix_calculations(output,base_data)
+
 
 
 

@@ -47,7 +47,7 @@ import pstats
 profiling = False
 distribution_on_cluster = False  #is the code to be run on the cluster using the distribution package?
 
-analysis_type = 'EEV' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = 'SP' #, 'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 sheet_name_scenarios = 'three_scenarios_new' #scenarios_base,three_scenarios_new, three_scenarios_with_maturity
 
 # risk parameters
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         
     print("Reading data...", flush=True)
     start = time.time()
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios, init_data=False) #init_data is used to fix the mode-fuel mix in the first time period.
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) #init_data is used to fix the mode-fuel mix in the first time period.
     print("Done reading data.", flush=True)
     print("Time used reading the base data:", time.time() - start)
     sys.stdout.flush()
@@ -83,6 +83,8 @@ if __name__ == "__main__":
     
 #in the objective:
 
+    pd.DataFrame(base_data.D_DEMAND.values()).describe()  #0 - 2E6
+
     pd.DataFrame(base_data.C_TRANSP_COST.values()).describe()  #0 - 2E6
     pd.DataFrame(base_data.C_CO2.values()).describe() #0-2E2
     pd.DataFrame(base_data.C_TRANSFER.values()).describe() #0-4E2
@@ -90,11 +92,9 @@ if __name__ == "__main__":
     pd.DataFrame(base_data.C_NODE.values()).describe() # 3E5
     pd.DataFrame(base_data.C_UPG.values()).describe() #1.5E5
     pd.DataFrame(base_data.C_CHARGE.values()).describe() #160
-    EMISSION_VIOLATION_PENALTY  #10.0000
 
-    pd.DataFrame(base_data.E_EMISSIONS.values()).describe() #0 - 5E4
+    #pd.DataFrame(base_data.E_EMISSIONS.values()).describe() #0 - 5E4 #not relevant anymore
     
-    base_data.EMISSION_CAP_ABSOLUTE_BASE_YEAR
     pd.DataFrame(base_data.Q_EDGE_RAIL.values()).describe()   #7.5
     pd.DataFrame(base_data.Q_NODE_BASE.values()).describe()   #1000
     pd.DataFrame(base_data.Q_NODE.values()).describe() #300
@@ -105,6 +105,45 @@ if __name__ == "__main__":
     pd.DataFrame(base_data.AVG_DISTANCE.values()).describe() #729
 
     pd.DataFrame(base_data.Q_SHARE_INIT_MAX.values()).describe()
+
+
+
+    import math
+    def magnitude_order(num):
+        if num == 0:
+            return 0
+
+        absnum = abs(num)
+        order = math.log10(absnum)
+        res = math.floor(order)
+
+        return res
+    print('-----')
+    for (name,dict) in [('demand',base_data.D_DEMAND),
+                        ('transp_cost',base_data.C_TRANSP_COST),
+                        ('co2cost',base_data.C_CO2),
+                        ('transfcost',base_data.C_TRANSFER),
+                        ('edge',base_data.C_EDGE_RAIL),
+                        ('node',base_data.C_NODE),
+                        ('upg',base_data.C_UPG),
+                        ('charge',base_data.C_CHARGE),
+                        ('q_edge',base_data.Q_EDGE_RAIL),
+                        ('q_node_base',base_data.Q_NODE_BASE),
+                        ('q_node_add',base_data.Q_NODE)
+                        ]:
+        val_list=list(dict.values())
+        magnitude_list=list(map(magnitude_order, val_list))
+        print(name)
+        print('min: ', min(magnitude_list))
+        print('max: ', max(magnitude_list))
+        print('-----')
+
+
+        
+    #inspect_list = list([values for (i,j,p,t),values in base_data.D_DEMAND.items() if p!="Dry bulk"])
+    inspect_list = list([values for (i,j,p,t),values in base_data.D_DEMAND.items() if p=="Dry bulk"])
+
+    pd.Series((inspect_list)).describe()
 
     
     
