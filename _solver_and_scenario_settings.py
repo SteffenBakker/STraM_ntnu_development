@@ -6,7 +6,7 @@ Created on Fri Jul 29 10:24:04 2022
 """
 
 #import mpisppy.utils.sputils as sputils
-from TranspModelClass import TranspModel
+from Model import TranspModel
 #import mpisppy.scenario_tree as scenario_tree
 import copy
 from Data.settings import *
