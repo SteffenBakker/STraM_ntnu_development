@@ -10,8 +10,8 @@ import os
 # os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 #os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
 
-from TranspModelClass import TranspModel, RiskInformation
-from ExtractModelResults import OutputData
+from Model import TranspModel, RiskInformation
+from ExtractResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
 
