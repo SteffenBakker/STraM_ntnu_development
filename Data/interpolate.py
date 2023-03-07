@@ -224,14 +224,15 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
                     new_data.E_EMISSIONS[(i,j,m,r,f,p,t)] = round(new_data.E_EMISSIONS[(i,j,m,r,f,p,t)],new_data.precision_digits)
                     new_data.C_CO2[(i,j,m,r,f,p,t)] = round(new_data.C_CO2[(i,j,m,r,f,p,t)] ,new_data.precision_digits)
     # initialize R_TECH_READINESS_MATURITY at base path
-    for (m,f) in new_data.tech_is_mature:
-        if new_data.tech_is_mature[(m,f)]:
-            for t in new_data.T_TIME_PERIODS:    
-                new_data.R_TECH_READINESS_MATURITY[(m, f, t)] = 100 # assumption: all mature technologies have 100% market potential
-        else:
-            for t in new_data.T_TIME_PERIODS:
-                new_data.R_TECH_READINESS_MATURITY[(m, f, t)] = new_data.tech_base_bass_model[(m,f)].A(t) # compute maturity level based on base Bass diffusion model 
-        
+    for s in new_data.S_SCENARIOS:
+        for (m,f) in new_data.tech_is_mature:
+            if new_data.tech_is_mature[(m,f)]:
+                for t in new_data.T_TIME_PERIODS:    
+                    new_data.R_TECH_READINESS_MATURITY[(m, f, t,s)] = 100 # assumption: all mature technologies have 100% market potential
+            else:
+                for t in new_data.T_TIME_PERIODS:
+                    new_data.R_TECH_READINESS_MATURITY[(m, f, t,s)] = new_data.tech_base_bass_model[(m,f)].A(t) # compute maturity level based on base Bass diffusion model 
+
 
     #Initializing transport work share in base year
     new_data.Q_SHARE_INIT_MAX = {}
@@ -257,7 +258,7 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
 
 # TESTING
 
-if True:
+if False:
     #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
     os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
     sys.path.insert(0, '') #make sure the modules are found in the new working directory

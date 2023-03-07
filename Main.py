@@ -37,8 +37,8 @@ from Utils import Logger
 only_generate_data = False
 log_to_file = False
 
-scenario_tree = "4Scen" #AllScen,4Scen
-analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+scenario_tree = "9Scen" #AllScen,4Scen, 9Scen
+analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -56,6 +56,9 @@ if scenario_tree == 'AllScen':
     sheet_name_scenarios = 'scenarios_base' 
 elif scenario_tree == '4Scen':
     sheet_name_scenarios = 'three_scenarios_new' 
+elif scenario_tree == '9Scen':
+    sheet_name_scenarios = 'nine_scenarios' 
+    
 
 run_identifier = analysis_type + '_' + scenario_tree
 if NoBalancingTrips:
@@ -263,8 +266,6 @@ def main(analysis_type):
     num_first_stage_periods = 2                                 # how many of the periods above are in first stage
     base_data = interpolate(base_data, time_periods, num_first_stage_periods)
 
-    # define new data based on new timeline by interpolating between time periods in orig_data
-    new_data = interpolate(orig_data, time_periods, num_first_stage_periods)
     print("Done reading data.", flush=True)
     print("Time used reading the base data:", time.time() - start,flush=True)
     sys.stdout.flush()

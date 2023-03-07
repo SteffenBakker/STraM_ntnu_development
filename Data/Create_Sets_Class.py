@@ -575,19 +575,7 @@ class TransportSets():
 
 
         
-        #find the "cheapest" product group per vehicle type. 
-        self.cheapest_product_per_vehicle = {(m,f,t,v):None for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS for v in self.VEHICLE_TYPES_M[m]}
-        for m in self.M_MODES: 
-            for f in self.FM_FUEL[m]: 
-                for t in self.T_TIME_PERIODS:
-                    for v in self.VEHICLE_TYPES_M[m]:
-                        cheapest_product = None
-                        lowest_cost = 200000000
-                        for p in self.PV_PRODUCTS[v]:
-                            if self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] < lowest_cost:
-                                lowest_cost = self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)]
-                                cheapest_product = p
-                        self.cheapest_product_per_vehicle[(m,f,t,v)] = cheapest_product
+        
 
         #################
         #  INVESTMENTS  #
@@ -1021,6 +1009,24 @@ class TransportSets():
         self.T_TIME_PERIODS_S = combinations([(t,) for t in self.T_TIME_PERIODS],self.S_SCENARIOS)
         self.UT_UPG_S = combinations(self.UT_UPG,self.S_SCENARIOS)
         self.UT_UPG_CONSTR_S = combinations(self.UT_UPG_CONSTR,self.S_SCENARIOS)
+
+
+        #DERIVED PARAMETERS
+
+        #find the "cheapest" product group per vehicle type. 
+        self.cheapest_product_per_vehicle = {(m,f,t,v):None for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_TIME_PERIODS for v in self.VEHICLE_TYPES_M[m]}
+        for m in self.M_MODES: 
+            for f in self.FM_FUEL[m]: 
+                for t in self.T_TIME_PERIODS:
+                    for v in self.VEHICLE_TYPES_M[m]:
+                        cheapest_product = None
+                        lowest_cost = 200000000
+                        for p in self.PV_PRODUCTS[v]:
+                            if self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] < lowest_cost:
+                                lowest_cost = self.C_TRANSP_COST_NORMALIZED[(m,f,p,t)]
+                                cheapest_product = p
+                        self.cheapest_product_per_vehicle[(m,f,t,v)] = cheapest_product
+
 
 
 print("Finished reading sets and classes.")
