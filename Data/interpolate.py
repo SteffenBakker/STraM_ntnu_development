@@ -69,7 +69,7 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
                 else:
                     # interpolate
                     new_data.D_DEMAND[(o,d,p,t)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
-
+            new_data.D_DEMAND[(o,d,p,t)] = round(new_data.D_DEMAND[(o,d,p,t)], new_data.precision_digits)
     # TODO: GET RID OF NEAR-ZERO DEMAND?
 
     # aggregate demand
@@ -102,7 +102,7 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
                 new_data.CO2_fee[t] = left_value
             else:
                 new_data.CO2_fee[t] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
-
+        new_data.CO2_fee[t] = round(new_data.CO2_fee[t],new_data.precision_digits)
 
     #base level transport costs (in average scenario)
     new_data.C_TRANSP_COST_BASE = {(i,j,m,r,f,p,t): 1000000 for (i,j,m,r) in new_data.A_ARCS for f in new_data.FM_FUEL[m] 
@@ -151,13 +151,14 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
                         else:
                             new_data.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
                         # E_EMISSIONS_NORMALIZED
-                        left_value = orig_data.C_TRANSP_COST_NORMALIZED[(m,f,p,t_left)]
-                        right_value = orig_data.C_TRANSP_COST_NORMALIZED[(m,f,p,t_right)]
+                        left_value = orig_data.E_EMISSIONS_NORMALIZED[(m,f,p,t_left)]
+                        right_value = orig_data.E_EMISSIONS_NORMALIZED[(m,f,p,t_right)]
                         if t_left == t_right:
-                            new_data.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] = left_value
+                            new_data.E_EMISSIONS_NORMALIZED[(m,f,p,t)] = left_value
                         else:
-                            new_data.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
-
+                            new_data.E_EMISSIONS_NORMALIZED[(m,f,p,t)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
+                    new_data.C_TRANSP_COST_NORMALIZED[(m,f,p,t)] = round(new_data.C_TRANSP_COST_NORMALIZED[(m,f,p,t)],new_data.precision_digits)
+                    new_data.E_EMISSIONS_NORMALIZED[(m,f,p,t)] = round(new_data.E_EMISSIONS_NORMALIZED[(m,f,p,t)],new_data.precision_digits)
     # everything with index (i,j,m,r,f,p,t)
     # that is: C_TRANSP_COST_BASE, C_TRANSP_COST, E_EMISSIONS, C_CO2
     for (i,j,m,r) in new_data.A_ARCS:
@@ -218,7 +219,10 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
                             new_data.C_CO2[(i,j,m,r,f,p,t)] = left_value
                         else:
                             new_data.C_CO2[(i,j,m,r,f,p,t)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
-
+                    new_data.C_TRANSP_COST_BASE[(i,j,m,r,f,p,t)] = round(new_data.C_TRANSP_COST_BASE[(i,j,m,r,f,p,t)],new_data.precision_digits)
+                    new_data.C_TRANSP_COST[(i,j,m,r,f,p,t,s)] = round(new_data.C_TRANSP_COST[(i,j,m,r,f,p,t,s)],new_data.precision_digits)
+                    new_data.E_EMISSIONS[(i,j,m,r,f,p,t)] = round(new_data.E_EMISSIONS[(i,j,m,r,f,p,t)],new_data.precision_digits)
+                    new_data.C_CO2[(i,j,m,r,f,p,t)] = round(new_data.C_CO2[(i,j,m,r,f,p,t)] ,new_data.precision_digits)
     # initialize R_TECH_READINESS_MATURITY at base path
     for (m,f) in new_data.tech_is_mature:
         if new_data.tech_is_mature[(m,f)]:
