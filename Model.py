@@ -10,12 +10,6 @@ import logging
 
 import logging
 from Data.settings import *
-from Data.Create_Sets_Class import TransportSets   #FreightTransportModel.Data.Create_Sets_Class
-from ExtractResults import OutputData
-import time
-
-import os
-import numpy as np
 
 ############# Class ################
 

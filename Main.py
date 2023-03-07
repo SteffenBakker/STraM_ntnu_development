@@ -18,6 +18,7 @@ from Model import TranspModel, RiskInformation
 from ExtractResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
+from Data.interpolate import interpolate
 
 from pyomo.environ import *
 import time
@@ -27,7 +28,7 @@ import pickle
 import cProfile
 import pstats
 
-from Utils2 import Logger
+from Utils import Logger
 
 #################################################
 #                   user input                  #
@@ -37,7 +38,7 @@ only_generate_data = False
 log_to_file = False
 
 scenario_tree = "4Scen" #AllScen,4Scen
-analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -219,6 +220,10 @@ def construct_and_solve_SP_warm_start(base_data,
 
 def generate_base_data(sheet_name_scenarios):
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
+    time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
+    num_first_stage_periods = 2                                 # how many of the periods above are in first stage
+    base_data = interpolate(base_data, time_periods, num_first_stage_periods)
+    
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     #add to the base_data class?
     base_data.risk_information = risk_info
@@ -253,6 +258,13 @@ def main(analysis_type):
     print("Reading data...", flush=True)
     start = time.time()
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
+    # define new timeline
+    time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
+    num_first_stage_periods = 2                                 # how many of the periods above are in first stage
+    base_data = interpolate(base_data, time_periods, num_first_stage_periods)
+
+    # define new data based on new timeline by interpolating between time periods in orig_data
+    new_data = interpolate(orig_data, time_periods, num_first_stage_periods)
     print("Done reading data.", flush=True)
     print("Time used reading the base data:", time.time() - start,flush=True)
     sys.stdout.flush()

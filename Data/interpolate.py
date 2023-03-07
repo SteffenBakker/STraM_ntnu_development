@@ -1,6 +1,7 @@
 import copy
-from Create_Sets_Class import *
-
+import numpy as np
+import os
+import sys
 
 def interpolate(orig_data, time_periods, num_first_stage_periods):
     # copy the original data 
@@ -251,20 +252,26 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
 
 # TESTING
 
-# load original data (based on [2022, 2026, 2030, 2040, 2050])
-orig_data = TransportSets(sheet_name_scenarios='three_scenarios_new')
+if True:
+    #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
+    os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
+    sys.path.insert(0, '') #make sure the modules are found in the new working directory
+    from Create_Sets_Class import *
 
-# define new timeline
-time_periods = [2025, 2030, 2035, 2040, 2045, 2050, 2060]   # new time periods
-num_first_stage_periods = 3                                 # how many of the periods above are in first stage
+    # load original data (based on [2022, 2026, 2030, 2040, 2050])
+    orig_data = TransportSets(sheet_name_scenarios='three_scenarios_new')
 
-# define new data based on new timeline by interpolating between time periods in orig_data
-new_data = interpolate(orig_data, time_periods, num_first_stage_periods)
+    # define new timeline
+    time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
+    num_first_stage_periods = 2                                 # how many of the periods above are in first stage
+
+    # define new data based on new timeline by interpolating between time periods in orig_data
+    new_data = interpolate(orig_data, time_periods, num_first_stage_periods)
 
 
 
-for i in new_data.E_EMISSIONS:
-    print(i, ": ", new_data.E_EMISSIONS[i])
+    for i in new_data.E_EMISSIONS:
+        print(i, ": ", new_data.E_EMISSIONS[i])
 
 
 
