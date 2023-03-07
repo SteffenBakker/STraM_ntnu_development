@@ -197,12 +197,13 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
                         else:
                             new_data.C_TRANSP_COST_BASE[(i,j,m,r,f,p,t)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
                         # C_TRANSP_COST
-                        left_value = orig_data.C_TRANSP_COST[(i,j,m,r,f,p,t_left)]
-                        right_value = orig_data.C_TRANSP_COST[(i,j,m,r,f,p,t_right)]
-                        if t_left == t_right:
-                            new_data.C_TRANSP_COST[(i,j,m,r,f,p,t)] = left_value
-                        else:
-                            new_data.C_TRANSP_COST[(i,j,m,r,f,p,t)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
+                        for s in orig_data.S_SCENARIOS:
+                            left_value = orig_data.C_TRANSP_COST[(i,j,m,r,f,p,t_left,s)]
+                            right_value = orig_data.C_TRANSP_COST[(i,j,m,r,f,p,t_right,s)]
+                            if t_left == t_right:
+                                new_data.C_TRANSP_COST[(i,j,m,r,f,p,t,s)] = left_value
+                            else:
+                                new_data.C_TRANSP_COST[(i,j,m,r,f,p,t,s)] = left_value + (t - t_left) * (right_value - left_value) / (t_right - t_left)
                         # E_EMISSIONS
                         left_value = orig_data.E_EMISSIONS[(i,j,m,r,f,p,t_left)]
                         right_value = orig_data.E_EMISSIONS[(i,j,m,r,f,p,t_right)]
