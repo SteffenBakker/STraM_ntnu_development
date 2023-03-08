@@ -38,7 +38,7 @@ class TranspModel:
 
         self.NoBalancingTrips = False
 
-    def construct_model(self):
+    def construct_model(self,risk_neutral=False):
         
         #Significant speed improvements can be obtained using the LinearExpression object when there are long, dense, linear expressions.
         # USe linearexpressions: https://pyomo.readthedocs.io/en/stable/advanced_topics/linearexpression.html
@@ -211,13 +211,12 @@ class TranspModel:
             risk_neutral_scen_obj_value = 1/len(self.data.S_SCENARIOS)*sum(self.model.FirstStageCosts[s] + self.model.SecondStageCosts[s] for s in self.data.S_SCENARIOS)
             return risk_neutral_scen_obj_value
 
-        
-
-
-
         # give objective function to model
-        self.model.objective_function = Objective(rule=objfun_risk_averse, sense=minimize) #risk-averse
-        #self.model.objective_function = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
+        if risk_neutral:
+            self.model.objective_function = Objective(rule=objfun_risk_neutral, sense=minimize) #TEMPORARY: risk-neutral
+        else:
+            self.model.objective_function = Objective(rule=objfun_risk_averse, sense=minimize) #risk-averse
+        
         
 
 
@@ -398,7 +397,7 @@ class TranspModel:
             def FleetRenewalRule(model,m,t,s):
                 all_decreases = sum(self.model.q_transp_delta[(m,f,t,s)] for f in self.data.FM_FUEL[m])
                 factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[m]
-                return (all_decreases <= factor*self.model.q_mode_total_transp_amount[m,t,s])
+                return (all_decreases <= factor*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
             self.model.FleetRenewal = Constraint(self.data.MT_MIN0_S, rule = FleetRenewalRule)
             
             def FleetRenewalPosPartRule(model,m,f,t,s):

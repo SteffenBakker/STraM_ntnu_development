@@ -13,24 +13,25 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "EEV" #EV, EEV, 'SP
-scenarios = "9Scen"   # AllScen, 4Scen, 9Scen
+analyses_type = "SP" #EV, EEV, 'SP
+scenarios = "4Scen"   # AllScen, 4Scen, 9Scen
 noBalancingTrips = False
-last_time_period = False
+last_time_period = True
 total_dev_check = False
 
 #---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
-
+data_file = scenarios
 run_identifier = analyses_type+'_'+scenarios
 if noBalancingTrips:
     run_identifier = run_identifier + '_NoBalancingTrips'
 if last_time_period:
-    run_identifier = run_identifier + '_last_period'
+    run_identifier = run_identifier + '_last_time_period'
+    data_file = data_file + '_last_time_period'
+
 with open(r'Data\\output\\'+run_identifier+'.pickle', 'rb') as output_file:
     output = pickle.load(output_file)
-
 with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
 

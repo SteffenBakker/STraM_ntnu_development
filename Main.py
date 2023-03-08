@@ -37,8 +37,9 @@ from Utils import Logger
 only_generate_data = False
 log_to_file = False
 
+analysis = "standard"  # ["standard","only_generate_data", "risk", "last_time_period","no_balancing_trips","carbon_prices"]
 scenario_tree = "9Scen" #AllScen,4Scen, 9Scen
-analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -59,10 +60,8 @@ elif scenario_tree == '4Scen':
 elif scenario_tree == '9Scen':
     sheet_name_scenarios = 'nine_scenarios' 
     
-
 run_identifier = analysis_type + '_' + scenario_tree
-if NoBalancingTrips:
-    run_identifier = run_identifier +'_NoBalancingTrips'
+
 run_identifier2 = run_identifier
 if wrm_strt:
     run_identifier2 = run_identifier2 +'_WrmStrt'
@@ -73,7 +72,8 @@ sys.stdout = Logger(run_identifier2,log_to_file)
 def construct_and_solve_SP(base_data,
                             risk_info, 
                             last_time_period=False,
-                            time_periods = None):
+                            time_periods = None,
+                            NoBalancingTrips = None):
 
     # ------ CONSTRUCT MODEL ----------#
 
@@ -251,7 +251,11 @@ def generate_base_data(sheet_name_scenarios):
     
     return base_data
 
-def main(analysis_type):
+def main(analysis_type,
+         cvar_coeff=cvar_coeff,
+         risk_aversion=None,
+         last_time_period=False,
+         NoBalancingTrips=False):
     
     print('----------------------------')
     print('Doing the following analysis: ')
@@ -280,6 +284,10 @@ def main(analysis_type):
     #add to the base_data class?
     base_data.risk_information = risk_info
     
+    if last_time_period:
+        base_data.last_time_period = True
+        base_data.combined_sets()
+
     #     --------- MODEL  ---------   #
     # solve model
     if analysis_type == "SP":
@@ -292,9 +300,11 @@ def main(analysis_type):
     else:
         Exception('analysis type feil = '+analysis_type)
     #  --------- SAVE OUTPUT ---------    #
-
+    scenario_tree2 = scenario_tree
+    if last_time_period:
+        scenario_tree2 = scenario_tree2 + "_last_time_period"
     print("Dumping data in pickle file...", end="")
-    with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file: 
+    with open(r'Data//base_data//'+scenario_tree2+'.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
     print("done.")
 
@@ -302,46 +312,44 @@ def main(analysis_type):
     
     output = OutputData(model_instance.model,base_data)
 
-    with open(r"Data//output//" + run_identifier+'.pickle', 'wb') as output_file: 
+    run_identifier2 = run_identifier
+    if NoBalancingTrips:
+        run_identifier2 = run_identifier2 +'_NoBalancingTrips'
+    if risk_aversion is not None:
+        run_identifier2 = run_identifier2 + '_' + risk_aversion
+    if last_time_period:
+        run_identifier2 = run_identifier2 + "_last_time_period"
+    with open(r"Data//output//" + run_identifier2+'.pickle', 'wb') as output_file: 
         print("Dumping output in pickle file.....", end="")
         pickle.dump(output, output_file)
         print("done.")
     
     sys.stdout.flush()
 
-def last_time_period_run():
-    
-    risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
+def risk_analysis():
 
-    base_data.update_time_periods(base_data.T_TIME_PERIODS_ALL)
-    base_data.last_time_period = True
-    base_data.combined_sets()
-
-    # ef = construct_model_template_ef(base_data,risk_info,
-    #                             fix_first_time_period=False, x_flow_base=None,
-    #                             fix_first_stage=False,first_stage_variables=None,
-    #                             scenario_names=base_data.scenario_information.scenario_names,
-    #                             last_time_period=True)
-    # ef = solve_model_template_ef(ef)
-
-    #file_string = 'output_data_' + analysis_type + '_' + sheet_name_scenarios +'_last_period' 
-    #output = OutputData(ef,base_data,EV_problem=False)
-    with open(r'Data//output//' + run_identifier+'.pickle', 'wb') as output_file: 
-        print("Dumping output in pickle file...", end="")
-        pickle.dump(output, output_file)
-        print("done.")
+    for risk_avers in ["neutral","averse"]:
+        if risk_avers == "neutral":
+            cvar_coeff=0
+        elif risk_avers == "averse":
+            cvar_coeff=1
+        main(analysis_type="SP",cvar_coeff=cvar_coeff, risk_aversion=risk_avers)
 
 if __name__ == "__main__":
     
     
-    if only_generate_data:
+    if analysis == "only_generate_data":
         base_data = generate_base_data(sheet_name_scenarios)
-    else:
+    elif analysis == "risk":
+        risk_analysis()
+    elif analysis == "standard":
         main(analysis_type=analysis_type)
-
-    #last_time_period_run()
-
+    elif analysis == "last_time_period":
+        main(analysis_type=analysis_type,last_time_period=True)
+    elif analysis == "no_balancing_trips":
+        main(analysis_type=analysis_type,NoBalancingTrips=True)
+    elif analysis == "carbon_prices":
+        pass # To do
     
 
 
