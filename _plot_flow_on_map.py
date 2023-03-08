@@ -457,7 +457,7 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
 sel_time_period = 2028
-sel_product = "Timber"
+sel_product = "all" # "Timber" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
 show_fig = True
@@ -475,7 +475,7 @@ mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
 sel_time_period_before = 2028
 sel_time_period_after = 2050
-sel_product = "all"
+sel_product = "Timber" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
 show_fig = True
