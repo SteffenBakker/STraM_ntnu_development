@@ -808,16 +808,23 @@ class TranspModel:
     
             
 
-    def solve_model(self, warmstart=False, FeasTol=(10**(-6)),MIP_gap=MIPGAP,num_focus=0,Crossover=-1,Method=-1,NodeMethod=-1):  #GENERAL way to solve a single deterministic model
+    def solve_model(self, warmstart=False, 
+                    FeasTol=(10**(-6)), #the standard of 10**(-6) can give a constraint violation warning
+                    MIP_gap=MIPGAP,
+                    # 'TimeLimit':600, # (seconds)
+                    num_focus= 0,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+                    Crossover=-1, #default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
+                    Method=-1, #root node relaxation, def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
+                    NodeMethod=-1):  # all other nodes, https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
 
         opt = pyomo.opt.SolverFactory('gurobi') #gurobi
-        opt.options['FeasibilityTol'] = FeasTol #the standard of 10**(-6) gives a constraint violation warning
-        opt.options['MIPGap']= MIP_gap # 'TimeLimit':600 (seconds)
-        opt.options["NumericFocus"] = num_focus # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+        opt.options['FeasibilityTol'] = FeasTol 
+        opt.options['MIPGap']= MIP_gap 
+        opt.options["NumericFocus"] = num_focus
         opt.options["BarConvTol"] = 1E-8 # default: 1E-8https://www.gurobi.com/documentation/9.1/refman/barconvtol.html
-        opt.options["Crossover"] = Crossover#default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
-        opt.options["Method"] = Method #def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
-        opt.options["NodeMethod"] = NodeMethod # https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
+        opt.options["Crossover"] = Crossover
+        opt.options["Method"] = Method 
+        opt.options["NodeMethod"] = NodeMethod 
         #opt.options["DualReductions"] = 0 #default 1. At zero, figure out if unbounded or infeasible.
         results = opt.solve(self.model, warmstart=warmstart, tee=True, 
                                         symbolic_solver_labels=False, #goes faster, but turn to true with errors!

@@ -94,7 +94,10 @@ def construct_and_solve_SP(base_data,
 
     print("Solving model...",flush=True)
     start = time.time()
-    model_instance.solve_model(FeasTol=10**(-4)) #FeasTol=10**(-4),num_focus=0
+    model_instance.solve_model(FeasTol=10**(-2),
+                               num_focus=1,
+                               #Method=-1,  #i have observed that it gets solved with both primal simplex, dual simplex and barrier. So, standard concurrent option is good
+                               ) 
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", end="", flush=True)
@@ -176,12 +179,15 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Solving EEV model...",end='',flush=True)
     start = time.time()
     #options = option_settings_ef()
-    model_instance.solve_model(FeasTol=10**(-3),num_focus=2) #to make sure that the warm start is feasible
+    model_instance.solve_model(FeasTol=10**(-2),
+                               num_focus=1, #put high to make sure that the warm start is feasible
+                               Method = -1,
+                               ) 
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
-    # kost nu iets meer dan twee uur om de EEV op te lossen voor de grote case (num_focus = 2)
-    
+
+
     # --------- SAVE EEV RESULTS -----------
 
     file_string = "EEV_" + scenario_tree

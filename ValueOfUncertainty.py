@@ -13,17 +13,17 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenarios = "4Scen"   # '4Scen', 'AllScen'
-
+scenarios = "9Scen"   # '4Scen', '9Scen','AllScen'
+analyses = ["SP","EEV"]
 
 #---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
 
-with open(r'Data\\output\\'+"SP"+'_'+scenarios+'.pickle', 'rb') as output_file:
-    output_SP = pickle.load(output_file)
-with open(r'Data\\output\\'+"EEV"+'_'+scenarios+'.pickle', 'rb') as output_file:
-    output_EEV = pickle.load(output_file)
+output={analysis:None for analysis in analyses}
+for analysis in analyses:
+    with open(r'Data\\output\\'+analysis+'_'+scenarios+'.pickle', 'rb') as output_file:
+        output[analysis] = pickle.load(output_file)
 
 with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
@@ -176,15 +176,11 @@ if True:
     #       COST AND EMISSION TRADE-OFF
     #---------------------------------------------------------#
     print('--------------------------')
-    for i in [0,1]:
-        if i == 0:
-            type_analysis = 'SP'
-        else:
-            type_analysis = 'EEV'
+    for analysis in analyses:
         print('--------')
-        print(type_analysis)
+        print(analysis)
         print('--------')
-        output = [output_SP,output_EEV][i]
+        output = output[analysis]
         output = calculate_emissions(output,base_data,domestic=False)
         output.emission_stats = output.total_emissions.groupby('time_period').agg(
                 AvgEmission=('weight', np.mean),

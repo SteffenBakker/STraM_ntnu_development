@@ -13,8 +13,8 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "SP" #EV, EEV, 'SP
-scenarios = "4Scen"   # AllScen, 4Scen
+analyses_type = "EEV" #EV, EEV, 'SP
+scenarios = "9Scen"   # AllScen, 4Scen, 9Scen
 noBalancingTrips = False
 last_time_period = False
 total_dev_check = False
