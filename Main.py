@@ -34,12 +34,10 @@ from Utils import Logger
 #                   user input                  #
 #################################################
 
-only_generate_data = False
-log_to_file = False
 
-analysis = "standard"  # ["standard","only_generate_data", "risk", "last_time_period","no_balancing_trips","carbon_prices"]
-scenario_tree = "9Scen" #AllScen,4Scen, 9Scen
-analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis = "risk"  # ["standard","only_generate_data", "risk", "last_time_period""carbon_prices"]
+scenario_tree = "4Scen" #AllScen,4Scen, 9Scen
+analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -47,7 +45,7 @@ cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 # TODO: test if this is working
 
-NoBalancingTrips = False  #default at False
+log_to_file = False
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 #################################################

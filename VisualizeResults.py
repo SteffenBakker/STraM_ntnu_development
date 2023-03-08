@@ -159,93 +159,94 @@ plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 #       EMISSIONS 
 #---------------------------------------------------------#
 
-def calculate_emissions(output,base_data,domestic=True):
-    output.total_yearly_emissions = {(t,s):0 for t in base_data.T_TIME_PERIODS for s in base_data.S_SCENARIOS} # in MTonnes CO2 equivalents
+if not last_time_period:
+    def calculate_emissions(output,base_data,domestic=True):
+        output.total_yearly_emissions = {(t,s):0 for t in base_data.T_TIME_PERIODS for s in base_data.S_SCENARIOS} # in MTonnes CO2 equivalents
 
-    x_flow = output.x_flow 
-    b_flow = output.b_flow
-    
-    if domestic:
-        x_flow = x_flow[(x_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
-        b_flow = b_flow[(b_flow['from'].isin(base_data.N_NODES_NORWAY))&(b_flow['to'].isin(base_data.N_NODES_NORWAY))]
-
-    for index,row in x_flow.iterrows():
-        (i,j,m,r,f,p,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['time_period'],row['scenario'],row['weight']) 
-        output.total_yearly_emissions[(t,s)] += ((base_data.E_EMISSIONS[i,j,m,r,f,p,t]*SCALING_FACTOR_EMISSIONS/SCALING_FACTOR_WEIGHT)*(value*SCALING_FACTOR_WEIGHT))/(10**12) #   gCO2 / tonnes*km     *   tonnes/km     ->  in MTonnes CO2 equivalents
-    for index,row in b_flow.iterrows():
-        (i,j,m,r,f,v,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['time_period'],row['scenario'],row['weight'])
-        output.total_yearly_emissions[(t,s)] += ((base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t,v)], t]*SCALING_FACTOR_EMISSIONS/SCALING_FACTOR_WEIGHT)*(value*SCALING_FACTOR_WEIGHT))/(10**6*10**6) # in MTonnes CO2 equivalents
-
-    output.total_emissions = pd.DataFrame.from_dict({'time_period': [t for (t,s) in output.total_yearly_emissions.keys()],	
-                                                        'weight': list(output.total_yearly_emissions.values())	,
-                                                        'scenario': [s for (t,s) in output.total_yearly_emissions.keys()]})
+        x_flow = output.x_flow 
+        b_flow = output.b_flow
         
-    # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
-    output.emission_stats = output.total_emissions.groupby('time_period').agg(
-        AvgEmission=('weight', np.mean),
-        Std=('weight', np.std))
-    output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
+        if domestic:
+            x_flow = x_flow[(x_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
+            b_flow = b_flow[(b_flow['from'].isin(base_data.N_NODES_NORWAY))&(b_flow['to'].isin(base_data.N_NODES_NORWAY))]
 
-    #output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
-    output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.total_yearly_emissions[(base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0])]*100  #NEW: 2022
-    #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
-    output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[base_data.T_TIME_PERIODS[0],'AvgEmission']*100  #NEW: 2022
-    #goals = list(base_data.EMISSION_CAP_RELATIVE.values())
-    #output.emission_stats['Goal'] = goals
-    #output.emission_stats['StdGoals'] = [0 for g in goals]       
+        for index,row in x_flow.iterrows():
+            (i,j,m,r,f,p,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['time_period'],row['scenario'],row['weight']) 
+            output.total_yearly_emissions[(t,s)] += ((base_data.E_EMISSIONS[i,j,m,r,f,p,t]*SCALING_FACTOR_EMISSIONS/SCALING_FACTOR_WEIGHT)*(value*SCALING_FACTOR_WEIGHT))/(10**12) #   gCO2 / tonnes*km     *   tonnes/km     ->  in MTonnes CO2 equivalents
+        for index,row in b_flow.iterrows():
+            (i,j,m,r,f,v,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['time_period'],row['scenario'],row['weight'])
+            output.total_yearly_emissions[(t,s)] += ((base_data.E_EMISSIONS[i,j,m,r,f, base_data.cheapest_product_per_vehicle[(m,f,t,v)], t]*SCALING_FACTOR_EMISSIONS/SCALING_FACTOR_WEIGHT)*(value*SCALING_FACTOR_WEIGHT))/(10**6*10**6) # in MTonnes CO2 equivalents
 
-    return output
+        output.total_emissions = pd.DataFrame.from_dict({'time_period': [t for (t,s) in output.total_yearly_emissions.keys()],	
+                                                            'weight': list(output.total_yearly_emissions.values())	,
+                                                            'scenario': [s for (t,s) in output.total_yearly_emissions.keys()]})
+            
+        # https://stackoverflow.com/questions/23144784/plotting-error-bars-on-grouped-bars-in-pandas
+        output.emission_stats = output.total_emissions.groupby('time_period').agg(
+            AvgEmission=('weight', np.mean),
+            Std=('weight', np.std))
+        output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
 
-output = calculate_emissions(output,base_data,domestic=False)
-output_domestic = calculate_emissions(output,base_data,domestic=True)
-print('----------------')
-print('domestic emissions:')
-print(output_domestic.emission_stats)
-print(output.emission_stats)
+        #output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
+        output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.total_yearly_emissions[(base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0])]*100  #NEW: 2022
+        #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
+        output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[base_data.T_TIME_PERIODS[0],'AvgEmission']*100  #NEW: 2022
+        #goals = list(base_data.EMISSION_CAP_RELATIVE.values())
+        #output.emission_stats['Goal'] = goals
+        #output.emission_stats['StdGoals'] = [0 for g in goals]       
 
-#I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
-# https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
+        return output
 
-#We are off with a factor 100!
+    output = calculate_emissions(output,base_data,domestic=False)
+    output_domestic = calculate_emissions(output,base_data,domestic=True)
+    print('----------------')
+    print('domestic emissions:')
+    print(output_domestic.emission_stats)
+    print(output.emission_stats)
 
-def plot_emission_results(output,base_data):
+    #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
+    # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/
 
-    #create bar chart figure -> See my drawing
-    #https://stackoverflow.com/questions/46794373/make-a-bar-graph-of-2-variables-based-on-a-dataframe
-    #https://pythonforundergradengineers.com/python-matplotlib-error-bars.html
+    #We are off with a factor 100!
+
+    def plot_emission_results(output,base_data):
+
+        #create bar chart figure -> See my drawing
+        #https://stackoverflow.com/questions/46794373/make-a-bar-graph-of-2-variables-based-on-a-dataframe
+        #https://pythonforundergradengineers.com/python-matplotlib-error-bars.html
 
 
-    #output.emission_stats['Std'] = 0.1*output.emission_stats['AvgEmission']  #it works when there is some deviation!!
-    
-    yerrors = output.emission_stats[['Std_perc']].to_numpy().T
-    ax = output.emission_stats[['AvgEmission_perc']].plot(kind='bar', 
-                xlabel = 'time periods',
-                ylabel = 'Relative emissions (%)',
-                #title = "Emissions",
-                yerr=yerrors, alpha=0.5, 
-                error_kw=dict(ecolor='k'), stacked = False)
-    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
-    
-    props = dict(boxstyle='round', facecolor='white', alpha=1)
-    for year in [2030,2050]:
-        ax.axhline(y = base_data.EMISSION_CAP_RELATIVE[year], color = 'black', linestyle = ':')
-        ax.text(0.12*ax.get_xlim()[1],base_data.EMISSION_CAP_RELATIVE[year], 'target '+str(year), bbox=props, va='center', ha='center', backgroundcolor='w') #fontsize=12
+        #output.emission_stats['Std'] = 0.1*output.emission_stats['AvgEmission']  #it works when there is some deviation!!
         
+        yerrors = output.emission_stats[['Std_perc']].to_numpy().T
+        ax = output.emission_stats[['AvgEmission_perc']].plot(kind='bar', 
+                    xlabel = 'time periods',
+                    ylabel = 'Relative emissions (%)',
+                    #title = "Emissions",
+                    yerr=yerrors, alpha=0.5, 
+                    error_kw=dict(ecolor='k'), stacked = False)
+        #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+        
+        props = dict(boxstyle='round', facecolor='white', alpha=1)
+        for year in [2030,2050]:
+            ax.axhline(y = base_data.EMISSION_CAP_RELATIVE[year], color = 'black', linestyle = ':')
+            ax.text(0.12*ax.get_xlim()[1],base_data.EMISSION_CAP_RELATIVE[year], 'target '+str(year), bbox=props, va='center', ha='center', backgroundcolor='w') #fontsize=12
+            
 
-    ax.axvline(x = 1.5, color = 'black',ls='--')
-    ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
-    ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+        ax.axvline(x = 1.5, color = 'black',ls='--')
+        ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
+        ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
 
-    #ax.legend(loc='upper right')  #upper left
-    
-    for spine in ['top', 'right']:
-        ax.spines[spine].set_visible(False)
-    #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
-    #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
-    #fig = ax.get_figure()
-    ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_emissions.png",dpi=300,bbox_inches='tight')
-    
-plot_emission_results(output,base_data)
+        #ax.legend(loc='upper right')  #upper left
+        
+        for spine in ['top', 'right']:
+            ax.spines[spine].set_visible(False)
+        #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
+        #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
+        #fig = ax.get_figure()
+        ax.get_figure().savefig(r"Data\\Figures\\"+run_identifier+"_emissions.png",dpi=300,bbox_inches='tight')
+        
+    plot_emission_results(output,base_data)
 
 #---------------------------------------------------------#
 #       MODE MIX
