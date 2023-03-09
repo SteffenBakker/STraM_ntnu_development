@@ -36,8 +36,8 @@ from Utils import Logger
 #################################################
 
 
-analysis = "single_time_period"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-scenario_tree = "4Scen" #AllScen,4Scen, 9Scen
+analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+scenario_tree = "9Scen" #AllScen,4Scen, 9Scen
 analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
@@ -57,20 +57,6 @@ time_periods = None  #[2022,2026,2030] or None for default up to 2050
 #################################################
 #                   main code                   #
 #################################################
-if scenario_tree == 'AllScen':
-    sheet_name_scenarios = 'scenarios_base' 
-elif scenario_tree == '4Scen':
-    sheet_name_scenarios = 'three_scenarios_new' 
-elif scenario_tree == '9Scen':
-    sheet_name_scenarios = 'nine_scenarios' 
-    
-run_identifier = analysis_type + '_' + scenario_tree
-
-run_identifier2 = run_identifier
-if wrm_strt:
-    run_identifier2 = run_identifier2 +'_WrmStrt'
-
-sys.stdout = Logger(run_identifier2,log_to_file)
 
 
 def construct_and_solve_SP(base_data,
@@ -259,6 +245,24 @@ def main(analysis_type,
          co2_factor = 1,
          ):
     
+    #     --------- Setup  ---------   #
+
+    if scenario_tree == 'AllScen':
+        sheet_name_scenarios = 'scenarios_base' 
+    elif scenario_tree == '4Scen':
+        sheet_name_scenarios = 'three_scenarios_new' 
+    elif scenario_tree == '9Scen':
+        sheet_name_scenarios = 'nine_scenarios' 
+        
+    run_identifier = analysis_type + '_' + scenario_tree
+
+    run_identifier2 = run_identifier
+    if wrm_strt:
+        run_identifier2 = run_identifier2 +'_WrmStrt'
+
+    sys.stdout = Logger(run_identifier2,log_to_file)
+
+
     print('----------------------------')
     print('Doing the following analysis: ')
     print(analysis_type)
@@ -271,6 +275,7 @@ def main(analysis_type,
         print('Using EEV warm start')
     print('----------------------------')
     sys.stdout.flush()
+    
     #     --------- DATA  ---------   #
     
             
@@ -379,6 +384,7 @@ if __name__ == "__main__":
         main(analysis_type="SP")
         main(analysis_type=analysis_type,single_time_period=2034)
         main(analysis_type=analysis_type,single_time_period=2050)
+        risk_analysis()
         for carbon_factor in [0,2]:
             main(analysis_type="SP",co2_factor=carbon_factor)
 
