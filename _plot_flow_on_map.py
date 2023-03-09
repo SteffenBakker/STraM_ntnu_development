@@ -248,8 +248,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     #draw the basic map including country borders
     map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
     # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
-    map.drawmapboundary(fill_color='aqua')
-    map.fillcontinents(color='lightgrey', lake_color='aqua')
+    map.drawmapboundary(fill_color='paleturquoise')
+    map.fillcontinents(color='lightgrey', lake_color='paleturquoise')
     map.drawcoastlines(linewidth=0.2)
     map.drawcountries(linewidth=0.2)
 
@@ -274,9 +274,9 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"road":"dimgrey", "sea":"blue", "rail":"red", "total":"black"}
+    mode_color_dict = {"road":"darkslategrey", "sea":"blue", "rail":"red", "total":"black"}
     mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
-    curvature_fact_dict = {"road":0, "sea":-2, "rail":+1, "total":0}
+    curvature_fact_dict = {"road":0, "sea":-1.5, "rail":+1.5, "total":0}
     zorder_dict = {"road":30, "sea":20, "rail":40, "total":20}
     # arrow settings for direction of change (for "diff" option)
     dir_color_dict = {"increase":"green", "decrease":"red"}
@@ -456,7 +456,7 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period = 2028
+sel_time_period = 2050
 sel_product = "all" # "Timber" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
@@ -475,14 +475,14 @@ mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
 sel_time_period_before = 2028
 sel_time_period_after = 2050
-sel_product = "Timber" # any product group or "all"
+sel_product = "Wet bulk" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
 show_fig = True
 save_fig = False
 
 # Make plot
-if True:
+if False:
     process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
