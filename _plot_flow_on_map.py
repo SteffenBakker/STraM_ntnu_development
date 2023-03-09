@@ -486,7 +486,3 @@ if True:
     process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
-
-#plots for subset of product groups
-
-
