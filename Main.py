@@ -309,8 +309,8 @@ def main(analysis_type,
         Exception('analysis type feil = '+analysis_type)
     #  --------- SAVE OUTPUT ---------    #
     scenario_tree2 = scenario_tree
-    if single_time_period:
-        scenario_tree2 = scenario_tree2 + "_single_time_period_"+single_time_period
+    if single_time_period is not None:
+        scenario_tree2 = scenario_tree2 + "_single_time_period_"+str(single_time_period)
     if co2_factor!=1:
         scenario_tree2 = scenario_tree2 + "_co2_factor_" + str(co2_factor)
     print("Dumping data in pickle file...", end="")
@@ -328,7 +328,7 @@ def main(analysis_type,
     if risk_aversion is not None:
         run_identifier2 = run_identifier2 + '_' + risk_aversion
     if single_time_period is not None:
-        run_identifier2 = run_identifier2 + "_single_time_period_"+single_time_period
+        run_identifier2 = run_identifier2 + "_single_time_period_"+str(single_time_period)
     if co2_factor!=1:
         run_identifier2 = run_identifier2 + "_co2_factor_" + str(co2_factor)
     with open(r"Data//output//" + run_identifier2+'.pickle', 'wb') as output_file: 

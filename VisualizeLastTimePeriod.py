@@ -15,7 +15,7 @@ import json
 
 scenarios = "4Scen"   # '4Scen', '9Scen','AllScen'
 analysis = "SP"
-year = 2034
+year = 2050
 
 
 #---------------------------------------------------------#

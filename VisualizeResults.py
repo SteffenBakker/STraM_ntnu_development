@@ -16,14 +16,14 @@ import json
 analyses_type = "EEV" #EV, EEV, 'SP
 scenarios = "4Scen"   # AllScen, 4Scen, 9Scen
 noBalancingTrips = False
-last_time_period = False
+last_time_period = None  #or a specific year
 risk_aversion = None   #None, averse, neutral
 scen_analysis_carbon = False
 carbon_factor = 1
 
 def visualize_results(analyses_type,scenarios,
                         noBalancingTrips=False,
-                        last_time_period=False,
+                        single_time_period=None,
                         risk_aversion = None,  #None, averse, neutral
                         scen_analysis_carbon = False,
                         carbon_factor = 1
@@ -37,9 +37,9 @@ def visualize_results(analyses_type,scenarios,
     run_identifier = analyses_type+'_'+scenarios
     if noBalancingTrips:
         run_identifier = run_identifier + '_NoBalancingTrips'
-    if last_time_period:
-        run_identifier = run_identifier + '_last_time_period'
-        data_file = data_file + '_last_time_period'
+    if single_time_period is not None:
+        run_identifier = run_identifier + '_single_time_period_'+str(single_time_period)
+        data_file = data_file + '_single_time_period_'+str(single_time_period)
     if risk_aversion is not None:
         run_identifier = run_identifier + '_' + risk_aversion
     if scen_analysis_carbon:
@@ -178,7 +178,7 @@ def visualize_results(analyses_type,scenarios,
     #       EMISSIONS 
     #---------------------------------------------------------#
 
-    if not last_time_period:
+    if single_time_period is None:
         def calculate_emissions(output,base_data,domestic=True):
             output.total_yearly_emissions = {(t,s):0 for t in base_data.T_TIME_PERIODS for s in base_data.S_SCENARIOS} # in MTonnes CO2 equivalents
 
