@@ -34,7 +34,7 @@ class TranspModel:
         self.calculate_max_transp_amount_exact = False
 
         self.solve_base_year = False
-        self.last_time_period = None
+        self.single_time_period = None
 
         self.NoBalancingTrips = False
 
