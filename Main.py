@@ -212,7 +212,15 @@ def construct_and_solve_SP_warm_start(base_data,
 
     return model_instance,base_data
 
-def generate_base_data(sheet_name_scenarios):
+def generate_base_data():
+    
+    if scenario_tree == 'AllScen':
+        sheet_name_scenarios = 'scenarios_base' 
+    elif scenario_tree == '4Scen':
+        sheet_name_scenarios = 'three_scenarios_new' 
+    elif scenario_tree == '9Scen':
+        sheet_name_scenarios = 'nine_scenarios' 
+    
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
     time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
     num_first_stage_periods = 2                                 # how many of the periods above are in first stage
@@ -366,7 +374,7 @@ if __name__ == "__main__":
     
     
     if analysis == "only_generate_data":
-        base_data = generate_base_data(sheet_name_scenarios)
+        base_data = generate_base_data()
     elif analysis == "risk":
         risk_analysis()
     elif analysis == "standard":
