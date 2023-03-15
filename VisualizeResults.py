@@ -47,9 +47,9 @@ def visualize_results(analyses_type,scenarios,
         run_identifier = run_identifier + add_string
         data_file = data_file + add_string
 
-    with open(r'Data\\output\\'+run_identifier+'.pickle', 'rb') as output_file:
+    with open(r'Data//output//'+run_identifier+'.pickle', 'rb') as output_file:
         output = pickle.load(output_file)
-    with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
+    with open(r'Data//base_data//'+scenarios+'.pickle', 'rb') as data_file:
         base_data = pickle.load(data_file)
 
 
@@ -163,7 +163,7 @@ def visualize_results(analyses_type,scenarios,
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
         #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
         #fig = ax.get_figure()
-        ax.get_figure().savefig(r"Data\\figures\\"+run_identifier+"_costs_"+filename+".png",dpi=300,bbox_inches='tight')
+        ax.get_figure().savefig(r"Data//figures//"+run_identifier+"_costs_"+filename+".png",dpi=300,bbox_inches='tight')
 
     output = cost_and_investment_table(base_data,output)
     pd.set_option('display.float_format', '{:.2g}'.format)
@@ -263,7 +263,7 @@ def visualize_results(analyses_type,scenarios,
             #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
             #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
             #fig = ax.get_figure()
-            ax.get_figure().savefig(r"Data\\figures\\"+run_identifier+"_emissions.png",dpi=300,bbox_inches='tight')
+            ax.get_figure().savefig(r"Data//figures//"+run_identifier+"_emissions.png",dpi=300,bbox_inches='tight')
             
         plot_emission_results(output,base_data)
 
@@ -362,7 +362,7 @@ def visualize_results(analyses_type,scenarios,
             ax.axvline(x = 1.5, color = 'black',ls='--') 
             #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
             #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
-            fig.savefig(r"Data\\figures\\"+run_identifier+"_modemix"+m+".png",dpi=300,bbox_inches='tight')
+            fig.savefig(r"Data//figures//"+run_identifier+"_modemix"+m+".png",dpi=300,bbox_inches='tight')
             
     #DO THE FOLLOWING FOR DOMESTIC AND INTERNATIONAL (remove nodes from and to europe and the world)
     def mode_mix_calculations(output,base_data):

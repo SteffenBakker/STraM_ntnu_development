@@ -36,7 +36,7 @@ from Utils import Logger
 #################################################
 
 
-analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+analysis = "run_all"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
 scenario_tree = "9Scen" #AllScen,4Scen, 9Scen
 analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
@@ -388,8 +388,8 @@ if __name__ == "__main__":
         for carbon_factor in [0,2]:
             main(analysis_type="SP",co2_factor=carbon_factor)
     elif analysis=="run_all":
-        main(analysis_type="EEV")
-        main(analysis_type="SP")
+        #main(analysis_type="EEV")
+        #main(analysis_type="SP")
         main(analysis_type=analysis_type,single_time_period=2034)
         main(analysis_type=analysis_type,single_time_period=2050)
         risk_analysis()
