@@ -364,23 +364,23 @@ class TranspModel:
 
         if self.single_time_period is None:
             
-            if True:
-                #Initialize the transport amounts (put an upper bound at first)
-                def InitTranspAmountRule(model, m, f, t,s):
-                    return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
-                self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
-                
-                #THIS ONE QUICKLY LEADS TO INFEASIBILITY DUE TO CAPACITY ISSUES ON RAIL. Make sure that we do not use too much RAIL. 
-                def InitialModeSplit(model,m,s):
-                    if m=='Rail':
-                        return Constraint.Skip
-                    else:
-                        t0 = self.data.T_TIME_PERIODS[0]
-                        total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-                        modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
-                        return modal_transport_amount >= (self.data.INIT_MODE_SPLIT[m]-0.025)*total_transport_amount    #To give som leeway to rail!
-                self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
             
+            #Initialize the transport amounts (put an upper bound at first)
+            def InitTranspAmountRule(model, m, f, t,s):
+                return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
+            self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
+            
+            #THIS ONE QUICKLY LEADS TO INFEASIBILITY DUE TO CAPACITY ISSUES ON RAIL. Make sure that we do not use too much RAIL. 
+            def InitialModeSplit(model,m,s):
+                if m=='Rail':
+                    return Constraint.Skip                    
+                else:
+                    t0 = self.data.T_TIME_PERIODS[0]
+                    total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+                    modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
+                    return modal_transport_amount >= (self.data.INIT_MODE_SPLIT[m]-0.01)*total_transport_amount    
+            self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
+        
             #Auxiliary transport amount (q_aux equal to q in all decision periods t)
             def AuxTransportAmountRule(model,m,f,t,s):
                 return (self.model.q_aux_transp_amount[m,f,t,s] == self.model.q_transp_amount[m,f,t,s]) #auxiliary q variable equal to "normal" q variable 

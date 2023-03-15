@@ -36,8 +36,8 @@ from Utils import Logger
 #################################################
 
 
-analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-scenario_tree = "AllScen" #AllScen,4Scen, 9Scen
+analysis = "run_all"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+scenario_tree = "9Scen" #AllScen,4Scen, 9Scen
 analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
@@ -61,7 +61,7 @@ time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 def construct_and_solve_SP(base_data,
                             risk_info, 
-                            single_time_period=False,
+                            single_time_period=None,
                             time_periods = None,
                             NoBalancingTrips = None):
 
@@ -300,7 +300,7 @@ def main(analysis_type,
     sys.stdout.flush()
 
     if risk_aversion=="averse":
-        cvar_alpha = (1-1/len(base_data.S_SCENARIOS))
+        cvar_alpha = 1-1/len(base_data.S_SCENARIOS)
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     #add to the base_data class?
     base_data.risk_information = risk_info
@@ -388,8 +388,8 @@ if __name__ == "__main__":
         for carbon_factor in [0,2]:
             main(analysis_type="SP",co2_factor=carbon_factor)
     elif analysis=="run_all":
-        #main(analysis_type="EEV")
-        #main(analysis_type="SP")
+        main(analysis_type="EEV")
+        main(analysis_type="SP")
         main(analysis_type=analysis_type,single_time_period=2034)
         main(analysis_type=analysis_type,single_time_period=2050)
         risk_analysis()

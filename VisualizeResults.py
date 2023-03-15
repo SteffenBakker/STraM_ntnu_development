@@ -13,10 +13,10 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "EEV" #EV, EEV, 'SP
+analyses_type = "SP" #EV, EEV, 'SP
 scenarios = "4Scen"   # AllScen, 4Scen, 9Scen
 noBalancingTrips = False
-last_time_period = None  #or a specific year
+single_time_period = None  #or a specific year
 risk_aversion = None   #None, averse, neutral
 scen_analysis_carbon = False
 carbon_factor = 1
@@ -362,6 +362,7 @@ def visualize_results(analyses_type,scenarios,
             ax.axvline(x = 1.5, color = 'black',ls='--') 
             #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
             #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+            #plt.show()
             fig.savefig(r"Data//figures//"+run_identifier+"_modemix"+m+".png",dpi=300,bbox_inches='tight')
             
     #DO THE FOLLOWING FOR DOMESTIC AND INTERNATIONAL (remove nodes from and to europe and the world)
@@ -408,6 +409,14 @@ def visualize_results(analyses_type,scenarios,
 
     output = mode_mix_calculations(output,base_data)
 
+if __name__ == "__main__":
+    visualize_results(analyses_type,
+                      scenarios,
+                        noBalancingTrips=noBalancingTrips,
+                        single_time_period=single_time_period,
+                        risk_aversion = risk_aversion,  #None, averse, neutral
+                        scen_analysis_carbon = scen_analysis_carbon,
+                        carbon_factor = carbon_factor)
 
 
 
