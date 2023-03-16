@@ -14,12 +14,13 @@ import json
 #---------------------------------------------------------#
 
 analyses_type = "SP" #EV, EEV, 'SP
-scenarios = "4Scen"   # AllScen, 4Scen, 9Scen
+scenarios = "9Scen"   # AllScen, 4Scen, 9Scen
 noBalancingTrips = False
 single_time_period = None  #or a specific year
 risk_aversion = None   #None, averse, neutral
-scen_analysis_carbon = False
-carbon_factor = 1
+scen_analysis_carbon = True   #True or False
+carbon_factor = 2   #0, 1 or 2
+
 
 def visualize_results(analyses_type,scenarios,
                         noBalancingTrips=False,

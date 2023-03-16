@@ -13,7 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenarios = "4Scen"   # '4Scen', '9Scen','AllScen'
+scenarios = "9Scen"   # '4Scen', '9Scen','AllScen'
 analyses = ["SP","EEV"]
 
 #---------------------------------------------------------#

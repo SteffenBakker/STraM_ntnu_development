@@ -38,7 +38,7 @@ from Utils import Logger
 
 analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
 scenario_tree = "AllScen" #AllScen,4Scen, 9Scen
-analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -46,7 +46,7 @@ cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 # TODO: test if this is working
 
-log_to_file = False
+log_to_file = True
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
 
