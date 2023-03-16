@@ -176,6 +176,8 @@ if True:
     #       COST AND EMISSION TRADE-OFF
     #---------------------------------------------------------#
     print('--------------------------')
+    objs = {analysis:0 for analysis in analyses}
+    ems = {analysis:0 for analysis in analyses}
     for analysis in analyses:
         print('--------')
         print(analysis)
@@ -187,10 +189,23 @@ if True:
                 Std=('weight', np.std))
         emission_stats = emission_stats.fillna(0) #in case of a single scenario we get NA's
         print('Total (average) emissions (in Million TonnesCo2):')
-        print(round(sum(emission_stats['AvgEmission'])*SCALING_FACTOR_EMISSIONS/10**9,2)) #this becomes Million TonnesCO2         
+        ems[analysis] = round(sum(emission_stats['AvgEmission'])*SCALING_FACTOR_EMISSIONS/10**9,3)
+        print(ems[analysis]) #this becomes Million TonnesCO2         
 
         print('objective function value: ')
-        print(round(output.ob_function_value*SCALING_FACTOR_MONETARY/10**9,2))
-        
+        objs[analysis] = round(output.ob_function_value*SCALING_FACTOR_MONETARY/10**9,2)
+        print(objs[analysis])
+    print('--------')
+    print("VSS:")
+    print('--------')
+    VSS = round((objs['EEV']-objs['SP'])/objs['EEV']*100,2)
+    print(str(VSS)+' %')
+
+    print('--------')
+    print("Emission diff:")
+    print('--------')
+    print(round(ems['EEV']-ems['SP'],4))
+    print(str(round((ems['EEV']-ems['SP'])/ems['EEV'],4))+' %')
+
     #2000NOK per Tonne CO2 is this in line? Do the comparison for
 
