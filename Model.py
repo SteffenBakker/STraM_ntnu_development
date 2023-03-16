@@ -34,7 +34,7 @@ class TranspModel:
         self.calculate_max_transp_amount_exact = False
 
         self.solve_base_year = False
-        self.last_time_period = False
+        self.single_time_period = None
 
         self.NoBalancingTrips = False
 
@@ -362,25 +362,25 @@ class TranspModel:
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY_CONSTR_S, rule = TechMaturityLimitRule)
 
 
-        if not self.last_time_period:
+        if self.single_time_period is None:
             
-            if True:
-                #Initialize the transport amounts (put an upper bound at first)
-                def InitTranspAmountRule(model, m, f, t,s):
-                    return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
-                self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
-                
-                #THIS ONE QUICKLY LEADS TO INFEASIBILITY DUE TO CAPACITY ISSUES ON RAIL. Make sure that we do not use too much RAIL. 
-                def InitialModeSplit(model,m,s):
-                    if m=='Rail':
-                        return Constraint.Skip
-                    else:
-                        t0 = self.data.T_TIME_PERIODS[0]
-                        total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-                        modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
-                        return modal_transport_amount >= (self.data.INIT_MODE_SPLIT[m]-0.025)*total_transport_amount    #To give som leeway to rail!
-                self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
             
+            #Initialize the transport amounts (put an upper bound at first)
+            def InitTranspAmountRule(model, m, f, t,s):
+                return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
+            self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
+            
+            #THIS ONE QUICKLY LEADS TO INFEASIBILITY DUE TO CAPACITY ISSUES ON RAIL. Make sure that we do not use too much RAIL. 
+            def InitialModeSplit(model,m,s):
+                if m=='Rail':
+                    return Constraint.Skip                    
+                else:
+                    t0 = self.data.T_TIME_PERIODS[0]
+                    total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+                    modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
+                    return modal_transport_amount >= (self.data.INIT_MODE_SPLIT[m]-0.01)*total_transport_amount    
+            self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
+        
             #Auxiliary transport amount (q_aux equal to q in all decision periods t)
             def AuxTransportAmountRule(model,m,f,t,s):
                 return (self.model.q_aux_transp_amount[m,f,t,s] == self.model.q_transp_amount[m,f,t,s]) #auxiliary q variable equal to "normal" q variable 
@@ -391,7 +391,11 @@ class TranspModel:
                 return (self.model.q_mode_total_transp_amount[m,t,s] == sum( self.model.q_transp_amount[m,f,t,s] for f in self.data.FM_FUEL[m] ))
             self.model.ModeTotalTransportAmount = Constraint(self.data.MT_S, rule = ModeTotalTransportAmountRule) 
 
-            
+            #if False:
+            #Restriction on modal transport amount decrease
+            def DecreaseInModeTotalTransportAmountRule(model,m,t,s):
+                return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
+            self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule) 
                     
             #Fleet Renewal
             def FleetRenewalRule(model,m,t,s):
@@ -808,10 +812,10 @@ class TranspModel:
             
 
     def solve_model(self, warmstart=False, 
-                    FeasTol=(10**(-6)), #the standard of 10**(-6) can give a constraint violation warning
+                    FeasTol=(10**(-2)), #the standard of 10**(-6) can give a constraint violation warning
                     MIP_gap=MIPGAP,
                     # 'TimeLimit':600, # (seconds)
-                    num_focus= 0,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+                    num_focus= 1,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
                     Crossover=-1, #default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
                     Method=-1, #root node relaxation, def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
                     NodeMethod=-1):  # all other nodes, https://www.gurobi.com/documentation/9.1/refman/nodemethod.html

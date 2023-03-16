@@ -19,6 +19,7 @@ from ExtractResults import OutputData
 from Data.Create_Sets_Class import TransportSets
 from Data.settings import *
 from Data.interpolate import interpolate
+from VisualizeResults import visualize_results
 
 from pyomo.environ import *
 import time
@@ -35,9 +36,9 @@ from Utils import Logger
 #################################################
 
 
-analysis = "risk"  # ["standard","only_generate_data", "risk", "last_time_period""carbon_prices"]
-scenario_tree = "4Scen" #AllScen,4Scen, 9Scen
-analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+scenario_tree = "AllScen" #AllScen,4Scen, 9Scen
+analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -45,31 +46,22 @@ cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 # TODO: test if this is working
 
-log_to_file = False
+log_to_file = True
 time_periods = None  #[2022,2026,2030] or None for default up to 2050
+
+
+
+
+
 
 #################################################
 #                   main code                   #
 #################################################
-if scenario_tree == 'AllScen':
-    sheet_name_scenarios = 'scenarios_base' 
-elif scenario_tree == '4Scen':
-    sheet_name_scenarios = 'three_scenarios_new' 
-elif scenario_tree == '9Scen':
-    sheet_name_scenarios = 'nine_scenarios' 
-    
-run_identifier = analysis_type + '_' + scenario_tree
-
-run_identifier2 = run_identifier
-if wrm_strt:
-    run_identifier2 = run_identifier2 +'_WrmStrt'
-
-sys.stdout = Logger(run_identifier2,log_to_file)
 
 
 def construct_and_solve_SP(base_data,
                             risk_info, 
-                            last_time_period=False,
+                            single_time_period=None,
                             time_periods = None,
                             NoBalancingTrips = None):
 
@@ -80,7 +72,7 @@ def construct_and_solve_SP(base_data,
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
     model_instance.NoBalancingTrips = NoBalancingTrips
-    model_instance.last_time_period = last_time_period
+    model_instance.single_time_period = single_time_period
     model_instance.construct_model()
 
     print("Done constructing model.")
@@ -92,8 +84,8 @@ def construct_and_solve_SP(base_data,
 
     print("Solving model...",flush=True)
     start = time.time()
-    model_instance.solve_model(FeasTol=10**(-2),
-                               num_focus=1,
+    model_instance.solve_model(#FeasTol=10**(-2),
+                               #num_focus=1,
                                #Method=-1,  #i have observed that it gets solved with both primal simplex, dual simplex and barrier. So, standard concurrent option is good
                                ) 
     print("Done solving model.",flush=True)
@@ -118,7 +110,6 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     start = time.time()
     model_instance_EV = TranspModel(data=base_data, risk_info=risk_info)
-    model_instance_EV.NoBalancingTrips = NoBalancingTrips
     #constructing
     model_instance_EV.construct_model()
 
@@ -131,7 +122,9 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     print("Solving EV model.....",end="",flush=True)
     start = time.time()
-    model_instance_EV.solve_model() #FeasTol=(10**(-5))
+    model_instance_EV.solve_model(FeasTol=(10**(-6)), #need high precision, otherwise it becomes infeasible in EEV
+                                  num_focus= 0,  # 0 is automatic, 1 is fast low precision
+                                  ) #
     print("Done solving model.")
     print("Time used solving the model:", time.time() - start)
     print("----------",  flush=True)
@@ -139,8 +132,6 @@ def construct_and_solve_EEV(base_data,risk_info):
     # --------- SAVE EV RESULTS -----------
 
     file_string = "EV_" + scenario_tree
-    if NoBalancingTrips:
-        file_string = file_string +'_NoBalancingTrips'
     
     output = OutputData(model_instance_EV.model,base_data)
 
@@ -163,7 +154,6 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
-    model_instance.NoBalancingTrips = NoBalancingTrips
     model_instance.construct_model()
     model_instance.fix_variables_first_stage(model_instance_EV.model)
     
@@ -177,9 +167,9 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Solving EEV model...",end='',flush=True)
     start = time.time()
     #options = option_settings_ef()
-    model_instance.solve_model(FeasTol=10**(-2),
-                               num_focus=1, #put high to make sure that the warm start is feasible
-                               Method = -1,
+    model_instance.solve_model(#FeasTol=10**(-2),
+                               #num_focus=1, #put high to make sure that the warm start is feasible
+                               #Method = -1,
                                ) 
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
@@ -189,8 +179,6 @@ def construct_and_solve_EEV(base_data,risk_info):
     # --------- SAVE EEV RESULTS -----------
 
     file_string = "EEV_" + scenario_tree
-    if NoBalancingTrips:
-        file_string = file_string +'_NoBalancingTrips'
     
     output = OutputData(model_instance.model,base_data)
 
@@ -206,8 +194,7 @@ def construct_and_solve_EEV(base_data,risk_info):
 
 def construct_and_solve_SP_warm_start(base_data,
                             risk_info, 
-                            last_time_period=False,
-                            time_periods = None):
+                            ):
     
     model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
 
@@ -225,7 +212,15 @@ def construct_and_solve_SP_warm_start(base_data,
 
     return model_instance,base_data
 
-def generate_base_data(sheet_name_scenarios):
+def generate_base_data():
+    
+    if scenario_tree == 'AllScen':
+        sheet_name_scenarios = 'scenarios_base' 
+    elif scenario_tree == '4Scen':
+        sheet_name_scenarios = 'three_scenarios_new' 
+    elif scenario_tree == '9Scen':
+        sheet_name_scenarios = 'nine_scenarios' 
+    
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
     time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
     num_first_stage_periods = 2                                 # how many of the periods above are in first stage
@@ -250,25 +245,51 @@ def generate_base_data(sheet_name_scenarios):
     return base_data
 
 def main(analysis_type,
-         cvar_coeff=cvar_coeff,
          risk_aversion=None,
-         last_time_period=False,
-         NoBalancingTrips=False):
+         cvar_coeff=cvar_coeff,
+         cvar_alpha=cvar_alpha,
+         single_time_period=None,
+         NoBalancingTrips=False,
+         co2_factor = 1,
+         ):
     
+    #     --------- Setup  ---------   #
+
+    if scenario_tree == 'AllScen':
+        sheet_name_scenarios = 'scenarios_base' 
+    elif scenario_tree == '4Scen':
+        sheet_name_scenarios = 'three_scenarios_new' 
+    elif scenario_tree == '9Scen':
+        sheet_name_scenarios = 'nine_scenarios' 
+        
+    run_identifier = analysis_type + '_' + scenario_tree
+
+    run_identifier2 = run_identifier
+    if wrm_strt:
+        run_identifier2 = run_identifier2 +'_WrmStrt'
+
+    sys.stdout = Logger(run_identifier2,log_to_file)
+
+
     print('----------------------------')
     print('Doing the following analysis: ')
     print(analysis_type)
     print(scenario_tree)
+    if risk_aversion is not None:
+        print(risk_aversion)
+    if co2_factor!=1:
+        print("CO2 factor: ", co2_factor )
     if wrm_strt:
         print('Using EEV warm start')
     print('----------------------------')
     sys.stdout.flush()
+    
     #     --------- DATA  ---------   #
     
             
     print("Reading data...", flush=True)
     start = time.time()
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=co2_factor) 
     # define new timeline
     time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
     num_first_stage_periods = 2                                 # how many of the periods above are in first stage
@@ -278,12 +299,14 @@ def main(analysis_type,
     print("Time used reading the base data:", time.time() - start,flush=True)
     sys.stdout.flush()
 
+    if risk_aversion=="averse":
+        cvar_alpha = 1-1/len(base_data.S_SCENARIOS)
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
     #add to the base_data class?
     base_data.risk_information = risk_info
     
-    if last_time_period:
-        base_data.last_time_period = True
+    if single_time_period is not None:
+        base_data.single_time_period = single_time_period
         base_data.combined_sets()
 
     #     --------- MODEL  ---------   #
@@ -299,8 +322,10 @@ def main(analysis_type,
         Exception('analysis type feil = '+analysis_type)
     #  --------- SAVE OUTPUT ---------    #
     scenario_tree2 = scenario_tree
-    if last_time_period:
-        scenario_tree2 = scenario_tree2 + "_last_time_period"
+    if single_time_period is not None:
+        scenario_tree2 = scenario_tree2 + "_single_time_period_"+str(single_time_period)
+    if co2_factor!=1:
+        scenario_tree2 = scenario_tree2 + "_co2_factor_" + str(co2_factor)
     print("Dumping data in pickle file...", end="")
     with open(r'Data//base_data//'+scenario_tree2+'.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
@@ -315,8 +340,10 @@ def main(analysis_type,
         run_identifier2 = run_identifier2 +'_NoBalancingTrips'
     if risk_aversion is not None:
         run_identifier2 = run_identifier2 + '_' + risk_aversion
-    if last_time_period:
-        run_identifier2 = run_identifier2 + "_last_time_period"
+    if single_time_period is not None:
+        run_identifier2 = run_identifier2 + "_single_time_period_"+str(single_time_period)
+    if co2_factor!=1:
+        run_identifier2 = run_identifier2 + "_co2_factor_" + str(co2_factor)
     with open(r"Data//output//" + run_identifier2+'.pickle', 'wb') as output_file: 
         print("Dumping output in pickle file.....", end="")
         pickle.dump(output, output_file)
@@ -324,32 +351,50 @@ def main(analysis_type,
     
     sys.stdout.flush()
 
-def risk_analysis():
+    #  --------- VISUALIZE RESULTS ---------    #
 
+    visualize_results(analysis_type,scenario_tree,
+                        noBalancingTrips=NoBalancingTrips,
+                        single_time_period=single_time_period,
+                        risk_aversion=risk_aversion,
+                        scen_analysis_carbon = False,
+                        carbon_factor = co2_factor
+                      )
+
+def risk_analysis():
     for risk_avers in ["neutral","averse"]:
-        if risk_avers == "neutral":
-            cvar_coeff=0
-        elif risk_avers == "averse":
-            cvar_coeff=1
-        main(analysis_type="SP",cvar_coeff=cvar_coeff, risk_aversion=risk_avers)
+            if risk_avers == "neutral":
+                cvar_coeff=0 #not being used
+            elif risk_avers == "averse":
+                cvar_coeff=0.99
+                #cvar_alpha = 1/N
+            main(analysis_type="SP",cvar_coeff=cvar_coeff, risk_aversion=risk_avers)
 
 if __name__ == "__main__":
     
     
     if analysis == "only_generate_data":
-        base_data = generate_base_data(sheet_name_scenarios)
+        base_data = generate_base_data()
     elif analysis == "risk":
         risk_analysis()
     elif analysis == "standard":
         main(analysis_type=analysis_type)
-    elif analysis == "last_time_period":
-        main(analysis_type=analysis_type,last_time_period=True)
+    elif analysis == "single_time_period":
+        main(analysis_type=analysis_type,single_time_period=2034)
+        main(analysis_type=analysis_type,single_time_period=2050)
     elif analysis == "no_balancing_trips":
         main(analysis_type=analysis_type,NoBalancingTrips=True)
-    elif analysis == "carbon_prices":
-        pass # To do
-    
-
+    elif analysis == "carbon_price_sensitivity":
+        for carbon_factor in [0,2]:
+            main(analysis_type="SP",co2_factor=carbon_factor)
+    elif analysis=="run_all":
+        main(analysis_type="EEV")
+        main(analysis_type="SP")
+        main(analysis_type=analysis_type,single_time_period=2034)
+        main(analysis_type=analysis_type,single_time_period=2050)
+        risk_analysis()
+        for carbon_factor in [0,2]:
+            main(analysis_type="SP",co2_factor=carbon_factor)
 
     # if profiling:
         #     profiler = cProfile.Profile()

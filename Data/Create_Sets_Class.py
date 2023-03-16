@@ -100,7 +100,7 @@ test_scenario_information = ScenarioInformation('Data/')
 #Activating a scenario means that all relevant parameters are changed to their scenario values
 class TransportSets():
 
-    def __init__(self,sheet_name_scenarios='scenarios_base'):# or (self)
+    def __init__(self,sheet_name_scenarios='scenarios_base',co2_factor=1):# or (self)
         self.run_file = "main"  # "sets" or "main"
         self.prefix = '' 
         if self.run_file == "main":
@@ -108,7 +108,7 @@ class TransportSets():
         elif self.run_file =="sets":
             self.prefix = '' 
         
-        self.last_time_period = False #only solve last time period -> remove all operational constraints for the other periods
+        self.single_time_period = None #only solve last time period -> remove all operational constraints for the other periods
 
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
@@ -118,10 +118,10 @@ class TransportSets():
         self.risk_information = None
 
         #read/construct data                
-        self.construct_pyomo_data()
+        self.construct_pyomo_data(co2_factor)
         self.combined_sets()
 
-    def construct_pyomo_data(self):
+    def construct_pyomo_data(self,co2_factor):
 
         self.pwc_aggr = pd.read_csv(self.prefix+r'demand.csv')
         self.city_coords = pd.read_csv(self.prefix+r'zonal_aggregation.csv', sep=';')
@@ -526,7 +526,7 @@ class TransportSets():
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for index, row in CO2_fee_data.iterrows():
             t=row["Year"]
-            self.CO2_fee[t] = round(CO2_PRICE_FACTOR[t]*row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
+            self.CO2_fee[t] = round(co2_factor*CO2_PRICE_FACTOR[t]*row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
             
 
         COST_BIG_M = 10**8
@@ -890,8 +890,8 @@ class TransportSets():
 
 
         self.T_TIME_PERIODS_OPERATIONAL = self.T_TIME_PERIODS
-        if self.last_time_period:
-            self.T_TIME_PERIODS_OPERATIONAL = [self.T_TIME_PERIODS[-1]]
+        if self.single_time_period is not None:
+            self.T_TIME_PERIODS_OPERATIONAL = [self.single_time_period]
 
         #
         #       WITHOUT SCENARIOS

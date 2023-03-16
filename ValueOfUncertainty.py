@@ -20,10 +20,10 @@ analyses = ["SP","EEV"]
 #       Output data
 #---------------------------------------------------------#
 
-output={analysis:None for analysis in analyses}
+output_df={analysis:None for analysis in analyses}
 for analysis in analyses:
     with open(r'Data\\output\\'+analysis+'_'+scenarios+'.pickle', 'rb') as output_file:
-        output[analysis] = pickle.load(output_file)
+        output_df[analysis] = pickle.load(output_file)
 
 with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
@@ -180,14 +180,14 @@ if True:
         print('--------')
         print(analysis)
         print('--------')
-        output = output[analysis]
+        output = output_df[analysis]
         output = calculate_emissions(output,base_data,domestic=False)
-        output.emission_stats = output.total_emissions.groupby('time_period').agg(
+        emission_stats = output.total_emissions.groupby('time_period').agg(
                 AvgEmission=('weight', np.mean),
                 Std=('weight', np.std))
-        output.emission_stats = output.emission_stats.fillna(0) #in case of a single scenario we get NA's
+        emission_stats = emission_stats.fillna(0) #in case of a single scenario we get NA's
         print('Total (average) emissions (in Million TonnesCo2):')
-        print(round(sum(output.emission_stats['AvgEmission'])*SCALING_FACTOR_EMISSIONS/10**9,2)) #this becomes Million TonnesCO2         
+        print(round(sum(emission_stats['AvgEmission'])*SCALING_FACTOR_EMISSIONS/10**9,2)) #this becomes Million TonnesCO2         
 
         print('objective function value: ')
         print(round(output.ob_function_value*SCALING_FACTOR_MONETARY/10**9,2))
