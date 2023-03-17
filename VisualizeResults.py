@@ -18,8 +18,8 @@ scenarios = "9Scen"   # AllScen, 4Scen, 9Scen
 noBalancingTrips = False
 single_time_period = None  #or a specific year
 risk_aversion = None   #None, averse, neutral
-scen_analysis_carbon = True   #True or False
-carbon_factor = 2   #0, 1 or 2
+scen_analysis_carbon = False   #True or False
+carbon_factor = 1   #0, 1 or 2
 
 
 def visualize_results(analyses_type,scenarios,
@@ -71,23 +71,23 @@ def visualize_results(analyses_type,scenarios,
         
         cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost"]
         legend_names = {"TranspOpexCost":"OPEX",
-            "TranspOpexCostB":"OPEX_Empty",
+            "TranspOpexCostB":"OPEX (Empty Trips)",
             "TranspCO2Cost":"Carbon",
-            "TranspCO2CostB":"Carbon_Empty",
+            "TranspCO2CostB":"Carbon (Empty Trips)",
             "TransfCost":"Transfer",
             "EdgeCost":"Edge",
             "NodeCost":"Node",
-            "UpgCost":"Upg", 
+            "UpgCost":"Upgrade", 
             "ChargeCost":"Charge",
             }
         output.cost_var_colours =  {"OPEX":"royalblue",
-            "OPEX_Empty":"cornflowerblue",
+            "OPEX (Empty Trips)":"cornflowerblue",
             "Carbon":"dimgrey",
-            "Carbon_Empty":"silver",
+            "Carbon (Empty Trips)":"silver",
             "Transfer":"brown",
             "Edge":"indianred",
             "Node":"darkred",
-            "Upg":"teal", 
+            "Upgrade":"teal", 
             "Charge":"forestgreen",
             }
         
@@ -170,8 +170,8 @@ def visualize_results(analyses_type,scenarios,
     pd.set_option('display.float_format', '{:.2g}'.format)
     print(round(output.all_costs_table,2))
 
-    opex_variables = ['OPEX', 'OPEX_Empty', 'Carbon','Carbon_Empty', 'Transfer']
-    investment_variables = ['Edge', 'Node', 'Upg','Charge']
+    opex_variables = ['OPEX', 'OPEX (Empty Trips)', 'Carbon','Carbon (Empty Trips)', 'Transfer']
+    investment_variables = ['Edge', 'Node', 'Upgrade','Charge']
     plot_costs(output,opex_variables,'Annual costs (GNOK)',"opex")
     plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
