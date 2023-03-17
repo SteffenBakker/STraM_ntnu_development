@@ -13,14 +13,23 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-analyses_type = "SP" #EV, EEV, 'SP
+run_all_analyses = True
+analysis = "base" 
 scenarios = "9Scen"   # AllScen, 4Scen, 9Scen
-noBalancingTrips = False
-single_time_period = None  #or a specific year
-risk_aversion = None   #None, averse, neutral
-scen_analysis_carbon = False   #True or False
-carbon_factor = 1   #0, 1 or 2
 
+#------------------------------------------------------#
+
+analyses_info = {
+#     name    type,    scen,    balancing,  single_tp   risk    carbon,     factor
+    "base": ["SP",  scenarios,    False,      None,       None,   False,      1],
+    "eev":  ["EEV", scenarios,    False,      None,       None,   False,      1],
+    "risk1":["SP",  scenarios,    False,      None,     'averse',   False,      1],
+    "risk2":["SP",  scenarios,    False,      None,     "neutral",   False,      1],
+    #"stp1": ["SP",  scenarios,    False,      2034,       None,   False,      1],
+    #"stp2": ["SP",  scenarios,    False,      2050,       None,   False,      1],
+    "carbon1": ["SP",  scenarios,    False,      None,       None,   True,      0],
+    "carbon2": ["SP",  scenarios,    False,      None,       None,   True,      2],
+}
 
 def visualize_results(analyses_type,scenarios,
                         noBalancingTrips=False,
@@ -134,28 +143,72 @@ def visualize_results(analyses_type,scenarios,
 
         mean_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='mean']
         mean_data = mean_data.droplevel(1, axis=1)
+        mean_data = mean_data.transpose()
         std_data = all_costs_table2.iloc[:,all_costs_table2.columns.get_level_values(1)=='std']
         std_data = std_data.droplevel(1, axis=1)
-        yerrors = std_data.to_numpy()
-        #fig, ax = plt.subplots()
-        ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), 
-            stacked = True,
-            xlabel = 'time periods',
-            ylabel = ylabel,
-            #title = title,
-            color = output.cost_var_colours
-            )  
+        #yerrors = std_data.to_numpy()
+        std_data = std_data.transpose()
+
+        fig, ax = plt.subplots(figsize=(4, 4))
+        
+        # ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), 
+        #     stacked = True,
+        #     xlabel = 'time periods',
+        #     ylabel = ylabel,
+        #     #title = title,
+        #     color = output.cost_var_colours
+        #     )  
+        
+        leftright = -0.25
+        bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
+        for var in which_costs:
+
+            yerror = list(std_data[var])
+
+            #https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html
+            
+            trans1 = Affine2D().translate(leftright, 0.0) + ax.transData
+
+            do_not_plot_lims = [False]*len(yerror)
+            for i in range(len(yerror)):
+                if yerror[i] > 0.001:
+                    do_not_plot_lims[i] = True
+
+            n_start = 100  #do not plot any std at all 
+            for i in range(len(yerror)):
+                if yerror[i] > 0.001:
+                    n_start = i
+                    break
+            #this works! (preventing standard deviations to be plotted, when they are not there)
+
+            ax.bar( [str(t) for t in  base_data.T_TIME_PERIODS], 
+                        mean_data[var].to_list(),
+                        width=0.6, 
+                        yerr=yerror, 
+                        bottom = bottom,
+                        error_kw={#'elinewidth':6,'capsize':6,'capthick':6,'ecolor':'black',
+                            'capsize':2,
+                            'errorevery':(n_start,1),'transform':trans1, 
+                            #'xlolims':do_not_plot_lims,'xuplims':do_not_plot_lims
+                            },   #elinewidth, capthickfloat
+                        label=var,
+                        color=output.cost_var_colours[var]
+                        )
+            bottom = [mean_data[var].to_list()[i]+bottom[i] for i in range(len(bottom))]
+            leftright = leftright + 0.1
+
+
         if filename == 'investment':
             ax.axis(ymin=0,ymax=7)
         #print(ax.get_xticklabels())
         # NOT WORKING WITH CATEGORICAL AXIS
         #ax.vlines(60,0,50)
         ax.axvline(x = 1.5, color = 'black',ls='--') 
-        ax.text(-0.2, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
-        ax.text(1.8, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+        ax.text(-0.2, 0.95*ax.get_ylim()[1], "First \n stage", fontdict=None)
+        ax.text(1.8, 0.95*ax.get_ylim()[1], "Second \n stage", fontdict=None)
 
         if filename=='investment':
-            ax.legend(loc='upper right')  #upper left
+            ax.legend(loc="best")  #upper left      (0.06*ax.get_xlim()[1], 0.06*ax.get_ylim()[1])
         else:
             ax.legend(loc='lower right')  #upper left
 
@@ -163,8 +216,10 @@ def visualize_results(analyses_type,scenarios,
             ax.spines[spine].set_visible(False)
         #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
         #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
-        #fig = ax.get_figure()
-        ax.get_figure().savefig(r"Data//figures//"+run_identifier+"_costs_"+filename+".png",dpi=300,bbox_inches='tight')
+        
+        fig.tight_layout()
+        fig.savefig(r"Data//figures//"+run_identifier+"_costs_"+filename+".png",
+                    dpi=300,bbox_inches='tight')   #ax.get_figure().savefig
 
     output = cost_and_investment_table(base_data,output)
     pd.set_option('display.float_format', '{:.2g}'.format)
@@ -172,7 +227,7 @@ def visualize_results(analyses_type,scenarios,
 
     opex_variables = ['OPEX', 'OPEX (Empty Trips)', 'Carbon','Carbon (Empty Trips)', 'Transfer']
     investment_variables = ['Edge', 'Node', 'Upgrade','Charge']
-    plot_costs(output,opex_variables,'Annual costs (GNOK)',"opex")
+    plot_costs(output,which_costs=opex_variables,ylabel='Annual costs (GNOK)',filename="opex")
     plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
 
     #---------------------------------------------------------#
@@ -254,8 +309,8 @@ def visualize_results(analyses_type,scenarios,
                 
 
             ax.axvline(x = 1.5, color = 'black',ls='--')
-            ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
-            ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+            ax.text(0.5, 0.95*ax.get_ylim()[1], "First \n stage", fontdict=None)
+            ax.text(1.6, 0.95*ax.get_ylim()[1], "Second \n stage", fontdict=None)
 
             #ax.legend(loc='upper right')  #upper left
             
@@ -313,9 +368,9 @@ def visualize_results(analyses_type,scenarios,
 
         for m in ["Road", "Rail", "Sea"]:
 
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(4,5))
 
-            leftright = -0.15
+            leftright = -0.25
             bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
             for f in base_data.FM_FUEL[m]:
                 subset = TranspArbAvgScen[(TranspArbAvgScen['mode']==m)&(TranspArbAvgScen['fuel']==f)]
@@ -344,7 +399,7 @@ def visualize_results(analyses_type,scenarios,
                 #this works! (preventing standard deviations to be plotted, when they are not there)
 
                 ax.bar(labels, subset[base_string].tolist(), 
-                            width, 
+                            width=0.6, 
                             yerr=yerror, 
                             bottom = bottom,
                             error_kw={#'elinewidth':6,'capsize':6,'capthick':6,'ecolor':'black',
@@ -355,14 +410,20 @@ def visualize_results(analyses_type,scenarios,
                             label=f,
                             color=color_dict[f],)
                 bottom = [subset[base_string].tolist()[i]+bottom[i] for i in range(len(bottom))]
-                leftright = leftright + 0.05
+                leftright = leftright + 0.08
+            
+            ax.axvline(x = 1.5, ymin=0, ymax=0.5,color = 'black',ls='--')   #ylim is relative!
             ax.set_ylabel(ylabel)
+            ax.set_ylim(0, 1.2*ax.get_ylim()[1])
             #ax.set_title(m + ' - ' + analysis_type)
             ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
 
-            ax.axvline(x = 1.5, color = 'black',ls='--') 
             #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
             #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
+            
+            for spine in ['top', 'right']:
+                ax.spines[spine].set_visible(False)
+            
             #plt.show()
             fig.savefig(r"Data//figures//"+run_identifier+"_modemix"+m+".png",dpi=300,bbox_inches='tight')
             
@@ -411,13 +472,20 @@ def visualize_results(analyses_type,scenarios,
     output = mode_mix_calculations(output,base_data)
 
 if __name__ == "__main__":
-    visualize_results(analyses_type,
-                      scenarios,
-                        noBalancingTrips=noBalancingTrips,
-                        single_time_period=single_time_period,
-                        risk_aversion = risk_aversion,  #None, averse, neutral
-                        scen_analysis_carbon = scen_analysis_carbon,
-                        carbon_factor = carbon_factor)
+    
+    analyses = [analysis]
+    if run_all_analyses == True:
+        analyses = list(analyses_info.keys())
+    
+    for analysis in analyses:
+        visualize_results(analyses_type=            analyses_info[analysis][0],
+                            scenarios =             analyses_info[analysis][1],
+                            noBalancingTrips=       analyses_info[analysis][2],
+                            single_time_period=     analyses_info[analysis][3],
+                            risk_aversion =         analyses_info[analysis][4],
+                            scen_analysis_carbon =  analyses_info[analysis][5],
+                            carbon_factor =         analyses_info[analysis][6],
+                            )
 
 
 
