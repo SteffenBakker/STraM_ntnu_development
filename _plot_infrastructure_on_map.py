@@ -277,6 +277,10 @@ def plot_terminal_infra_on_map(df_infra, base_data, show_fig=True, save_fig=Fals
     ####################
     # b. Build a map
 
+    # create underlying figure/axis (to get rid of whitespace)
+    fig = plt.figure(figsize=(6,3))
+    ax = plt.axes([0,0,1,1])
+
     #draw the basic map including country borders
     map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
     # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection

@@ -210,6 +210,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     figure that is shown and/or saved to disk if requested
     """
 
+
+
     ####################################
     # a. Extract nodes and coordinates
 
@@ -244,6 +246,10 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
 
     ####################
     # b. Build a map
+
+    # create underlying figure/axis (to get rid of whitespace)
+    fig = plt.figure(figsize=(6,3))
+    ax = plt.axes([0,0,1,1])
 
     #draw the basic map including country borders
     map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
@@ -442,7 +448,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "4Scen" # 9Scen
+scenario_type = "9Scen" # 4Scen
 with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
 with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
@@ -454,16 +460,16 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
-sel_scenario = "average"
-sel_time_period = 2023
-sel_product = "all" # "Timber" # any product group or "all"
+sel_scenario = "BBB"
+sel_time_period = 2050
+sel_product = "Timber" # "Timber" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
 show_fig = True
 save_fig = True
 
 # Make plot
-if True:
+if False:
     process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
@@ -471,7 +477,7 @@ if True:
 
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
-sel_scenario = "average"
+sel_scenario = "BBB"
 sel_time_period_before = 2023
 sel_time_period_after = 2050
 sel_product = "all" # any product group or "all"
@@ -481,7 +487,7 @@ show_fig = True
 save_fig = True
 
 # Make plot
-if False:
+if True:
     process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
