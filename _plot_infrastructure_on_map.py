@@ -81,6 +81,9 @@ def plot_charging_infra_on_map(df_infra, base_data, show_fig=True, save_fig=Fals
     figure that is shown and/or saved to disk if requested
     """
 
+    fig = plt.figure(figsize=(6,3))
+    ax = plt.axes([0,0,1,1])
+
     ####################################
     # a. Extract nodes and coordinates
 

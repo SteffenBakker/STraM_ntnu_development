@@ -194,6 +194,8 @@ def visualize_results(analyses_type,scenarios,
                         label=var,
                         color=output.cost_var_colours[var]
                         )
+            ax.set_ylabel(ylabel)
+            
             bottom = [mean_data[var].to_list()[i]+bottom[i] for i in range(len(bottom))]
             leftright = leftright + 0.1
 

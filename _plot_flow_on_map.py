@@ -210,6 +210,9 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     figure that is shown and/or saved to disk if requested
     """
 
+    fig = plt.figure(figsize=(6,3))
+    ax = plt.axes([0,0,1,1])
+
     ####################################
     # a. Extract nodes and coordinates
 
@@ -443,7 +446,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "4Scen" # 9Scen
+scenario_type = "9Scen" # 9Scen
 with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
 with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
@@ -456,7 +459,7 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period = 2050
+sel_time_period = 2023
 sel_product = "all" # "Timber" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
@@ -473,16 +476,16 @@ if True:
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period_before = 2028
+sel_time_period_before = 2023
 sel_time_period_after = 2050
-sel_product = "Wet bulk" # any product group or "all"
+sel_product = "all" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
 show_fig = True
 save_fig = False
 
 # Make plot
-if False:
+if True:
     process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 

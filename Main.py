@@ -353,13 +353,14 @@ def main(analysis_type,
 
     #  --------- VISUALIZE RESULTS ---------    #
 
-    visualize_results(analysis_type,scenario_tree,
-                        noBalancingTrips=NoBalancingTrips,
-                        single_time_period=single_time_period,
-                        risk_aversion=risk_aversion,
-                        scen_analysis_carbon = False,
-                        carbon_factor = co2_factor
-                      )
+    if single_time_period is None:
+        visualize_results(analysis_type,scenario_tree,
+                            noBalancingTrips=NoBalancingTrips,
+                            single_time_period=single_time_period,
+                            risk_aversion=risk_aversion,
+                            scen_analysis_carbon = False,
+                            carbon_factor = co2_factor
+                        )
 
 def risk_analysis():
     for risk_avers in ["neutral","averse"]:
