@@ -119,8 +119,8 @@ def plot_charging_infra_on_map(df_infra, base_data, show_fig=True, save_fig=Fals
     #draw the basic map including country borders
     map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
     # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
-    map.drawmapboundary(fill_color='aqua')
-    map.fillcontinents(color='lightgrey', lake_color='aqua')
+    map.drawmapboundary(fill_color='paleturquoise')
+    map.fillcontinents(color='lightgrey', lake_color='paleturquoise')
     map.drawcoastlines(linewidth=0.2)
     map.drawcountries(linewidth=0.2)
 
@@ -133,7 +133,7 @@ def plot_charging_infra_on_map(df_infra, base_data, show_fig=True, save_fig=Fals
     # c. Plot flow in the map
 
     #arrow settings
-    tail_width_base = 20
+    tail_width_base = 200
     min_tail_width = 0
     head_with = 0.01
     head_length = 0.01
@@ -179,7 +179,7 @@ def plot_charging_infra_on_map(df_infra, base_data, show_fig=True, save_fig=Fals
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches="tight")
     #show figure
     if show_fig:
         plt.show()
@@ -196,7 +196,7 @@ def process_and_plot_charging_infra(output, base_data, sel_time_period, sel_scen
     plot_charging_infra_on_map(df_infra, base_data, show_fig, save_fig, filename)
 
 
-# b. Harbors
+# b. Terminals (harbors)
 
 # function that processes the charging infrastructure data, puts it in a data frame
 def process_terminal_infra(nu_node, mode, terminal_type, sel_time_period, sel_scenario="BBB", cumulative=False):
@@ -311,7 +311,7 @@ def plot_terminal_infra_on_map(df_infra, base_data, show_fig=True, save_fig=Fals
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches="tight")
     #show figure
     if show_fig:
         plt.show()
@@ -335,26 +335,33 @@ def process_and_plot_terminal_infra(output, base_data, mode, terminal_type, sel_
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
-    output = pickle.load(output_file)
-with open(r'Data\base_data', 'rb') as data_file:
+scenario_type = "4Scen" # 9Scen
+with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
+with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
+    output = pickle.load(output_file)
 
 # plot charging infra for multiple years
-for t in [2022, 2026, 2030, 2040, 2050]:
-    process_and_plot_charging_infra(output, base_data, t, cumulative=True, show_fig=True, save_fig=False)
+sel_scenario = "BBB"
+if True:
+    #for t in [2023, 2028, 2034, 2040, 2050]:
+    for t in [2023, 2028, 2034, 2040, 2050]:
+        process_and_plot_charging_infra(output, base_data, t, sel_scenario, cumulative=False, show_fig=True, save_fig=True)
 
 # plot charging infra for one year
-process_and_plot_charging_infra(output, base_data, 2040, cumulative=False, show_fig=True, save_fig=False)
+#process_and_plot_charging_infra(output, base_data, 2040, cumulative=False, show_fig=True, save_fig=False)
 
 
 
 # plot terminal infra investment for all years
-for t in [2022, 2026, 2030, 2040, 2050]:
-    process_and_plot_terminal_infra(output, base_data, "Rail", "all", t, sel_scenario="BBB", cumulative=True, show_fig=True, save_fig=False)
+sel_mode_type = "Rail"
+sel_terminal_type = "all"
+if False:        
+    for t in [2023, 2028, 2034, 2040, 2050]:
+        process_and_plot_terminal_infra(output, base_data, sel_mode_type, sel_terminal_type, t, sel_scenario="BBB", cumulative=True, show_fig=True, save_fig=False)
 
 # plot terminal infra investment for one year
-process_and_plot_terminal_infra(output, base_data, "Rail", "all", 2050, sel_scenario="BBB", cumulative=True, show_fig=True, save_fig=False)
+#process_and_plot_terminal_infra(output, base_data, sel_mode_type, sel_terminal_type, 2050, sel_scenario="BBB", cumulative=True, show_fig=True, save_fig=False)
 
 
 output.nu_node.head()
