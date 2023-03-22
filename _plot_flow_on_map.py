@@ -192,7 +192,7 @@ def compute_flow_differences(x_flow, b_flow, sel_scenario, sel_time_period_befor
     return df_flow_diff
 
 # function that plots flow on the map
-def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):    
+def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product, plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):    
     """
     Create a plot on the map of Norway with all the flows
 
@@ -262,7 +262,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     # c. Plot flow in the map
 
     #arrow settings
-    tail_width_dict = {"road":10, "rail":10, "sea":20, "all":10, "diff":10} #base tail width for different plotting variants
+    tail_width_dict = {"road":10, "rail":10, "sea":20, "all":10, "diff":5} #base tail width for different plotting variants
     min_tail_width = 1 #minimum width of any drawn edge
     #select maximum tail width:
     tail_width_base = 0 #initialize
@@ -274,12 +274,12 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"road":"darkslategrey", "sea":"blue", "rail":"red", "total":"black"}
+    mode_color_dict = {"road":"violet", "sea":"blue", "rail":"saddlebrown", "total":"black"}
     mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
     curvature_fact_dict = {"road":0, "sea":-1.5, "rail":+1.5, "total":0}
     zorder_dict = {"road":30, "sea":20, "rail":40, "total":20}
     # arrow settings for direction of change (for "diff" option)
-    dir_color_dict = {"increase":"green", "decrease":"red"}
+    dir_color_dict = {"increase":"seagreen", "decrease":"red"}
 
 
     # compute maximum and total flows over all edges (for scaling purposes)
@@ -342,9 +342,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
                         (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
                         (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
                         connectionstyle=f"arc3,rad={base_curvature * curvature_factor}", #curvature of the edge
-                        #arrowstyle=f"Simple, tail_width={tail_width_base * cur_flow/cur_max_flow}, head_width={head_with}, head_length={head_length}", #tail width: constant times normalized flow
                         linewidth = max(tail_width_base * cur_flow/cur_max_flow, min_tail_width),
-                        #linewidth = tail_width_base * (1/power_of_ten) * np.log10(10.0 ** power_of_ten * cur_flow/cur_max_flow),
+                        
                         linestyle=mode_linestyle_dict[cur_mode],
                         color=cur_color,
                         zorder = zorder_dict[cur_mode]
@@ -407,8 +406,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, plot_overse
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        filename = f"Plots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{mode_variant}.png"
-        plt.savefig(filename)
+        filename = f"Plots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
+        plt.savefig(filename, bbox_inches="tight")
     #show figure
     if show_fig:
         plt.show()
@@ -421,7 +420,7 @@ def process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_tim
 
     # make plot
     print("Making plot...")
-    plot_flow_on_map(df_flow, base_data, "flow", mode_variant, plot_overseas, plot_up_north, show_fig, save_fig)
+    plot_flow_on_map(df_flow, base_data, "flow", mode_variant, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 # function that processes data and makes a diff plot in one go
 def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product = "all", plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):    
@@ -432,7 +431,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 
     # make plot
     print("Making plot...")
-    plot_flow_on_map(df_flow_diff, base_data, "diff", mode_variant, plot_overseas, plot_up_north, show_fig, save_fig)
+    plot_flow_on_map(df_flow_diff, base_data, "diff", mode_variant, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
 
@@ -456,12 +455,12 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period = 2050
+sel_time_period = 2023
 sel_product = "all" # "Timber" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
 show_fig = True
-save_fig = False
+save_fig = True
 
 # Make plot
 if True:
@@ -473,13 +472,13 @@ if True:
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "average"
-sel_time_period_before = 2028
+sel_time_period_before = 2023
 sel_time_period_after = 2050
-sel_product = "Wet bulk" # any product group or "all"
+sel_product = "all" # any product group or "all"
 plot_overseas = True
 plot_up_north = True
 show_fig = True
-save_fig = False
+save_fig = True
 
 # Make plot
 if False:
