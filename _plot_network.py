@@ -216,7 +216,7 @@ plot_height = scale * plot_width
 plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGHT SIZE
 #save figure
 if save_fig:
-    filename = f"Plots/edge_plot.pdf"
+    filename = f"Plots/edge_plot.png"
     plt.savefig(filename,bbox_inches='tight')
 #show figure
 if show_fig:
