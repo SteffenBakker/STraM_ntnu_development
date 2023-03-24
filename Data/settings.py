@@ -37,5 +37,4 @@ NO_INVESTMENTS = False
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
 #the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)
-GROWTH_ON_ROAD = 2 #the transport amount on road can only grow with 100%
 RHO_STAR = 0.975  #implied rho of around 20% over 5 years

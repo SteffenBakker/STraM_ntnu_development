@@ -439,18 +439,6 @@ class TranspModel:
                         # q(t) - q(t-1) <= alpha * q_bar(|_t-1_|) + beta * q(t-1)
                 self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE_S, rule = BassDiffusionRuleSecondStage)
 
-        #-----------------------------------------------#
-        #    Specific constraints
-        #-----------------------------------------------#
-
-            if False:
-                #Do not use too much road
-                def RoadDevelopmentRule(model, t,s):
-                    m = "Road"
-                    return (sum(self.model.q_transp_amount[(m,f,t,s)] for f in self.data.FM_FUEL[m]) <= \
-                        GROWTH_ON_ROAD*sum(self.model.q_transp_amount[(m,f,self.data.T_TIME_PERIODS[0],s)] for f in self.data.FM_FUEL[m]))   
-                self.model.RoadDevelopment = Constraint(self.data.T_TIME_PERIODS_S, rule = RoadDevelopmentRule)
-
 
 
         #-----------------------------------------------#
