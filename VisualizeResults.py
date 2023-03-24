@@ -79,8 +79,8 @@ def visualize_results(analyses_type,scenarios,
     def cost_and_investment_table(base_data,output):
         
         cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost"]
-        legend_names = {"TranspOpexCost":"OPEX",
-            "TranspOpexCostB":"OPEX (Empty Trips)",
+        legend_names = {"TranspOpexCost":"General",
+            "TranspOpexCostB":"General (Empty Trips)",
             "TranspCO2Cost":"Carbon",
             "TranspCO2CostB":"Carbon (Empty Trips)",
             "TransfCost":"Transfer",
@@ -89,8 +89,8 @@ def visualize_results(analyses_type,scenarios,
             "UpgCost":"Upgrade", 
             "ChargeCost":"Charge",
             }
-        output.cost_var_colours =  {"OPEX":"royalblue",
-            "OPEX (Empty Trips)":"cornflowerblue",
+        output.cost_var_colours =  {"General":"royalblue",
+            "General (Empty Trips)":"cornflowerblue",
             "Carbon":"dimgrey",
             "Carbon (Empty Trips)":"silver",
             "Transfer":"brown",
@@ -195,7 +195,7 @@ def visualize_results(analyses_type,scenarios,
                         color=output.cost_var_colours[var]
                         )
             ax.set_ylabel(ylabel)
-            
+
             bottom = [mean_data[var].to_list()[i]+bottom[i] for i in range(len(bottom))]
             leftright = leftright + 0.1
 
@@ -211,8 +211,10 @@ def visualize_results(analyses_type,scenarios,
 
         if filename=='investment':
             ax.legend(loc="best")  #upper left      (0.06*ax.get_xlim()[1], 0.06*ax.get_ylim()[1])
+            ax.set_ylabel(r"Investment cost (BNOK)")
         else:
             ax.legend(loc='lower right')  #upper left
+            ax.set_ylabel(r"Transport cost (BNOK)")
 
         for spine in ['top', 'right']:
             ax.spines[spine].set_visible(False)
@@ -227,7 +229,7 @@ def visualize_results(analyses_type,scenarios,
     pd.set_option('display.float_format', '{:.2g}'.format)
     print(round(output.all_costs_table,2))
 
-    opex_variables = ['OPEX', 'OPEX (Empty Trips)', 'Carbon','Carbon (Empty Trips)', 'Transfer']
+    opex_variables = ['General', 'General (Empty Trips)', 'Carbon','Carbon (Empty Trips)', 'Transfer']
     investment_variables = ['Edge', 'Node', 'Upgrade','Charge']
     plot_costs(output,which_costs=opex_variables,ylabel='Annual costs (GNOK)',filename="opex")
     plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
@@ -295,13 +297,26 @@ def visualize_results(analyses_type,scenarios,
 
             #output.emission_stats['Std'] = 0.1*output.emission_stats['AvgEmission']  #it works when there is some deviation!!
             
-            yerrors = output.emission_stats[['Std_perc']].to_numpy().T
-            ax = output.emission_stats[['AvgEmission_perc']].plot(kind='bar', 
-                        xlabel = 'time periods',
-                        ylabel = 'Relative emissions (%)',
-                        #title = "Emissions",
-                        yerr=yerrors, alpha=0.5, 
-                        error_kw=dict(ecolor='k'), stacked = False)
+            y = output.emission_stats[['AvgEmission_perc']].to_numpy() #to_list()
+            y = [item for sublist in y for item in sublist]
+            yerrors = output.emission_stats[['Std_perc']].to_numpy() 
+            yerrors = [item for sublist in yerrors for item in sublist]
+            
+            fig, ax = plt.subplots(figsize=(4, 4))
+
+            ax.bar( [str(t) for t in  base_data.T_TIME_PERIODS], 
+                        y,
+                        width=0.6, 
+                        yerr=yerrors
+                        )
+
+            # ax = output.emission_stats[['AvgEmission_perc']].plot(kind='bar', 
+            #             xlabel = 'time periods',
+            #             ylabel = 'Relative emissions (%)',
+            #             #title = "Emissions",
+            #             yerr=yerrors, alpha=0.5, 
+            #             error_kw=dict(ecolor='k'), stacked = False)
+            
             #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
             
             props = dict(boxstyle='round', facecolor='white', alpha=1)
@@ -311,11 +326,14 @@ def visualize_results(analyses_type,scenarios,
                 
 
             ax.axvline(x = 1.5, color = 'black',ls='--')
-            ax.text(0.5, 0.95*ax.get_ylim()[1], "First \n stage", fontdict=None)
-            ax.text(1.6, 0.95*ax.get_ylim()[1], "Second \n stage", fontdict=None)
+            ax.text(0.55, 0.95*ax.get_ylim()[1], "First \n stage", fontdict=None)
+            ax.text(1.7, 0.95*ax.get_ylim()[1], "Second \n stage", fontdict=None)
 
+            ax.axis(ymin=0)
             #ax.legend(loc='upper right')  #upper left
             
+            ax.set_ylabel(r"Emissions (% of base year)")
+
             for spine in ['top', 'right']:
                 ax.spines[spine].set_visible(False)
             #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html

@@ -159,8 +159,11 @@ for year in years:
                 leftright = leftright + 0.09
             ax.set_ylabel(ylabel)
             #ax.set_title(m + ' - ' + analysis_type)
-            ax.axis(ymax=ax.get_ylim()[1])
+            ax.axis(ymin=0,ymax=ax.get_ylim()[1])
             #ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
+
+            for spine in ['top', 'right']:
+                ax.spines[spine].set_visible(False)
 
             #ax.axvline(x = 1.5, color = 'black',ls='--') 
             #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
