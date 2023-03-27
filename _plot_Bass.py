@@ -11,8 +11,8 @@ start_year = 2028
 second_stage_start = 2034
 
 bassie_base = BassDiffusion(p_base, q_base, 100, t_0=start_year)
-bassie_slow = BassDiffusion(0.5*p_base, 0.5*q_base, 100, t_0=start_year)
-bassie_fast = BassDiffusion(1.5*p_base, 1.5*q_base, 100, t_0=start_year)
+bassie_slow = BassDiffusion(0.75*p_base, 0.75*q_base, 100, t_0=start_year)
+bassie_fast = BassDiffusion(1.25*p_base, 1.25*q_base, 100, t_0=start_year)
 
 A_base_second_stage = bassie_base.A(second_stage_start)
 
@@ -32,6 +32,9 @@ for i in range(len(t_vec)):
         A_slow[i] = bassie_slow.A_from_starting_point(t_vec[i], A_base_second_stage, second_stage_start)
         A_fast[i] = bassie_fast.A_from_starting_point(t_vec[i], A_base_second_stage, second_stage_start)
 
+#for spine in ['top', 'right']:
+#    ax.spines[spine].set_visible(False)
+
 plt.plot(t_vec, A_base, label = "base", zorder = 3)
 plt.plot(t_vec, A_slow, label = "slow", zorder = 2)
 plt.plot(t_vec, A_fast, label = "fast", zorder = 1)
@@ -40,7 +43,7 @@ plt.ylabel("Adoption level")
 
 plt.legend()
 
-plt.savefig("Plots/Bass/Bass_example.png", dpi=300)
+plt.savefig("Data/Plots/Bass/Bass_example.png", dpi=300)
 
 plt.show()
 
