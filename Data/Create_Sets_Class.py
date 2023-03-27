@@ -11,8 +11,8 @@ Adapted by Ruben
 import os
 import sys
 #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
-#os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
-#sys.path.insert(0, '') #make sure the modules are found in the new working directory
+os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
+sys.path.insert(0, '') #make sure the modules are found in the new working directory
 
 from Data.settings import *
 from collections import Counter
@@ -293,7 +293,7 @@ class TransportSets():
 
 
         #Start with filtering of demand data. What to include and what not.
-        D_DEMAND_ALL = {}  #5330 entries, after cutting off the small elements, only 4105 entries
+        self.D_DEMAND_ALL2 = {}  #5330 entries, after cutting off the small elements, only 4105 entries
 
         #then read the pwc_aggr data
         
@@ -303,10 +303,26 @@ class TransportSets():
             to_node = row['to_fylke_zone']
             product = row['commodity_aggr']
             if product in self.P_PRODUCTS:
-                if from_node !=  to_node and from_node in self.N_NODES and to_node in self.N_NODES:
-                #if from_node not in ['Europa', 'Verden','Kontinentalsokkelen']: #TO DO, change back: temporary solution
-                    D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
-                
+                self.D_DEMAND_ALL2[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
+
+
+
+        all_demand_base_year = 0
+        all_demand_base_year2 = 0
+        D_DEMAND_ALL = {}
+        for (i,j,p,t),value in self.D_DEMAND_ALL2.items():
+            if t == self.T_TIME_PERIODS[0]:
+                all_demand_base_year += value
+            if (i !=  j) and (i in self.N_NODES and j in self.N_NODES):
+                D_DEMAND_ALL[i,j,p,t] = value
+                if t == self.T_TIME_PERIODS[0]:
+                    all_demand_base_year2 += value
+        # These are the same, as the pwc matrix already has excluded within zone demand
+        #print("demand in base year WITH within county transport: ", all_demand_base_year)
+        #print("demand in base year WITHOUT within county transport: ", all_demand_base_year2)
+        #print("percentage amount: ", round(all_demand_base_year2/all_demand_base_year*100,2))
+        
+
         demands = pd.Series(D_DEMAND_ALL.values())         
         
         # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES? should not matter too much. distances are somewhat similar
@@ -1031,7 +1047,7 @@ class TransportSets():
 
 print("Finished reading sets and classes.")
 
-#base_data = TransportSets()
+base_data = TransportSets()
 
 #Testing:
 """

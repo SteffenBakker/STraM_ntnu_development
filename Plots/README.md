@@ -1,1 +1,0 @@
-This folder will contain the plots based on model runs 

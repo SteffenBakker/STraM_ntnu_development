@@ -338,9 +338,10 @@ def process_and_plot_terminal_infra(output, base_data, mode, terminal_type, sel_
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-with open(r'Data\output_data_'+analyses_type, 'rb') as output_file:
+scenario = "9Scen" #"4Scen"
+with open(r'Data\\output\\'+analyses_type+"_"+scenario+".pickle", 'rb') as output_file:
     output = pickle.load(output_file)
-with open(r'Data\base_data', 'rb') as data_file:
+with open(r'Data\\base_data\\'+scenario+".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 # plot charging infra for multiple years
