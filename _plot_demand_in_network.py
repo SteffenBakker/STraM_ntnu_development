@@ -84,8 +84,8 @@ with open(r'Data\\base_data\\9Scen.pickle', 'rb') as data_file:
         #draw the basic map including country borders
         map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
         # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
-        map.drawmapboundary(fill_color='aqua')
-        map.fillcontinents(color='lightgrey', lake_color='aqua')
+        map.drawmapboundary(fill_color='paleturquoise')
+        map.fillcontinents(color='lightgrey', lake_color='paleturquoise')
         map.drawcoastlines(linewidth=0.2)
         map.drawcountries(linewidth=0.2)
 

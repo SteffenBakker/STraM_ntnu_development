@@ -23,14 +23,14 @@ import matplotlib.patches as patches #import library for fancy arrows/edges
 # a. Charging
 
 # function that processes the charging infrastructure data, puts it in a data frame
-def process_charging_infra(y_charging, sel_time_period, sel_scenario="BBB", cumulative=False):
+def process_charging_infra(y_charging, sel_time_period, sel_scenario="BBB", cumulative=False, fuel_type="Battery electric"):
     
     #initialize lists that will store output
     arcs = []       # all relevant arcs
     infra = []      # investment levels in charging infrastructure
 
     for index, row in y_charging.iterrows():
-        if row["mode"] == "Road" and row["fuel"] == "Battery electric": # check road-electric
+        if row["mode"] == "Road" and row["fuel"] == fuel_type: # check road-electric
             if row["scenario"] == sel_scenario: # check scenario
                 if (cumulative == True and row["time_period"] <= sel_time_period) or (cumulative == False and row["time_period"] == sel_time_period):
                     #temporarily store current arc and its opposite
@@ -195,7 +195,7 @@ def process_and_plot_charging_infra(output, base_data, sel_time_period, sel_scen
 
     # make plot
     print("Making plot...")
-    filename = f"Plots/charging_infra_plot_{sel_time_period}_{sel_scenario}_{cumulative}.png"
+    filename = f"Data/Plots/charging_infra_plot_{sel_time_period}_{sel_scenario}_{cumulative}.png"
     plot_charging_infra_on_map(df_infra, base_data, show_fig, save_fig, filename)
 
 
@@ -342,7 +342,7 @@ def process_and_plot_terminal_infra(output, base_data, mode, terminal_type, sel_
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "4Scen" # 9Scen
+scenario_type = "9Scen" # 9Scen
 with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
 with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
