@@ -2,7 +2,7 @@ This file contains an overview of all the data files.
 For every data file (.csv or .xlsx) we indicate what data it contains
 This will be used to make new, "clean" data files
 
-I discuss the files in order of appearance in the data reading file "Create_Sets_Class.py"
+I discuss the files in order of appearance in the data reading file "ConstructData.py"
 After the file name I indicate the corresponding file name in the cleaned up version of the data (see temp folder "Reorganized")
 
 1. "pwc_riktig" ---> "demand.csv"

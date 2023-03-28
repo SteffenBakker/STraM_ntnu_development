@@ -34,7 +34,7 @@ analyses_info = {
 def visualize_results(analyses_type,scenarios,
                         noBalancingTrips=False,
                         single_time_period=None,
-                        risk_aversion = None,  #None, averse, neutral
+                        risk_aversion = None,  #None, "averse", "neutral"
                         scen_analysis_carbon = False,
                         carbon_factor = 1
                       ):
@@ -66,9 +66,6 @@ def visualize_results(analyses_type,scenarios,
     print('objective function value: ', output.ob_function_value)
     print('objective function value normalized (BILLION NOK): ', round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY,2))  
 
-
-
-    #SHOULD REMOVE THE MISSION PENALTY: DOES NOT MAKE SENSE NOW
 
 
     #---------------------------------------------------------#
@@ -151,21 +148,11 @@ def visualize_results(analyses_type,scenarios,
 
         fig, ax = plt.subplots(figsize=(4, 4))
         
-        # ax = mean_data.transpose().plot(kind='bar', yerr=yerrors, alpha=0.5, error_kw=dict(ecolor='k'), 
-        #     stacked = True,
-        #     xlabel = 'time periods',
-        #     ylabel = ylabel,
-        #     #title = title,
-        #     color = output.cost_var_colours
-        #     )  
-        
         leftright = -0.25
         bottom = [0 for i in range(len(base_data.T_TIME_PERIODS))]  
         for var in which_costs:
 
             yerror = list(std_data[var])
-
-            #https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html
             
             trans1 = Affine2D().translate(leftright, 0.0) + ax.transData
 
@@ -179,7 +166,7 @@ def visualize_results(analyses_type,scenarios,
                 if yerror[i] > 0.001:
                     n_start = i
                     break
-            #this works! (preventing standard deviations to be plotted, when they are not there)
+            #this works (preventing standard deviations to be plotted, when they are not there)
 
             ax.bar( [str(t) for t in  base_data.T_TIME_PERIODS], 
                         mean_data[var].to_list(),
@@ -290,11 +277,6 @@ def visualize_results(analyses_type,scenarios,
 
         def plot_emission_results(output,base_data):
 
-            #create bar chart figure -> See my drawing
-            #https://stackoverflow.com/questions/46794373/make-a-bar-graph-of-2-variables-based-on-a-dataframe
-            #https://pythonforundergradengineers.com/python-matplotlib-error-bars.html
-
-
             #output.emission_stats['Std'] = 0.1*output.emission_stats['AvgEmission']  #it works when there is some deviation!!
             
             y = output.emission_stats[['AvgEmission_perc']].to_numpy() #to_list()
@@ -309,16 +291,7 @@ def visualize_results(analyses_type,scenarios,
                         width=0.6, 
                         yerr=yerrors
                         )
-
-            # ax = output.emission_stats[['AvgEmission_perc']].plot(kind='bar', 
-            #             xlabel = 'time periods',
-            #             ylabel = 'Relative emissions (%)',
-            #             #title = "Emissions",
-            #             yerr=yerrors, alpha=0.5, 
-            #             error_kw=dict(ecolor='k'), stacked = False)
-            
-            #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
-            
+                        
             props = dict(boxstyle='round', facecolor='white', alpha=1)
             for year in [2030,2050]:
                 ax.axhline(y = base_data.EMISSION_CAP_RELATIVE[year], color = 'black', linestyle = ':')
@@ -338,7 +311,6 @@ def visualize_results(analyses_type,scenarios,
                 ax.spines[spine].set_visible(False)
             #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
             #ax.spines[['right', 'top']].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
-            #fig = ax.get_figure()
             ax.get_figure().savefig(r"Data//figures//"+run_identifier+"_emissions.png",dpi=300,bbox_inches='tight')
             
         plot_emission_results(output,base_data)
@@ -348,20 +320,7 @@ def visualize_results(analyses_type,scenarios,
     #---------------------------------------------------------#
 
     def plot_mode_mixes(TranspArbAvgScen, base_data,absolute_transp_work=True, analysis_type="All transport"):  #result data = TranspArbAvgScen
-        # color_sea = iter(cm.Blues(np.linspace(0.3,1,7)))
-        # color_road = iter(cm.Reds(np.linspace(0.4,1,5)))
-        # color_rail = iter(cm.Greens(np.linspace(0.25,1,5)))
-
-        # color_dict = {}
-        # for m in ["Road", "Rail", "Sea"]:
-        #     for f in base_data.FM_FUEL[m]:
-        #         if m == "Road":
-        #             color_dict[m,f] = next(color_road)
-        #         elif m == "Rail":
-        #             color_dict[m, f] = next(color_rail)
-        #         elif m == "Sea":
-        #             color_dict[m, f] = next(color_sea)
-
+        
         #https://matplotlib.org/stable/gallery/color/named_colors.html
         color_dict = {'Diesel':                 'firebrick', 
                         'Ammonia':              'royalblue', 
@@ -395,9 +354,7 @@ def visualize_results(analyses_type,scenarios,
             for f in base_data.FM_FUEL[m]:
                 subset = TranspArbAvgScen[(TranspArbAvgScen['mode']==m)&(TranspArbAvgScen['fuel']==f)]
                 yerror = subset[base_string+'_std'].tolist()
-                #print(yerror)
 
-                #https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html
                 
                 trans1 = Affine2D().translate(leftright, 0.0) + ax.transData
 
@@ -405,18 +362,13 @@ def visualize_results(analyses_type,scenarios,
                 for i in range(len(yerror)):
                     if yerror[i] > 0.001:
                         do_not_plot_lims[i] = True
-                
-                #print(f,m)
-                #print(yerror)
-                #print(do_not_plot_lims)
-                #it does what it should, but xuplims does not work.. 
 
                 n_start = 5
                 for i in range(len(yerror)):
                     if yerror[i] > 0.001:
                         n_start = i
                         break
-                #this works! (preventing standard deviations to be plotted, when they are not there)
+                #this works (preventing standard deviations to be plotted, when they are not there)
 
                 ax.bar(labels, subset[base_string].tolist(), 
                             width=0.6, 
@@ -506,146 +458,3 @@ if __name__ == "__main__":
                             scen_analysis_carbon =  analyses_info[analysis][5],
                             carbon_factor =         analyses_info[analysis][6],
                             )
-
-
-
-
-
-
-
-
-
-
-
-
-
-if False:
-    #---------------------------------------------------------#
-    #       DEMAND ANALYSIS
-    #---------------------------------------------------------#
-
-    print('--------------------------')
-
-
-    base_data.D_DEMAND_AGGR
-    total_demand = {t:0 for t in base_data.T_TIME_PERIODS}
-    total_demand_european = {t:0 for t in base_data.T_TIME_PERIODS}
-    total_demand_domestic = {t:0 for t in base_data.T_TIME_PERIODS}
-    for key,value in base_data.D_DEMAND.items():
-        (i,j,p,t) = key
-        val = round(value/10**6*SCALING_FACTOR_WEIGHT,2)
-        total_demand[t] += val
-        if (i not in ['Europa','Verden']) and (j not in ['Europa','Verden']):
-            total_demand_domestic[t] += val
-        if (i not in ['Verden']) and (j not in ['Verden']):
-            total_demand_european[t] += val
-
-
-    data = [total_demand,total_demand_european,total_demand_domestic]
-    demand_overview = pd.DataFrame.from_dict(data,orient='columns') 
-    demand_overview.index = ['all','european','domestic']
-    print('total demand in MTonnes')
-    print(demand_overview)
-
-
-    #DEMAND_PER_YEAR = [{(i,j,p):value for (i,j,p,t),value in base_data.D_DEMAND.items() if t==tt} for tt in [2030,2040,2050]]
-    #pd.DataFrame.from_dict(DEMAND_PER_YEAR,orient='columns').transpose()
-
-
-    #conclusion: this is not the reason for the thing that is happening in 2040! We can go back to the estimate from TØI... 
-
-
-#TRANSPORTARBEID / transport performance analysis
-if False:
-
-    output.transport_performance = {(t,s):0 for t in base_data.T_TIME_PERIODS for s in base_data.S_SCENARIOS} # in MTonnes CO2 equivalents
-    x_flow = output.x_flow
-    b_flow = output.b_flow
-
-    if True:
-        x_flow = x_flow[(x_flow['from'].isin(base_data.N_NODES_NORWAY))&(x_flow['to'].isin(base_data.N_NODES_NORWAY))]
-        b_flow = b_flow[(b_flow['from'].isin(base_data.N_NODES_NORWAY))&(b_flow['to'].isin(base_data.N_NODES_NORWAY))]
-
-    for index,row in x_flow.iterrows():
-        (i,j,m,r,f,p,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['product'],row['time_period'],row['scenario'],row['weight']) 
-        if p not in ['Dry bulk','Wet bulk']:
-            output.transport_performance[(t,s)] += ((base_data.AVG_DISTANCE[(i,j,m,r)])*(value*SCALING_FACTOR_WEIGHT))/(10**6) #   Million tonnes*km
-    for index,row in b_flow.iterrows():
-        (i,j,m,r,f,v,t,s,value) = (row['from'],row['to'],row['mode'],row['route'],row['fuel'],row['vehicle_type'],row['time_period'],row['scenario'],row['weight'])
-        if p not in ['Dry bulk','Wet bulk']:
-            output.transport_performance[(t,s)] += ((base_data.AVG_DISTANCE[(i,j,m,r)])*(value*SCALING_FACTOR_WEIGHT))/(10**6) # Million tonnes*km
-
-    output.transport_performance
-
-
-
-
-
-
-
-
-if False:
-
-
-    #------------------------------------------
-    #the following should be moved to extractmodelresults.py
-
-    class JSONEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if hasattr(obj, 'to_json'):
-                return obj.to_json(orient='records') #
-            return json.JSONEncoder.default(self, obj)
-
-    with open(r'Data\\output_vars.json', 'w') as fp:
-        json.dump({ '0':output.all_variables,
-                    '1':output.x_flow,
-                    '2':output.b_flow,
-                    '3':output.h_path,
-                    '4':output.y_charging,
-                    '5':output.nu_node,
-                    '6':output.epsilon_edge,
-                    '7':output.upsilon_upgrade,
-                    '8':output.z_emission_violation,
-                    '9':output.total_emissions,
-                    '10':output.q_transp_amount,
-                    '11':output.q_max_transp_amount
-                    },fp, cls=JSONEncoder)
-
-
-    costs = output.costs
-    for key in costs.keys():
-        costs[key] = list(costs[key].items())
-    
-    with open(r'Data\\output_costs.json', "w") as outfile:
-        json.dump(costs, outfile)
-
-
-    #------------------------------------------
-    #then we can start reading here 
-
-    costs = json.load(open(r'Data\\output_costs.json'))
-    json_file_output_vars = json.load(open(r'Data\\output_vars.json'))
-    class Output():
-        def __init__(self,costs,json_file_output_vars):
-            
-            for key in costs.keys():
-                if isinstance(costs[key][0][0],list):
-                    costs[key] = {tuple(x[0]):x[1] for x in costs[key]}
-                else:
-                    costs[key] = {x[0]:x[1] for x in costs[key]}
-            self.costs = costs
-
-            self.all_variables =            pd.read_json(json_file_output_vars['0'], orient='records')
-            self.x_flow =                   pd.read_json(json_file_output_vars['1'], orient='records')
-            self.b_flow=                    pd.read_json(json_file_output_vars['2'], orient='records')
-            self.h_path=                    pd.read_json(json_file_output_vars['3'], orient='records')
-            self.y_charging=                pd.read_json(json_file_output_vars['4'], orient='records')
-            self.nu_node=                   pd.read_json(json_file_output_vars['5'], orient='records')
-            self.epsilon_edge=              pd.read_json(json_file_output_vars['6'], orient='records')
-            self.upsilon_upgrade=           pd.read_json(json_file_output_vars['7'], orient='records')
-            self.z_emission_violation=      pd.read_json(json_file_output_vars['8'], orient='records')
-            self.total_emissions=           pd.read_json(json_file_output_vars['9'], orient='records')
-            self.q_transp_amount=           pd.read_json(json_file_output_vars['10'], orient='records')
-            self.q_max_transp_amount=       pd.read_json(json_file_output_vars['11'], orient='records')
-    output = Output(costs,json_file_output_vars)
-

@@ -4,19 +4,18 @@ Created on Fri Jul 29 10:47:48 2022
 
 @author: steffejb
 """
+
 import os
 from pyomo.common.tempfiles import TempfileManager
 basepath = os.getcwd().replace(os.sep, '/')
 TempfileManager.tempdir = basepath+"/temp/pyomo"
-#Also try to force this to None and see what happens
 
-#Remember to set the right workingdirectory. Otherwise errors with loading the classes
-# os.chdir('C://Users//steffejb//OneDrive - NTNU//Work//GitHub//AIM_Norwegian_Freight_Model//AIM_Norwegian_Freight_Model')
+#os.chdir('C://Users//steffejb//OneDrive - NTNU//Work//GitHub//AIM_Norwegian_Freight_Model//AIM_Norwegian_Freight_Model')
 #os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
 
 from Model import TranspModel, RiskInformation
 from ExtractResults import OutputData
-from Data.Create_Sets_Class import TransportSets
+from Data.ConstructData import TransportSets
 from Data.settings import *
 from Data.interpolate import interpolate
 from VisualizeResults import visualize_results
@@ -36,23 +35,20 @@ from Utils import Logger
 #################################################
 
 
-analysis = "only_generate_data"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-scenario_tree = "9Scen" #AllScen,4Scen, 9Scen
+analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+scenario_tree = "9Scen" #4Scen, 9Scen
 analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
 cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
-# TODO: test if this is working
 
 log_to_file = True
-time_periods = None  #[2022,2026,2030] or None for default up to 2050
 
-
-
-
-
+time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
+num_first_stage_periods = 2         # how many of the periods above are in first stage
+    
 
 #################################################
 #                   main code                   #
@@ -62,7 +58,6 @@ time_periods = None  #[2022,2026,2030] or None for default up to 2050
 def construct_and_solve_SP(base_data,
                             risk_info, 
                             single_time_period=None,
-                            time_periods = None,
                             NoBalancingTrips = None):
 
     # ------ CONSTRUCT MODEL ----------#
@@ -86,7 +81,7 @@ def construct_and_solve_SP(base_data,
     start = time.time()
     model_instance.solve_model(#FeasTol=10**(-2),
                                #num_focus=1,
-                               #Method=-1,  #i have observed that it gets solved with both primal simplex, dual simplex and barrier. So, standard concurrent option is good
+                               #Method=-1,  
                                ) 
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
@@ -122,7 +117,7 @@ def construct_and_solve_EEV(base_data,risk_info):
 
     print("Solving EV model.....",end="",flush=True)
     start = time.time()
-    model_instance_EV.solve_model(FeasTol=(10**(-6)), #need high precision, otherwise it becomes infeasible in EEV
+    model_instance_EV.solve_model(FeasTol=(10**(-6)), #needs high precision, otherwise potential infeasibility issue with EEV
                                   num_focus= 0,  # 0 is automatic, 1 is fast low precision
                                   ) #
     print("Done solving model.")
@@ -168,7 +163,7 @@ def construct_and_solve_EEV(base_data,risk_info):
     start = time.time()
     #options = option_settings_ef()
     model_instance.solve_model(#FeasTol=10**(-2),
-                               #num_focus=1, #put high to make sure that the warm start is feasible
+                               #num_focus=1, 
                                #Method = -1,
                                ) 
     print("Done solving model.",flush=True)
@@ -205,7 +200,6 @@ def construct_and_solve_SP_warm_start(base_data,
     print("Solving SP model with EEV warm start...",end='',flush=True)
     start = time.time()
     model_instance.solve_model(warmstart=True,FeasTol=10**(-2),num_focus=1)
-    #  https://support.gurobi.com/hc/en-us/community/posts/4406728832145-Crossover-Takes-Long
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", flush=True)
@@ -222,21 +216,13 @@ def generate_base_data():
         sheet_name_scenarios = 'nine_scenarios' 
     
     base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
-    time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
-    num_first_stage_periods = 2                                 # how many of the periods above are in first stage
     base_data = interpolate(base_data, time_periods, num_first_stage_periods)
     
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
-    #add to the base_data class?
     base_data.risk_information = risk_info
 
     base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
     
-    if time_periods == None:
-        base_data.T_TIME_PERIODS = base_data.T_TIME_PERIODS_ALL
-    else:
-        base_data.T_TIME_PERIODS = time_periods 
-
     base_data.combined_sets()
 
     with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file: 
@@ -289,10 +275,7 @@ def main(analysis_type,
             
     print("Reading data...", flush=True)
     start = time.time()
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=co2_factor) 
-    # define new timeline
-    time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods
-    num_first_stage_periods = 2                                 # how many of the periods above are in first stage
+    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=co2_factor)                                # how many of the periods above are in first stage
     base_data = interpolate(base_data, time_periods, num_first_stage_periods)
 
     print("Done reading data.", flush=True)
@@ -302,7 +285,6 @@ def main(analysis_type,
     if risk_aversion=="averse":
         cvar_alpha = 1-1/len(base_data.S_SCENARIOS)
     risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
-    #add to the base_data class?
     base_data.risk_information = risk_info
     
     if single_time_period is not None:
@@ -313,9 +295,9 @@ def main(analysis_type,
     # solve model
     if analysis_type == "SP":
         if wrm_strt:
-            model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info,time_periods=time_periods)
+            model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info)
         else:
-            model_instance,base_data = construct_and_solve_SP(base_data,risk_info,time_periods=time_periods)
+            model_instance,base_data = construct_and_solve_SP(base_data,risk_info)
     elif analysis_type == "EEV":
         model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
     else:

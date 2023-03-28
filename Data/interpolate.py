@@ -262,7 +262,7 @@ if False:
     #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
     os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
     sys.path.insert(0, '') #make sure the modules are found in the new working directory
-    from Create_Sets_Class import *
+    from ConstructData import *
 
     # load original data (based on [2022, 2026, 2030, 2040, 2050])
     orig_data = TransportSets(sheet_name_scenarios='three_scenarios_new')

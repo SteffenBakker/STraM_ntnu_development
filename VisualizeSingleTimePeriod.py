@@ -49,17 +49,9 @@ for year in years:
 
         #for i in [1]:  #we only do one type, discuss what foreign transport needs to be excluded
         i = 1
-        #if i == 0:
-        #    analysis_type = 'Domestic'
-        #    ss_x_flow = output.x_flow[(output.x_flow['from'].isin(base_data.N_NODES_NORWAY)) & (output.x_flow['to'].isin( base_data.N_NODES_NORWAY)) ]
-        #if i == 1:
-        #analysis_type = 'All transport'
         ss_x_flow = output.x_flow
-
         TranspArb = ss_x_flow[['mode','fuel','time_period','TransportArbeid','scenario']].groupby(['mode','fuel','time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
-        
-        #output.q_transp_amount[output.q_transp_amount["time_period"]==2050]
-        
+                
         TotalTranspArb = TranspArb.groupby(['time_period','scenario'], as_index=False).agg({'TransportArbeid':'sum'})
         TotalTranspArb = TotalTranspArb.rename(columns={"TransportArbeid": "TransportArbeidTotal"})
         TranspArb = TranspArb.rename(columns={"TransportArbeid": "TranspArb"})
@@ -84,7 +76,6 @@ for year in years:
 
     def plot_mode_mixes(TranspArbAvgScen,TranspArbAvgScen_ltp, base_data,absolute_transp_work=True):  #result data = TranspArbAvgScen
         
-
         #https://matplotlib.org/stable/gallery/color/named_colors.html
         color_dict = {'Diesel':                 'firebrick', 
                         'Ammonia':              'royalblue', 
@@ -98,7 +89,6 @@ for year in years:
                         'Biodiesel':            'darkorange', 
                         'Biodiesel (HVO)':      'darkorange', 
                         'HFO':                  'firebrick'           }
-
 
         labels = ['base ', 'static '] # +str(year)
         width = 0.7       # the width of the bars: can also be len(x) sequence
@@ -126,9 +116,6 @@ for year in years:
                 yerror = subset[base_string+'_std'].tolist()
                 yerror_ltp = subset_ltp[base_string+'_std'].tolist()
                 yerr = [yerror[year_index],yerror_ltp[year_index]]
-                #print(yerror)
-
-                #https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.bar.html
                 
                 trans1 = Affine2D().translate(leftright, 0.0) + ax.transData
 

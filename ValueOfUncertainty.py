@@ -167,5 +167,5 @@ if True:
     print(round(ems['EEV']-ems['SP'],4))
     print(str(round((ems['EEV']-ems['SP'])/ems['EEV'],4))*100+' %')
 
-    #2000NOK per Tonne CO2 is this in line? Do the comparison for
+    #2000NOK per Tonne CO2 is this in line? 
 

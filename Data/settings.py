@@ -14,7 +14,7 @@ SCALING_FACTOR_EMISSIONS = 10**8 #if smaller, then the CO2_FEE disappears, needs
 #(minimum demand is now 3.3*10^3 tonnes, so should be OK)
 # for transport costs, the minimum is 6.7 kroners/ton -> 6.7MKR/MTONNES
 
-# Data settings (create_sets_class)
+# Data settings (ConstructData.py)
 
 RISK_FREE_RATE = 0.038 # social discount rate, ref Ruben (Old:  https://tradingeconomics.com/norway/government-bond-yield  -> 3.2%)
 CO2_PRICE_FACTOR = {2022:1,

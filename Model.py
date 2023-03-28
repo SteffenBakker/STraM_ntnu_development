@@ -1,4 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Jul 29 10:52:48 2022
 
+@author: steffejb
+"""
 
 #Pyomo
 import pyomo.opt   # we need SolverFactory,SolverStatus,TerminationCondition
@@ -11,11 +16,14 @@ import logging
 import logging
 from Data.settings import *
 
-############# Class ################
+############# Parameters ################
 
 ABSOLUTE_DEVIATION = 0.0001
 RELATIVE_DEVIATION = 0.0001
 FEAS_RELAX = 0
+
+############# Class ################
+
 class RiskInformation:
 
     def __init__(self, cvar_coeff, cvar_alpha):
@@ -39,13 +47,8 @@ class TranspModel:
         self.NoBalancingTrips = False
 
     def construct_model(self,risk_neutral=False):
-        
-        #Significant speed improvements can be obtained using the LinearExpression object when there are long, dense, linear expressions.
-        # USe linearexpressions: https://pyomo.readthedocs.io/en/stable/advanced_topics/linearexpression.html
-        
 
         "VARIABLES"
-        # Binary, NonNegativeReals, PositiveReals, etc
         #def fb(model, i,j,m,r,f,p,,t,s):
         #    return (lb[i], ub[i])
         #self.model.x_flow = Var(self.data.AFPT_S, within=NonNegativeReals,bounds=fb)
@@ -143,12 +146,11 @@ class TranspModel:
         "OBJECTIVE"
         #-------------------------
 
-        def StageCostsVar(model, t,s):  #TODO: QUESTION: WHY DO WE USE "model" as input instead of "self"? (not just here, but everywhere)
+        def StageCostsVar(model, t,s):  
 
-            # SOME QUICK TESTING SHOWED THAT SUM_PRODUCT IS QUITE A BIT SLOWER THAN SIMPLY TAKING THE SUM...
+            # Pyomo SUM_PRODUCT is slower than the following
             yearly_transp_cost = (self.model.TranspOpexCost[t,s] + self.model.TranspCO2Cost[t,s] + self.model.TranspOpexCostB[t,s] + self.model.TranspCO2CostB[t,s]) 
             
-            #sum(base_data.D_DISCOUNT_RATE**n for n in list(range(10)))
             if t == self.data.T_TIME_PERIODS[-1]:
                 factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9
             else:
@@ -230,8 +232,6 @@ class TranspModel:
             else:
                 return (sum(self.model.h_path[(k,p,t,s)] for k in self.data.OD_PATHS[(o, d)]) >= self.data.D_DEMAND[
                     (o, d, p, t)] - FEAS_RELAX)
-                
-        # THIS SHOULD BE AN EQUALITY; BUT THEN THE PROBLEM GETS EASIER WITH A LARGER THAN OR EQUAL
         self.model.Flow = Constraint(self.data.ODPTS_CONSTR_S, rule=FlowRule)
         
 
@@ -298,7 +298,6 @@ class TranspModel:
         def ExpansionLimitRule(model,i,j,m,r,s):
             e = (i,j,m,r)
             return ( sum(self.model.epsilon_edge[(e,t,s)] for t in self.data.T_TIME_PERIODS if e+(t,) in self.data.ET_RAIL)<= 1)
-            #    return Constraint.Skip
         if len(self.data.T_TIME_PERIODS)>1:
             self.model.ExpansionCap = Constraint(self.data.E_EDGES_RAIL_S, rule = ExpansionLimitRule)
         
@@ -314,11 +313,11 @@ class TranspModel:
                    + FEAS_RELAX )
         self.model.TerminalCap = Constraint(self.data.NCMT_CONSTR_S, rule = TerminalCapRule)
         
-        #Num expansions of terminal NEW -- how many times you can perform a step-wise increase of the capacity
+        #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
         def TerminalCapExpRule(model, i, c,m,s):
             return(sum(self.model.nu_node[i,c,m,t,s] for t in self.data.T_TIME_PERIODS 
                                                         if t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE[i,c,m] ) 
-                                                        <= 1) # THIS WAS AT 4 .... self.data.INV_NODE[i,m,c])
+                                                        <= 1) 
         if len(self.data.T_TIME_PERIODS)>1:
             self.model.TerminalCapExp = Constraint(self.data.NCM_S, rule = TerminalCapExpRule)
 
@@ -330,7 +329,7 @@ class TranspModel:
                         for v in self.data.VEHICLE_TYPES_M[m]) <= self.data.Q_CHARGE_BASE[(e,f)] +
                    sum(self.model.y_charge[(e,f,tau,s)] 
                        for tau in self.data.T_TIME_PERIODS 
-                       if ( (tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)]))  )   # and ((e,f,tau) in self.data.EFT_CHARGE)
+                       if ( (tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)]))  )   
                        ) 
                    + FEAS_RELAX )
         self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE_CONSTR_S, rule=ChargingCapArcRule)
@@ -358,7 +357,7 @@ class TranspModel:
         #Technology maturity limit upper bound (which also comes from bass diffusion)
         def TechMaturityLimitRule(model, m, f, t,s):
             return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.R_TECH_READINESS_MATURITY[(m,f,t,s)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m])
-            + FEAS_RELAX )   #TO DO: CHANGE THIS Q_TECH to R*M
+            + FEAS_RELAX )   #R_TECH is the A from the Bass diffusion model
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY_CONSTR_S, rule = TechMaturityLimitRule)
 
 
@@ -367,10 +366,10 @@ class TranspModel:
             
             #Initialize the transport amounts (put an upper bound at first)
             def InitTranspAmountRule(model, m, f, t,s):
-                return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   #TO DO: CHANGE THIS Q_TECH to R*M
+                return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   
             self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
             
-            #THIS ONE QUICKLY LEADS TO INFEASIBILITY DUE TO CAPACITY ISSUES ON RAIL. Make sure that we do not use too much RAIL. 
+            #Note, due to our initialization, this one can lead to infeasibility due to capacity limits on rail.  
             def InitialModeSplit(model,m,s):
                 if m=='Rail':
                     return Constraint.Skip                    
@@ -391,7 +390,6 @@ class TranspModel:
                 return (self.model.q_mode_total_transp_amount[m,t,s] == sum( self.model.q_transp_amount[m,f,t,s] for f in self.data.FM_FUEL[m] ))
             self.model.ModeTotalTransportAmount = Constraint(self.data.MT_S, rule = ModeTotalTransportAmountRule) 
 
-            #if False:
             #Restriction on modal transport amount decrease
             def DecreaseInModeTotalTransportAmountRule(model,m,t,s):
                 return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
@@ -439,15 +437,9 @@ class TranspModel:
                         # q(t) - q(t-1) <= alpha * q_bar(|_t-1_|) + beta * q(t-1)
                 self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE_S, rule = BassDiffusionRuleSecondStage)
 
-
-
         #-----------------------------------------------#
 
         # NON ANTICIPATIVIY
-
-
-        #(can variables be defined in a dictionary? So, e.g., self.model.vars['x_flow'][(a,f,p,t,s)])
-    
 
         def combinations(list_of_tuples1, list_of_tuples2):
             if type(list_of_tuples1[0]) is not tuple:
@@ -458,16 +450,16 @@ class TranspModel:
             return output
 
         if len(self.data.S_SCENARIOS)>1:
-        #if False:    
-            ABSOLUTE_DEVIATION_NONANT = 0
+            
+            ABSOLUTE_DEVIATION_NONANT = 0 #not smart to relax this
 
             def Nonanticipativity_x(model,i,j,m,r,f,p,t,s,ss):
                 a = i,j,m,r
-                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): # AND NOT ALREADY ADDED? -> do not care, gurobi fixes
-                    diff = (self.model.x_flow[(a,f,p,t,s)]- self.model.x_flow[(a,f,p,t,ss)]) # TO DO: some slack here to improve feasibility? 
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): # Gurobi removes when already added
+                    diff = (self.model.x_flow[(a,f,p,t,s)]- self.model.x_flow[(a,f,p,t,ss)]) 
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
-                    return Constraint.Skip   # https://pyomo.readthedocs.io/en/stable/_modules/pyomo/core/base/constraint.html
+                    return Constraint.Skip   
             self.model.Nonanticipativity_x_Constr = Constraint(combinations(self.data.AFPT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_x)
 
             def Nonanticipativity_b(model,i,j,m,r,f,v,t,s,ss):
@@ -650,7 +642,6 @@ class TranspModel:
                     return Constraint.Skip
             self.model.Nonanticipativity_firststagecost_Constr = Constraint(self.data.SS_SCENARIOS_NONANT,rule = Nonanticipativity_firststagecost)
 
-            # self.model.MaxTranspPenaltyCost -> no non-anticipativity   
             # self.model.CvarAux   -> non-anticipativity already imposed in the model (not defined for scenarios)    
             # self.model.CvarPosPart -> Different across scenarios
             #self.model.SecondStageCosts  -> varies across scenarios
@@ -769,7 +760,7 @@ class TranspModel:
             a = (i,j,m,r)
             self.model.x_flow[(a,f,p,t,s)].fixed = False
             if t in self.data.T_TIME_FIRST_STAGE:
-                if t is not self.data.T_TIME_FIRST_STAGE[0]: #still keep the first one fixed!!
+                if t is not self.data.T_TIME_FIRST_STAGE[0]: #still keep the first one fixed
                     self.model.x_flow[(a,f,p,t,s)].fixed = False
                     self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
                     self.model.x_flow[(a,f,p,t,s)].setub(upperbound)   #maximum value is below 1000
@@ -800,7 +791,7 @@ class TranspModel:
             
 
     def solve_model(self, warmstart=False, 
-                    FeasTol=(10**(-2)), #the standard of 10**(-6) can give a constraint violation warning
+                    FeasTol=(10**(-2)), 
                     MIP_gap=MIPGAP,
                     # 'TimeLimit':600, # (seconds)
                     num_focus= 1,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html

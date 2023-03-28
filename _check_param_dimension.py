@@ -1,7 +1,7 @@
 #check
 
 import pandas as pd
-from Data.Create_Sets_Class import TransportSets
+from Data.ConstructData import TransportSets
 from Data.settings import *
 
 sheet_name_scenarios = 'three_scenarios_new'
@@ -46,8 +46,6 @@ pd.Series(base_data.C_EDGE_RAIL.values()).describe()
 pd.Series(base_data.C_NODE.values()).describe()
 pd.Series(base_data.C_UPG.values()).describe()
 pd.Series(base_data.C_CHARGE.values()).describe()
-MAX_TRANSPORT_AMOUNT_PENALTY
-EMISSION_VIOLATION_PENALTY
 pd.Series(base_data.D_DISCOUNT_RATE).describe()
 pd.Series(base_data.D_DEMAND.values()).describe()
 pd.Series(base_data.E_EMISSIONS.values()).describe()

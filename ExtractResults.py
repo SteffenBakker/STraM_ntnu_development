@@ -9,14 +9,13 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import numpy as np
 import pandas as pd
-#import mpisppy.utils.sputils as sputils
 import pyomo.environ as pyo
 import math
 
 from Data.settings import *
 
 class OutputData():
-    #ef,base_data,instance_run,EV_problem
+
     def __init__(self,modell,base_data,EV_problem=False):# or (self)
         
         self.all_variables = None
@@ -36,9 +35,6 @@ class OutputData():
                 
         self.extract_model_results(base_data,modell, EV_problem)
 
-
-
-        
     def extract_model_results(self,base_data,modell, EV_problem):  #currently only for extensive form
         
         scenario_names = base_data.S_SCENARIOS
@@ -185,5 +181,65 @@ class OutputData():
 
 
         
+if False: #alternative for pickle
+
+
+    class JSONEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if hasattr(obj, 'to_json'):
+                return obj.to_json(orient='records') #
+            return json.JSONEncoder.default(self, obj)
+
+    with open(r'Data\\output_vars.json', 'w') as fp:
+        json.dump({ '0':output.all_variables,
+                    '1':output.x_flow,
+                    '2':output.b_flow,
+                    '3':output.h_path,
+                    '4':output.y_charging,
+                    '5':output.nu_node,
+                    '6':output.epsilon_edge,
+                    '7':output.upsilon_upgrade,
+                    '8':output.z_emission_violation,
+                    '9':output.total_emissions,
+                    '10':output.q_transp_amount,
+                    '11':output.q_max_transp_amount
+                    },fp, cls=JSONEncoder)
+
+
+    costs = output.costs
+    for key in costs.keys():
+        costs[key] = list(costs[key].items())
     
+    with open(r'Data\\output_costs.json', "w") as outfile:
+        json.dump(costs, outfile)
+
+
+    #------------------------------------------
+    #then we can start reading here 
+
+    costs = json.load(open(r'Data\\output_costs.json'))
+    json_file_output_vars = json.load(open(r'Data\\output_vars.json'))
+    class Output():
+        def __init__(self,costs,json_file_output_vars):
+            
+            for key in costs.keys():
+                if isinstance(costs[key][0][0],list):
+                    costs[key] = {tuple(x[0]):x[1] for x in costs[key]}
+                else:
+                    costs[key] = {x[0]:x[1] for x in costs[key]}
+            self.costs = costs
+
+            self.all_variables =            pd.read_json(json_file_output_vars['0'], orient='records')
+            self.x_flow =                   pd.read_json(json_file_output_vars['1'], orient='records')
+            self.b_flow=                    pd.read_json(json_file_output_vars['2'], orient='records')
+            self.h_path=                    pd.read_json(json_file_output_vars['3'], orient='records')
+            self.y_charging=                pd.read_json(json_file_output_vars['4'], orient='records')
+            self.nu_node=                   pd.read_json(json_file_output_vars['5'], orient='records')
+            self.epsilon_edge=              pd.read_json(json_file_output_vars['6'], orient='records')
+            self.upsilon_upgrade=           pd.read_json(json_file_output_vars['7'], orient='records')
+            self.z_emission_violation=      pd.read_json(json_file_output_vars['8'], orient='records')
+            self.total_emissions=           pd.read_json(json_file_output_vars['9'], orient='records')
+            self.q_transp_amount=           pd.read_json(json_file_output_vars['10'], orient='records')
+            self.q_max_transp_amount=       pd.read_json(json_file_output_vars['11'], orient='records')
+    output = Output(costs,json_file_output_vars)
 
