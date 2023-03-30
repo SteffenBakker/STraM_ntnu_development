@@ -6,7 +6,7 @@ The STraM framework and all additional files in the git repository are licensed 
 
 # Required Software
 STraM is available in the Python-based, open-source optimization modelling language Pyomo. Running the model thus requires some coding skills in Python. To run the model, make sure Python, Pyomo and a third-party solver (e.g., gurobi, or CPLEX) is installed and loaded to the respective computer. More information on how to install Python and Pyomo can be found here: http://www.pyomo.org/installation. 
-Other python package dependencies can be found in the file dependencies.py.
+Other python package dependencies can be found in the file requirements.txt.
 
 To download, you need to install Git and clone the repository. 
 
