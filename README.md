@@ -1,5 +1,5 @@
 # Strategic TRansport Model (STraM)
-Open basic version of STraM in Pyomo
+Open source version of STraM in Pyomo
 
 # Licencing
 The STraM framework and all additional files in the git repository are licensed under the MIT license. In short, that means you can use and change the code of STraM. Furthermore, you can change the license in your redistribution but must mention the original author. We appreciate if you inform us about changes and send a merge request via git. For further information please read the LICENSE file, which contains the license text, or go to https://opensource.org/licenses/MIT
