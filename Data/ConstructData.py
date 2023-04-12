@@ -1047,7 +1047,7 @@ class TransportSets():
 
 print("Finished reading sets and classes.")
 
-base_data = TransportSets()
+#base_data = TransportSets()
 
 #Testing:
 """
