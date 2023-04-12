@@ -10,9 +10,12 @@ Adapted by Ruben
 
 import os
 import sys
+
 #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
 os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\AIM_Norwegian_Freight_Model\\AIM_Norwegian_Freight_Model')
 sys.path.insert(0, '') #make sure the modules are found in the new working directory
+#os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\STRAM_ntnu_development')
+#sys.path.insert(0, '') #make sure the modules are found in the new working directory
 
 from Data.settings import *
 from collections import Counter
@@ -1047,7 +1050,7 @@ class TransportSets():
 
 print("Finished reading sets and classes.")
 
-base_data = TransportSets()
+#base_data = TransportSets()
 
 #Testing:
 """

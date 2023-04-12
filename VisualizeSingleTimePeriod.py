@@ -30,7 +30,7 @@ for year in years:
     with open(r'Data//output//'+analysis+'_'+scenarios+'_single_time_period_'+str(year)+'.pickle', 'rb') as output_file:
         output_ltp = pickle.load(output_file)
 
-    with open(r'Data\base_data//'+scenarios+'.pickle', 'rb') as data_file:
+    with open(r'Data//base_data//'+scenarios+'.pickle', 'rb') as data_file:
         base_data = pickle.load(data_file)
 
     year_index = base_data.T_TIME_PERIODS.index(year)
@@ -99,6 +99,7 @@ for year in years:
             base_string = 'Rel'+base_string
             ylabel = 'Relative transport work (%)'
 
+        ymax = {"Road":45, "Rail":6, "Sea":110}
         for m in ["Road", "Rail", "Sea"]:
 
             fig, ax = plt.subplots(figsize=(1.8,5))  #
@@ -146,7 +147,11 @@ for year in years:
                 leftright = leftright + 0.09
             ax.set_ylabel(ylabel)
             #ax.set_title(m + ' - ' + analysis_type)
-            ax.axis(ymin=0,ymax=ax.get_ylim()[1])
+            
+            ax.axis(ymin=0,
+                    ymax=ymax[m]
+                    #ymax=ax.get_ylim()[1]
+                    )
             #ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
 
             for spine in ['top', 'right']:
@@ -160,3 +165,7 @@ for year in years:
         
 
     plot_mode_mixes(TranspArbAvgScen,TranspArbAvgScen_ltp,base_data,absolute_transp_work=True)
+    
+#import os
+#print(os.getcwd())
+

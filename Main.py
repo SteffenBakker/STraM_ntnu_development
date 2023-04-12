@@ -35,7 +35,7 @@ from Utils import Logger
 #################################################
 
 
-analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+analysis = "only_generate_data"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
 scenario_tree = "9Scen" #4Scen, 9Scen
 analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
@@ -355,6 +355,8 @@ def risk_analysis():
 
 if __name__ == "__main__":
     
+    #import os
+    #print(os.getcwd())
     
     if analysis == "only_generate_data":
         base_data = generate_base_data()
