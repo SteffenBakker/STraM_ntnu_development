@@ -9,6 +9,9 @@ import os
 from pyomo.common.tempfiles import TempfileManager
 basepath = os.getcwd().replace(os.sep, '/')
 TempfileManager.tempdir = basepath+"/temp/pyomo"
+if not os.path.exists(basepath+"/temp/pyomo"):
+    os.makedirs(basepath+"/temp/pyomo")
+    
 
 #os.chdir('C://Users//steffejb//OneDrive - NTNU//Work//GitHub//AIM_Norwegian_Freight_Model//AIM_Norwegian_Freight_Model')
 #os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
@@ -35,8 +38,8 @@ from Utils import Logger
 #################################################
 
 
-analysis = "only_generate_data"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-scenario_tree = "9Scen" #4Scen, 9Scen
+analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+scenario_tree = "4Scen" #4Scen, 9Scen
 analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
