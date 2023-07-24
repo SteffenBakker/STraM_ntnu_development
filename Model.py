@@ -66,7 +66,9 @@ class TranspModel:
         
         self.model.epsilon_edge = Var(self.data.ET_RAIL_S, within = Binary) #within = Binary
         self.model.upsilon_upg = Var(self.data.UT_UPG_S, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
-        self.model.nu_node = Var(self.data.NCMT_S, within = Binary) #investment in terminals (binary)
+        def contin01(model, i,c,m,t,s): #()
+            return (0, 1)
+        self.model.nu_node = Var(self.data.NCMT_S, within = NonNegativeReals, bounds=contin01) #investment in terminals (continuous)
         self.model.y_charge = Var(self.data.EFT_CHARGE_S, within=NonNegativeReals)
         
         self.model.q_transp_amount = Var(self.data.MFT_S, within=NonNegativeReals)
