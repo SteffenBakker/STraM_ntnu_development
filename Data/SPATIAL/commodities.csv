@@ -1,0 +1,40 @@
+﻿Comm_nr;Comm_name;Comm_name_norsk;Comm_aggr_nr;Comm_aggr_name;Comm_aggr_name_norsk
+1;Agricultural products;Jordbruksvarer ;6;Dry bulk;Tørrbulk 
+2;Fruit, vegetables and flowers;Frukt, grønt, blomster og planter ;2;Other thermo;Termovarer 
+3;Gen cargo, living animals;Levende dyr ;3;General cargo;Stykkgods 
+4;Thermo input;Innsatsvarer termo ;2;Other thermo;Termovarer 
+5;Fresh fish;Fersk fisk og sjømat ;1;Fish;Fisk 
+6;Frozen fish;Fryst fisk og sjømat ;1;Fish;Fisk 
+7;Thermo consumption;Termovarer, konsum ;2;Other thermo;Termovarer 
+8;Consumption food;Matvarer konsum ;3;General cargo;Stykkgods 
+9;Beverages;Drikkevarer ;3;General cargo;Stykkgods 
+10;Animal foodstuff;Dyrefôr ;6;Dry bulk;Tørrbulk 
+11;Organic inputs;Organiske råvarer ;5;Industrial goods;Industrivarer 
+12;Other inputs;Andre råvarer ;5;Industrial goods;Industrivarer 
+13; Jern og stål;Jern og stål ;5;Industrial goods;Industrivarer 
+14; Andre metaller;Andre metaller ;5;Industrial goods;Industrivarer 
+15; Metallvarer;Metallvarer ;5;Industrial goods;Industrivarer 
+16;Chemical products;Kjemiske produkter ;7;Wet bulk;Våtbulk 
+17;Plastic and rubber;Plast og gummi ;5;Industrial goods;Industrivarer 
+18;Timber and products from forestry industry;Tømmer og produkter fra skogbruk ;4;Timber;Tømmer 
+19;Wood products;Trelast og trevarer ;3;General cargo;Stykkgods 
+20;Pulp and chips;Flis og tremasse ;5;Industrial goods;Industrivarer 
+21;Paper intermediates;Papir ;5;Industrial goods;Industrivarer 
+22;Paper products and printed matters;Trykksaker, programvarer og filmproduksjoner ;3;General cargo;Stykkgods 
+23;Coal, ore and scrap;Kull, torv og malm ;6;Dry bulk;Tørrbulk 
+24;Stone, sand, gravel and earth;Stein, sand, grus, pukk, leire ;6;Dry bulk;Tørrbulk 
+25;Minerals;Mineraler ;6;Dry bulk;Tørrbulk 
+26;Machinery and tools;Maskiner og verktøy ;5;Industrial goods;Industrivarer 
+27;Electronic equipments;Elektrisk utstyr ;5;Industrial goods;Industrivarer 
+28;Gen cargo, building materials;Byggevarer ;3;General cargo;Stykkgods 
+29;Cement, plaster and cretaceous;Sement og betong ;6;Dry bulk;Tørrbulk 
+30;Gen cargo, consumption;Forbruksvarer ;3;General cargo;Stykkgods 
+31;Gen cargo, high value;Høyverdivarer ;3;General cargo;Stykkgods 
+32; Transportmidler;Transportmidler ;5;Industrial goods;Industrivarer 
+33;Crude oil;Petroleum uraffinert ;7;Wet bulk;Våtbulk 
+34;Petroleum gas;Naturgass ;7;Wet bulk;Våtbulk 
+35;Refined products;Raffinerte petroleumsprodukter ;7;Wet bulk;Våtbulk 
+36; Bitumen;Bitumen ;7;Wet bulk;Våtbulk 
+37;Non-traded goods;Avfall og gjenvinning ;6;Dry bulk;Tørrbulk 
+38;Other fish (conserved);Bearbeidet fisk ;1;Fish;Fisk 
+39;Fertilizers;Gjødsel ;6;Dry bulk;Tørrbulk 
