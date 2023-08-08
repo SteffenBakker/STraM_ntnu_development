@@ -941,8 +941,8 @@ class TransportSets():
                          self.T_TIME_PERIODS ]  
         self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
         self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
-        self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_RAIL[l]]
-        self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_RAIL[e]]
+        self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS                                   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_RAIL[l]) and (t in self.T_TIME_FIRST_STAGE)]
+        self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_RAIL[e]) and (t in self.T_TIME_FIRST_STAGE)]
         self.EAT_RAIL_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
         self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_CHARGING[(e,f)]]
         self.EFT_CHARGE_CONSTR = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS_OPERATIONAL]
@@ -975,7 +975,7 @@ class TransportSets():
         self.MFT_NEW_YEARLY_SECOND_STAGE = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_SECOND_STAGE if not self.tech_is_mature[(m,f)]]
         self.MFT_NEW_FIRST_PERIOD = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in [self.T_TIME_PERIODS[0]] if not self.tech_is_mature[(m,f)]]
 
-        self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_UPGRADE[(e,f)] ]       
+        self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_UPGRADE[(e,f)]) and (t in self.T_TIME_FIRST_STAGE) ]       
         self.UT_UPG_CONSTR = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS_OPERATIONAL]  
 
         #

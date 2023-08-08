@@ -291,6 +291,7 @@ class TranspModel:
                    + self.data.Q_EDGE_RAIL[e] * sum(self.model.epsilon_edge[e, tau, s] 
                                                     for tau in self.data.T_TIME_PERIODS 
                                                     if (tau <= (t-self.data.LEAD_TIME_EDGE_RAIL[e]))    #and((e,tau) in self.data.ET_RAIL)
+                                                    and (tau in self.data.T_TIME_FIRST_STAGE)
                                                     )
                                                     )   
                    + FEAS_RELAX )
@@ -318,7 +319,7 @@ class TranspModel:
         #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
         def TerminalCapExpRule(model, i, c,m,s):
             return(sum(self.model.nu_node[i,c,m,t,s] for t in self.data.T_TIME_PERIODS 
-                                                        if t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE[i,c,m] ) 
+                                                        if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE[i,c,m])  ) 
                                                         <= 1) 
         if len(self.data.T_TIME_PERIODS)>1:
             self.model.TerminalCapExp = Constraint(self.data.NCM_S, rule = TerminalCapExpRule)
@@ -343,7 +344,8 @@ class TranspModel:
             return (sum(self.model.x_flow[a,f,p,t,s] for p in self.data.P_PRODUCTS for a in self.data.AE_ARCS[e])
                     <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau,s] 
                                                   for tau in self.data.T_TIME_PERIODS 
-                                                  if (tau <= (t-self.data.LEAD_TIME_UPGRADE[(e,f)]))   #and((e,f,tau) in self.data.UT_UPG)
+                                                  if (tau <= (t-self.data.LEAD_TIME_UPGRADE[(e,f)])) and
+                                                     (tau in self.data.T_TIME_FIRST_STAGE)   #and((e,f,tau) in self.data.UT_UPG)
                                                   )   
                     + FEAS_RELAX )
         self.model.InvestmentInfra = Constraint(self.data.UT_UPG_CONSTR_S, rule = InvestmentInfraRule)
