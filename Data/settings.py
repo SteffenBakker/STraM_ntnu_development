@@ -31,10 +31,11 @@ EMPTY_VEHICLE_FACTOR = 0.6
 
 INTERPOLATE_DEMAND_DATA_2040 = False #there
 
-#Model settings
 
+
+#Model settings
 NO_INVESTMENTS = False
 MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
 
-#the model is quite sensitive to the initial conditions (and quickly becomes infeasible when choosing a too high rail share for example)
+#discount rate
 RHO_STAR = 0.975  #implied rho of around 20% over 5 years
