@@ -18,7 +18,6 @@ import sys
 from Data.settings import *
 from collections import Counter
 import pandas as pd
-from openpyxl import load_workbook
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,7 +28,6 @@ from itertools import islice
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 from Data.BassDiffusion import BassDiffusion 
-from sigmoid import sigmoid
 
 # from FreightTransportModel.Utils import plot_all_graphs  #FreightTransportModel.
 
@@ -236,15 +234,15 @@ class TransportSets():
         #####################################
 
         self.F_FUEL = ["Diesel", "Ammonia", "Hydrogen", "Battery electric", "Electric train (CL)", "LNG", "MGO",
-                       'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"] # HARDCODED
+                       'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"]
 
         self.FM_FUEL = {"Road": ["Diesel", "Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
                         "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],  #Hybrid: non-existing
-                        "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} # HARDCODED
+                        "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} 
 
         self.NEW_MF_LIST = [("Road", "Hydrogen"), ("Road", "Battery electric"), ("Rail", "Hydrogen"),
                             ("Rail", "Battery train"), ("Sea", "Hydrogen"), ("Sea", "Ammonia"), ('Road', 'Biodiesel'),
-                            ('Road', 'Biogas'), ('Rail', 'Biodiesel'), ('Sea', 'Biodiesel (HVO)'), ('Sea', 'Biogas')] # HARDCODED
+                            ('Road', 'Biogas'), ('Rail', 'Biodiesel'), ('Sea', 'Biodiesel (HVO)'), ('Sea', 'Biogas')]
 
         self.NEW_F_LIST = set([e[1] for e in self.NEW_MF_LIST])
 
@@ -257,50 +255,34 @@ class TransportSets():
 
         #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
         #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
-        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] # HARDCODED
+        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] 
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
-        self.T_TIME_FIRST_STAGE_BASE = [2022, 2026]  # HARDCODED
-        self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] # HARDCODED
+        self.T_TIME_FIRST_STAGE_BASE = [2022, 2026] 
+        self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] 
         
         #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
 
-      
+
+                
+        
+        
         
         # -----------------------
         # ------- Other--------
         # -----------------------
 
-        self.P_TO_PC = {"Dry bulk":"Dry bulk", "Liquid bulk":"Liquid bulk", "Container (fast)":"Container", "Container (slow)":"Container", 
-                        "Break bulk":"Break bulk", "Neo bulk (fast)":"Neo bulk", "Neo bulk (slow)":"Neo bulk"}  # HARDCODED
+        self.P_PRODUCTS = [ 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Timber'] #'Wet bulk'
+        
 
-        self.P_PRODUCTS = []
-        self.PC_PRODUCT_CLASSES = []
-        for p in self.P_TO_PC:
-            self.P_PRODUCTS.append(p)
-            cur_pc = self.P_TO_PC[p]
-            if(cur_pc not in self.PC_PRODUCT_CLASSES):
-                self.PC_PRODUCT_CLASSES.append(cur_pc)
+        self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]}
         
-        self.PC_TO_P = {}
-        for pc in self.PC_PRODUCT_CLASSES:
-            self.PC_TO_P[pc] = []
-        for p in self.P_TO_PC:
-            pc = self.P_TO_PC[p]
-            self.PC_TO_P[pc].append(p)
-        
-        # test
-        print(self.P_PRODUCTS)
-        print(self.PC_PRODUCT_CLASSES)
-        
-        self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]} # DEPRECATE?
-        
-        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk',  
+        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk', 
                    "Timber": ['Timber'],
-                   "All": self.P_PRODUCTS} # DEPRECATE?
+                   "All": self.P_PRODUCTS}
 
-        if INCLUDE_DRY_BULK: # DEPRECATE?
+        if INCLUDE_DRY_BULK:
             self.P_PRODUCTS.append('Dry bulk')
             self.PT["Combination"].append('Dry bulk')
             self.PT["All"] = self.P_PRODUCTS
@@ -515,10 +497,11 @@ class TransportSets():
         #-----------------------
         
 
-        self.cost_data = pd.read_excel(self.prefix+r'cost_calculator.xlsx', sheet_name='Output costs')        
-        self.emission_data = pd.read_excel(self.prefix+r'cost_calculator.xlsx', sheet_name='Output emissions')
+        self.cost_data = pd.read_excel(self.prefix+r'transport_costs_emissions.xlsx', sheet_name='costs_emissions')
+        self.emission_data = pd.read_excel(self.prefix+r'emission_cap.xlsx', sheet_name='emission_cap')
         
-        self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # HARDCODED
+        self.EMISSION_CAP_RELATIVE = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
+        #self.EMISSION_CAP_RELATIVE = {year:round(cap/self.scaling_factor,0) for year,cap in self.EMISSION_CAP_RELATIVE.items()}   #this was max 4*10^13, now 4*10^7
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
@@ -555,14 +538,13 @@ class TransportSets():
                     if mode_from != mode_to: 
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
-        
-        # read CO2 fee
-        self.CO2_fee_data = load_workbook(self.prefix+r'cost_calculator.xlsx')["Parameter input"]
+            
+        CO2_fee_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='CO2_fee')    
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
-        for y in self.T_TIME_PERIODS:
-            self.CO2_fee[y] = sigmoid(y, self.CO2_fee_data['L47'], self.CO2_fee_data['M47'], self.CO2_fee_data['L46'], self.CO2_fee_data['L47'], self.CO2_fee_data['O47'], self.CO2_fee_data['P47'], self.CO2_fee_data['Q47'] )
-        
-
+        for index, row in CO2_fee_data.iterrows():
+            t=row["Year"]
+            self.CO2_fee[t] = round(co2_factor*CO2_PRICE_FACTOR[t]*row["CO2 fee base scenario (nok/gCO2)"]/self.scaling_factor_monetary*self.scaling_factor_emissions,self.precision_digits)
+            
 
         COST_BIG_M = 10**8
         #base level transport costs (in average scenario)
@@ -580,60 +562,22 @@ class TransportSets():
         self.C_CO2 = {(i,j,m,r,f,p,t): COST_BIG_M for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
 
-        # read CO2 cost
-
-
-        # read emissions
-        for index, row in self.emission_data.iterrows():
-            m = row["Mode"]
-            f = row["Fuel"]
-            if f in self.FM_FUEL[m]:
-                    pc = row["Product class"]
-                    # extract sigmoid parameters
-                    start_value = row["emissions 2023 (g/tkm)"]
-                    end_value = row["emissions 2050 (g/tkm)"]
-                    t_start = 2023  # HARDCODED
-                    t_end = 2050    # HARDCODED
-                    cur_mid = row["midway"]
-                    cur_a = row["a"]
-                    cur_k = row["k"]
-                    for p in self.PC_TO_P[pc]:
-                        for y in self.T_TIME_PERIODS:
-                            cur_val = sigmoid(y, start_value, end_value, t_start, t_end, cur_mid, cur_a, cur_k)
-                            self.E_EMISSIONS_NORMALIZED[(m,f,p,y)] = round(cur_val * self.scaling_factor_weight/self.scaling_factor_emissions,self.precision_digits)
-        
-        # process emissions per arc
-        for index, row in self.cost_data.iterrows():
-            for (i,j,m,r) in self.A_ARCS:
-                a = (i, j, m, r)
-                for f in self.FM_FUEL[m]:
-                    for p in self.P_PRODUCTS:
-                        for y in self.T_TIME_PERIODS:
-                            self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * self.E_EMISSIONS_NORMALIZED[(m,f,p,y)], self.precision_digits)
-                            #CO2 costs per tonne:
-                            self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[y], self.precision_digits)
-
-
-
-        # read transport costs
         for index, row in self.cost_data.iterrows():
             for (i,j,m,r) in self.A_ARCS:
                 a = (i, j, m, r)
                 if m == row["Mode"]:
                     f = row["Fuel"]
-                    if f in self.FM_FUEL[m]: 
-                        pc = row['Product class']
-                        for p in self.PC_TO_P[pc]:
-                            for y in self.T_TIME_PERIODS:    
-                                self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)] = round(row[y]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)
-                                #compute base cost
-                                self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)]), self.precision_digits) 
-                                #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
-                                self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * self.E_EMISSIONS_NORMALIZED[(m,f,p,y)], self.precision_digits)
-                                #CO2 costs per tonne:
-                                self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], self.precision_digits)
-
-        
+                    if f in self.FM_FUEL[m]: #get rid of the hybrid!!
+                        p = row['Product group']
+                        y = row['Year']
+                        self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)] = round(row['Cost (NOK/Tkm)']/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)
+                        self.E_EMISSIONS_NORMALIZED[(m,f,p,y)] = round(row['Emissions (gCO2/Tkm)']*self.scaling_factor_weight/self.scaling_factor_emissions,self.precision_digits)
+                        #compute base cost
+                        self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)]), self.precision_digits) 
+                        #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
+                        self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * self.E_EMISSIONS_NORMALIZED[(m,f,p,y)], self.precision_digits)
+                        #CO2 costs per tonne:
+                        self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], self.precision_digits)
 
         for (i, j, m, r) in self.A_ARCS:
                 for f in self.FM_FUEL[m]:
