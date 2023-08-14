@@ -22,8 +22,9 @@ CO2_PRICE_FACTOR = {2022:1,
                     2030:1,
                     2040:1,  #1.5,
                     2050:1}
-INCLUDE_DRY_BULK = True
-TWO_MODE_PATHS = True
+NO_DRY_BULK = False
+NO_WET_BULK = True
+NUM_MODE_PATHS = 1  #hvor mange modes kan bli brukt på en path? 
 NUM_DIGITS_PRECISION = 5 #for the rounding in data generation
 
 MAX_TRUCK_CAP = 30 #to do: check this value

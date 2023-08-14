@@ -26,7 +26,7 @@ from Data.BassDiffusion import BassDiffusion
 #Class containing information about all scenarios
 #Information in this class can be used to activate a scenario in a TransportSets object, meaning that the corresponding parameter values are changed
 class ScenarioInformation():
-    def __init__(self, sheet_name='scenarios_base'): 
+    def __init__(self, sh_name='scenarios_base'): 
 
         self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
                
@@ -48,7 +48,7 @@ class ScenarioInformation():
             
 
         #read and process scenario data
-        scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name=sheet_name)
+        scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="scenarios_base")
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
@@ -139,9 +139,14 @@ class TransportSets():
         self.RAIL_NODES = []
         self.RAIL_NODES_NORWAY = []
         self.N_ABROAD = []
+        self.zone_nr_to_name = {}
+        self.zone_nr_to_centroid = {}
+
         for index, row in zone_data.iterrows():
             zone = row["zone_nr"]
             self.N_NODES.append(zone) 
+            self.zone_nr_to_name[zone] = row["zone_name"]
+            self.zone_nr_to_centroid[zone] = row["centroid_name"]
             if row["abroad"] == 1:
                 self.N_ABROAD.append(zone)
             if row["sea"] == 1:
@@ -239,7 +244,8 @@ class TransportSets():
 
         #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
         #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
-        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] 
+        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050]
+        self.T_TIME_PERIODS_PWC = [2018, 2020, 2025, 2030, 2040, 2050]  
         self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
         self.T_TIME_FIRST_STAGE_BASE = [2022, 2026] 
         self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] 
@@ -257,25 +263,28 @@ class TransportSets():
         # ------- Other--------
         # -----------------------
 
-        self.P_PRODUCTS = [ 'Fish', 'General cargo', 'Industrial goods', 'Other thermo','Timber'] #'Wet bulk'
+
         
+        commodities = pd.read_csv(r'Data/commodities.csv', sep=';')
+        self.P_PRODUCT_NR_TO_NAME = dict(zip(commodities.Comm_aggr_nr, commodities.Comm_aggr_name))
+        self.P_PRODUCTS = list(self.P_PRODUCT_NR_TO_NAME.keys())  
+
+        if NO_DRY_BULK:
+            self.P_PRODUCTS.remove(6) #Dry bulk   HARDCODING
+        if NO_WET_BULK:
+            self.P_PRODUCTS.remove(7) #Wet bulk
 
         self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]}
         
-        self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk', 
-                   "Timber": ['Timber'],
+        self.PT = {"Combination": list(set(self.P_PRODUCTS)-set([4])),   #HARDCODING
+                   "Timber": [4],   #['Timber']
                    "All": self.P_PRODUCTS}
-
-        if INCLUDE_DRY_BULK:
-            self.P_PRODUCTS.append('Dry bulk')
-            self.PT["Combination"].append('Dry bulk')
-            self.PT["All"] = self.P_PRODUCTS
 
         ####################################
         ### ORIGIN, DESTINATION AND DEMAND #
         ####################################
 
-        pwc_aggr = pd.read_csv(r'Data/demand.csv')
+        pwc_aggr = pd.read_csv(r'Data/SPATIAL/demand.csv')
 
         #Start with filtering of demand data. What to include and what not.
         D_DEMAND_ALL = {}  #5330 entries, after cutting off the small elements, only 4105 entries
@@ -329,7 +338,7 @@ class TransportSets():
                 self.ODP.append((o, d, p))
         self.OD_PAIRS_ALL = list(self.OD_PAIRS_ALL)
         
-        self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS for (o,d,p) in self.ODP}        
+        self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS_PWC for (o,d,p) in self.ODP}        
         for (o,d,p,t), value in D_DEMAND_CUT.items():
             self.D_DEMAND[(o,d,p,t)] = round(value / self.scaling_factor_weight,self.precision_digits)
         
@@ -351,7 +360,7 @@ class TransportSets():
         #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
 
 
-        self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS}
+        self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS_PWC}
         for (o,d,p,t),value in self.D_DEMAND.items():
             self.D_DEMAND_AGGR[t] += value
 
@@ -362,10 +371,8 @@ class TransportSets():
 
 
         self.K_PATHS = []
-        filename = r'generated_paths_Ruben.csv'
-        if TWO_MODE_PATHS:
-            filename = r'generated_paths_Ruben_2_modes.csv'
-        all_generated_paths = pd.read_csv(r'Data/'+filename, converters={'paths': eval})
+        filename = r'generated_paths_'+str(NUM_MODE_PATHS)+'_modes.csv'
+        all_generated_paths = pd.read_csv(r'Data/SPATIAL/'+filename, converters={'paths': eval})
         self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
         for index, row in all_generated_paths.iterrows():
             elem = tuple(row['paths']) 
@@ -461,11 +468,11 @@ class TransportSets():
         
 
         self.cost_data = pd.read_excel(r'Data/transport_costs_emissions.xlsx', sheet_name='costs_emissions')
-        self.emission_data = pd.read_excel(r'Data/emission_cap.xlsx', sheet_name='emission_cap')
         
-        self.EMISSION_CAP_RELATIVE = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
+        #self.emission_data = pd.read_excel(r'Data/emission_cap.xlsx', sheet_name='emission_cap')
+        #self.EMISSION_CAP_RELATIVE = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
         #self.EMISSION_CAP_RELATIVE = {year:round(cap/self.scaling_factor,0) for year,cap in self.EMISSION_CAP_RELATIVE.items()}   #this was max 4*10^13, now 4*10^7
-        self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
+        #self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
         transfer_data = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']

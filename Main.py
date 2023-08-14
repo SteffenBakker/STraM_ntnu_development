@@ -38,9 +38,9 @@ from Utils import Logger
 #################################################
 
 
-analysis = "only_generate_data"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
 scenario_tree = "4Scen" #4Scen, 9Scen
-analysis_type = "SP" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters

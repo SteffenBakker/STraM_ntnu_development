@@ -355,7 +355,7 @@ function gen_paths(mode_cost, transfer_cost, mode_comb_level=3)
 
                     #add copy of hamar-trondheim railway if exists 
                     ham_trd_rail = false #boolean checking if hamar-trondheim railway is in the route 
-                    ham_trd_leg = 0 #boolean checking if hamar-trondheim railway is in the route 
+                    ham_trd_leg = 0 #
                     for l in 1:length(sh_path[o,d,mc]) #loop over legs in path 
                         if sh_path[o,d,mc][l][3] == "Rail" #leg is a rail leg 
                             if sh_path[o,d,mc][l][1] == "Hamar" && sh_path[o,d,mc][l][2] == "Trondheim" #Ham-Trd
