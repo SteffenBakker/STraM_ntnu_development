@@ -142,8 +142,163 @@ class TransportSets():
         self.S_SCENARIOS_ALL = self.scenario_information.scenario_names
         self.S_SCENARIOS = self.S_SCENARIOS_ALL
 
-        self.M_MODES = ["Road", "Rail", "Sea"]
+        # -----------------------
+        # ------- Sets ----------
+        # -----------------------
 
+        # Modes and fuels
+        mode_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "modes")
+        
+        self.M_MODES = []       # all modes
+        self.M_MODES_CAP = []   # capacitated modes
+
+        for index, row in mode_sets.iterrows():
+            cur_mode = row["Mode"]
+            cur_capacitated = row["Capacitated"]
+            self.M_MODES.append(cur_mode)
+            if(cur_capacitated == "Yes"):
+                self.M_MODES_CAP.append(cur_mode)
+
+            
+
+        fuel_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "fuels")
+
+        
+        self.F_FUEL = []            # all fuels
+        self.FM_FUEL = {}           # all fuels per mode
+        self.NEW_MF_LIST = []       # all new fuels                        USED?
+        self.FG_FUEL_GROUPS = []    # all fuel groups
+        self.F_TO_FG = {}           # fuel to fuel group
+
+        # initialize FM_FUEL
+        for m in self.M_MODES:
+            self.FM_FUEL[m] = []
+
+        for index, row in fuel_sets.iterrows():
+            cur_mode = row["Mode"]
+            cur_fuel = row["Fuel"]
+            cur_fuel_group = row["Fuel group"]
+            cur_novelty = row["Novelty"]
+            if(cur_fuel not in self.F_FUELS):
+                self.F_FUEL.append(cur_fuel)
+            self.FM_FUEL[cur_mode].append(cur_fuel)
+            if(cur_fuel_group) not in self.FG_FUEL_GROUPS:
+                self.FG_FUEL_GROUPS.append(cur_fuel_group)
+            self.F_TO_FG[cur_fuel] = cur_fuel_group
+            if(cur_novelty == "New"):
+                self.NEW_MF_LIST.append((cur_mode, cur_fuel))
+        
+        # list of new fuels
+        self.NEW_F_LIST = set([e[1] for e in self.NEW_MF_LIST])
+
+
+        # TODO: MOVE SOMEWHERE AFTER DEFINING NODES
+        self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
+
+
+        #TO BE REPLACED:
+        """        
+        self.F_FUEL = ["Diesel", "Ammonia", "Hydrogen", "Battery electric", "Electric train (CL)", "LNG", "MGO",
+                       'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"] # HARDCODED
+
+        self.FM_FUEL = {"Road": ["Diesel", "Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
+                        "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],  #Hybrid: non-existing
+                        "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} # HARDCODED
+
+        self.NEW_MF_LIST = [("Road", "Hydrogen"), ("Road", "Battery electric"), ("Rail", "Hydrogen"),
+                            ("Rail", "Battery train"), ("Sea", "Hydrogen"), ("Sea", "Ammonia"), ('Road', 'Biodiesel'),
+                            ('Road', 'Biogas'), ('Rail', 'Biodiesel'), ('Sea', 'Biodiesel (HVO)'), ('Sea', 'Biogas')] # HARDCODED       USED?
+
+        self.NEW_F_LIST = set([e[1] for e in self.NEW_MF_LIST])
+
+        self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
+        """
+
+        # Products
+        product_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "products")
+
+        self.P_PRODUCTS = []
+        self.PC_PRODUCT_CLASSES = []
+        self.PC_TO_P = {}
+        self.P_TO_PC = {}
+
+        for index, row in product_sets.iterrows():
+            cur_prod = row["Product group"]
+            cur_prod_class = row["Product class"]
+            self.P_PRODUCTS.append(cur_prod)
+            if(cur_prod_class not in self.PC_PRODUCT_CLASSES):
+                self.PC_PRODUCT_CLASSES.append(cur_prod_class)
+                self.PC_TO_P[cur_prod_class] = [cur_prod]
+            else:
+                self.PC_TO_P[cur_prod_class].append(cur_prod)
+            self.P_TO_PC[cur_prod] = cur_prod_class
+
+
+        
+        # TO BE REPLACED:
+        """
+        self.P_TO_PC = {"Dry bulk":"Dry bulk", "Liquid bulk":"Liquid bulk", "Container (fast)":"Container", "Container (slow)":"Container", 
+                        "Break bulk":"Break bulk", "Neo bulk (fast)":"Neo bulk", "Neo bulk (slow)":"Neo bulk"}  # HARDCODED
+
+        self.P_PRODUCTS = []
+        self.PC_PRODUCT_CLASSES = []
+        for p in self.P_TO_PC:
+            self.P_PRODUCTS.append(p)
+            cur_pc = self.P_TO_PC[p]
+            if(cur_pc not in self.PC_PRODUCT_CLASSES):
+                self.PC_PRODUCT_CLASSES.append(cur_pc)
+        
+        self.PC_TO_P = {}
+        for pc in self.PC_PRODUCT_CLASSES:
+            self.PC_TO_P[pc] = []
+        for p in self.P_TO_PC:
+            pc = self.P_TO_PC[p]
+            self.PC_TO_P[pc].append(p)
+
+        """
+
+       
+        # Time periods
+        time_period_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "time_periods")
+
+        self.T_TIME_PERIODS = []    # all time periods (years) with decisions
+        
+        self.T_TIME_FIRST_STAGE_BASE = []   # first-stage periods
+        self.T_TIME_SECOND_STAGE_BASE = []  # second-stage periods
+
+        for index, row in time_period_sets.iterrows():
+            cur_year = row["Year"]
+            cur_stage = row["Stage"]
+            self.T_TIME_PERIODS.append(cur_year)
+            if(cur_stage == 1):
+                self.T_TIME_FIRST_STAGE_BASE.append(cur_year)
+            else:
+                self.T_TIME_SECOND_STAGE_BASE.append(cur_year)
+            
+
+        # previous period
+        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
+
+        #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
+        self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS           # all time periods
+        self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]     # only first period (for initialization)
+
+
+        # TO BE REPLACED:
+        """
+        #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
+        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
+        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] # HARDCODED
+        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
+        self.T_TIME_FIRST_STAGE_BASE = [2022, 2026]  # HARDCODED
+        self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] # HARDCODED
+        
+        #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
+        self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
+        self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
+
+
+        """
 
         # -----------------------
         # ------- Network--------
@@ -231,68 +386,13 @@ class TransportSets():
                             "Sea": self.SEA_NODES_NORWAY}
 
 
-        #####################################
-        ## Mode-Fuel stuff
-        #####################################
-
-        self.F_FUEL = ["Diesel", "Ammonia", "Hydrogen", "Battery electric", "Electric train (CL)", "LNG", "MGO",
-                       'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"] # HARDCODED
-
-        self.FM_FUEL = {"Road": ["Diesel", "Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
-                        "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],  #Hybrid: non-existing
-                        "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} # HARDCODED
-
-        self.NEW_MF_LIST = [("Road", "Hydrogen"), ("Road", "Battery electric"), ("Rail", "Hydrogen"),
-                            ("Rail", "Battery train"), ("Sea", "Hydrogen"), ("Sea", "Ammonia"), ('Road', 'Biodiesel'),
-                            ('Road', 'Biogas'), ('Rail', 'Biodiesel'), ('Sea', 'Biodiesel (HVO)'), ('Sea', 'Biogas')] # HARDCODED
-
-        self.NEW_F_LIST = set([e[1] for e in self.NEW_MF_LIST])
-
-        self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
-        
-
-        # -----------------------
-        # ------- Timing --------
-        # -----------------------
-
-        #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
-        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
-        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] # HARDCODED
-        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
-        self.T_TIME_FIRST_STAGE_BASE = [2022, 2026]  # HARDCODED
-        self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] # HARDCODED
-        
-        #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
-        self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
-        self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
-
+ 
       
         
         # -----------------------
         # ------- Other--------
         # -----------------------
 
-        self.P_TO_PC = {"Dry bulk":"Dry bulk", "Liquid bulk":"Liquid bulk", "Container (fast)":"Container", "Container (slow)":"Container", 
-                        "Break bulk":"Break bulk", "Neo bulk (fast)":"Neo bulk", "Neo bulk (slow)":"Neo bulk"}  # HARDCODED
-
-        self.P_PRODUCTS = []
-        self.PC_PRODUCT_CLASSES = []
-        for p in self.P_TO_PC:
-            self.P_PRODUCTS.append(p)
-            cur_pc = self.P_TO_PC[p]
-            if(cur_pc not in self.PC_PRODUCT_CLASSES):
-                self.PC_PRODUCT_CLASSES.append(cur_pc)
-        
-        self.PC_TO_P = {}
-        for pc in self.PC_PRODUCT_CLASSES:
-            self.PC_TO_P[pc] = []
-        for p in self.P_TO_PC:
-            pc = self.P_TO_PC[p]
-            self.PC_TO_P[pc].append(p)
-        
-        # test
-        print(self.P_PRODUCTS)
-        print(self.PC_PRODUCT_CLASSES)
         
         self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]} # DEPRECATE?
         
