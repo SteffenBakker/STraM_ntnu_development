@@ -29,7 +29,7 @@ from itertools import islice
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 from Data.BassDiffusion import BassDiffusion 
-from sigmoid import sigmoid
+from Data.sigmoid import sigmoid
 
 # from FreightTransportModel.Utils import plot_all_graphs  #FreightTransportModel.
 
@@ -179,7 +179,7 @@ class TransportSets():
             cur_fuel = row["Fuel"]
             cur_fuel_group = row["Fuel group"]
             cur_novelty = row["Novelty"]
-            if(cur_fuel not in self.F_FUELS):
+            if(cur_fuel not in self.F_FUEL):
                 self.F_FUEL.append(cur_fuel)
             self.FM_FUEL[cur_mode].append(cur_fuel)
             if(cur_fuel_group) not in self.FG_FUEL_GROUPS:
@@ -192,9 +192,7 @@ class TransportSets():
         self.NEW_F_LIST = set([e[1] for e in self.NEW_MF_LIST])
 
 
-        # TODO: MOVE SOMEWHERE AFTER DEFINING NODES
-        self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
-
+        
 
         #TO BE REPLACED:
         """        
@@ -386,7 +384,8 @@ class TransportSets():
                             "Sea": self.SEA_NODES_NORWAY}
 
 
- 
+        self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
+
       
         
         # -----------------------
@@ -621,6 +620,38 @@ class TransportSets():
         self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
+
+        self.transfer_data = pd.read_excel(self.prefix+r'cost_calculator.xlsx', sheet_name='Transfer costs')
+
+        self.TRANSFER_COST_PER_MODE_PAIR = {}   # transfer cost per origin mode, dest mode, product class
+
+        # extract transfer costs from table
+        for index, row in self.transfer_data.iterrows():
+            self.TRANSFER_COST_PER_MODE_PAIR[(row["From"], row["To"], row["Product class"])] = round(row["Transfer cost"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
+            self.TRANSFER_COST_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = round(row["Transfer cost"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
+            #No immediate need for scaling, as already in NOK/Tonnes
+
+          
+        self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
+        
+        for kk in self.MULTI_MODE_PATHS:
+            k = self.K_PATH_DICT[kk]
+            for p in self.P_PRODUCTS:
+                cost = 0
+                num_transfers = len(k)-1
+                for n in range(num_transfers):
+                    mode_from = k[n][2]
+                    mode_to = k[n+1][2]
+                    if mode_from != mode_to: 
+                        cost += self.TRANSFER_COST_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]
+                self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
+
+
+        print("test")
+
+        # TO BE REPLACED:
+
+        """
         transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
         transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']
         
@@ -655,6 +686,10 @@ class TransportSets():
                     if mode_from != mode_to: 
                         cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
+
+        """
+
+
         
         # read CO2 fee
         self.CO2_fee_data = load_workbook(self.prefix+r'cost_calculator.xlsx')["Parameter input"]
