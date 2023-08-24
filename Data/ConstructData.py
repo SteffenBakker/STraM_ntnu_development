@@ -42,7 +42,7 @@ class ScenarioInformation():
         self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
                
         #read and process fuel group data
-        fuel_group_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name='fuel_groups')
+        fuel_group_data = pd.read_excel(self.prefix+self.scenario_file, sheet_name='fuel_groups') # TODO: this based on other file?
 
         self.fuel_group_names = [] #list of fuel group names
         self.fuel_groups = {} #dict from fuel group names to (m,f) combinations
@@ -152,21 +152,24 @@ class TransportSets():
         self.M_MODES = []       # all modes
         self.M_MODES_CAP = []   # capacitated modes
 
+        self.LIFETIME = {}      # lifetime of vehicle on each mode
+
         for index, row in mode_sets.iterrows():
             cur_mode = row["Mode"]
             cur_capacitated = row["Capacitated"]
+            cur_lifetime = row["Lifetime"]
             self.M_MODES.append(cur_mode)
             if(cur_capacitated == "Yes"):
                 self.M_MODES_CAP.append(cur_mode)
+            self.LIFETIME[cur_mode] = cur_lifetime
 
-            
 
         fuel_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "fuels")
 
         
         self.F_FUEL = []            # all fuels
         self.FM_FUEL = {}           # all fuels per mode
-        self.NEW_MF_LIST = []       # all new fuels                        USED?
+        self.NEW_MF_LIST = []       # all new fuels                        
         self.FG_FUEL_GROUPS = []    # all fuel groups
         self.F_TO_FG = {}           # fuel to fuel group
 
@@ -393,13 +396,13 @@ class TransportSets():
         # -----------------------
 
         
-        self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]} # DEPRECATE?
+        self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]} # TODO DEPRECATE?
         
         self.PT = {"Combination": ['Fish', 'General cargo', 'Industrial goods', 'Other thermo'], #,'Wet bulk',  
                    "Timber": ['Timber'],
-                   "All": self.P_PRODUCTS} # DEPRECATE?
+                   "All": self.P_PRODUCTS} # TODO DEPRECATE?
 
-        if INCLUDE_DRY_BULK: # DEPRECATE?
+        if INCLUDE_DRY_BULK: # TODO DEPRECATE?
             self.P_PRODUCTS.append('Dry bulk')
             self.PT["Combination"].append('Dry bulk')
             self.PT["All"] = self.P_PRODUCTS
@@ -488,7 +491,7 @@ class TransportSets():
         #print('D_DEMAND:')
         #print(pd.Series(list(self.D_DEMAND.values())).describe())
 
-        if INTERPOLATE_DEMAND_DATA_2040:
+        if INTERPOLATE_DEMAND_DATA_2040:                    # TODO: HARDCODING OF YEARS HERE
             for (o,d,p,t), value in self.D_DEMAND.items(): 
                 if t == 2040:
                     v30 = self.D_DEMAND[(o,d,p,2030)]
@@ -692,10 +695,12 @@ class TransportSets():
 
         
         # read CO2 fee
-        self.CO2_fee_data = load_workbook(self.prefix+r'cost_calculator.xlsx')["Parameter input"]
+        self.CO2_fee_data = load_workbook(self.prefix+r'cost_calculator.xlsx')["Parameter Input"]
+        
+
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for y in self.T_TIME_PERIODS:
-            self.CO2_fee[y] = sigmoid(y, self.CO2_fee_data['L47'], self.CO2_fee_data['M47'], self.CO2_fee_data['L46'], self.CO2_fee_data['L47'], self.CO2_fee_data['O47'], self.CO2_fee_data['P47'], self.CO2_fee_data['Q47'] )
+            self.CO2_fee[y] = sigmoid(y, self.CO2_fee_data['L47'].value, self.CO2_fee_data['M47'].value, self.CO2_fee_data['L46'].value, self.CO2_fee_data['L47'].value, self.CO2_fee_data['O47'].value, self.CO2_fee_data['P47'].value, self.CO2_fee_data['Q47'].value)
         
 
 
@@ -990,12 +995,6 @@ class TransportSets():
             (mm,share) = (row['Mode'], row['Share'])
             self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
 
-
-        #lifetime / lifespan
-        self.lifespan_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='lifetimes')
-        self.LIFETIME = {}
-        for index, row in self.lifespan_data.iterrows():
-            self.LIFETIME[row['Mode']] = row['Lifetime']
 
           
         #update R_TECH_READINESS_MATURITY based on scenario information
