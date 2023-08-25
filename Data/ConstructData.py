@@ -3,7 +3,7 @@
 Created on Mon Nov  8 13:31:04 2021
 
 @author: ingvi
-Adapted by Ruben
+Adapted by Ruben and Steffen
 """
 
 "Example data"
@@ -12,7 +12,8 @@ import os
 import sys
 
 #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
-os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\STRAM_ntnu_development')
+#os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\STRAM_ntnu_development') # STEFFEN
+os.chdir('C:\\Github\\STRAM_ntnu_development') # RUBEN
 sys.path.insert(0, '') #make sure the modules are found in the new working directory
 
 from Data.settings import *
@@ -37,26 +38,58 @@ from Data.sigmoid import sigmoid
 class ScenarioInformation():
     def __init__(self, sh_name='scenarios_base'): 
 
-        self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
-               
-        #read and process fuel group data
-        fuel_group_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name='fuel_groups')
+        #TODO: REVAMP HOW WE DO SCENARIOS. PROBABLY DELETE A BUNCH OF CODE BELOW
+              
+        # first, read modes and fuel groups
+        mode_sets = pd.read_excel(r'Data/sets.xlsx', sheet_name = "modes")
+        fuel_sets = pd.read_excel(r'Data/sets.xlsx', sheet_name = "fuels")
 
-        self.fuel_group_names = [] #list of fuel group names
+        M_MODES = []       # all modes
+        F_FUEL = []            # all fuels
+        FM_FUEL = {}           # all fuels per mode
+        NEW_MF_LIST = []       # all new fuels                        
+        FG_FUEL_GROUPS = []    # all fuel groups
+        F_TO_FG = {}           # fuel to fuel group
+
+        for index, row in mode_sets.iterrows():
+            cur_mode = row["Mode"]
+            M_MODES.append(cur_mode)
+
+        # initialize FM_FUEL
+        for m in M_MODES:
+            FM_FUEL[m] = []
+
+        for index, row in fuel_sets.iterrows():
+            cur_mode = row["Mode"]
+            cur_fuel = row["Fuel"]
+            cur_fuel_group = row["Fuel group"]
+            if(cur_fuel not in F_FUEL):
+                F_FUEL.append(cur_fuel)
+            FM_FUEL[cur_mode].append(cur_fuel)
+            if(cur_fuel_group) not in FG_FUEL_GROUPS:
+                FG_FUEL_GROUPS.append(cur_fuel_group)
+            F_TO_FG[cur_fuel] = cur_fuel_group
+
+        # store relevant data in scenario object        
+        self.fuel_group_names = FG_FUEL_GROUPS
         self.fuel_groups = {} #dict from fuel group names to (m,f) combinations
-        for index, row in fuel_group_data.iterrows():
-            if row["Fuel group"] not in self.fuel_group_names:
-                self.fuel_group_names = self.fuel_group_names + [row["Fuel group"]]    #add fuel group name to list
-                self.fuel_groups[row["Fuel group"]] = [(row["Mode"], row["Fuel"])] #create new entry in dict
-            else:
-                self.fuel_groups[row["Fuel group"]] = self.fuel_groups[row["Fuel group"]] + [(row["Mode"], row["Fuel"])]  #append entry in dict
+        # initialize 
+        for fg in self.fuel_group_names:
+            self.fuel_groups[fg] = []
+        # fill with correct elements
+        for m in M_MODES:
+            for f in FM_FUEL[m]:
+                cur_fuel_group = F_TO_FG[f]
+                self.fuel_groups[cur_fuel_group].append((m,f))
+        
         self.mf_to_fg = {} #translate (m,f) to fuel group name
         for fg in self.fuel_groups:
             for (m,f) in self.fuel_groups[fg]:
                 self.mf_to_fg[(m,f)] = fg
-            
 
-        #read and process scenario data
+    
+        # read and process scenario data
+        self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
         scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="scenarios_base")
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
@@ -93,6 +126,8 @@ class ScenarioInformation():
         
 
 test_scenario_information = ScenarioInformation('Data/')
+
+
 
 
 #Class containing all relevant data
@@ -135,7 +170,7 @@ class TransportSets():
         # -----------------------
 
         # Modes and fuels
-        mode_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "modes")
+        mode_sets = pd.read_excel(r'Data/sets.xlsx', sheet_name = "modes")
         
         self.M_MODES = []       # all modes
         self.M_MODES_CAP = []   # capacitated modes
@@ -152,7 +187,7 @@ class TransportSets():
             self.LIFETIME[cur_mode] = cur_lifetime
 
 
-        fuel_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "fuels")
+        fuel_sets = pd.read_excel(r'Data/sets.xlsx', sheet_name = "fuels")
 
         
         self.F_FUEL = []            # all fuels
@@ -183,28 +218,9 @@ class TransportSets():
         self.NEW_F_LIST = set([e[1] for e in self.NEW_MF_LIST])
 
 
-        
-
-        #TO BE REPLACED:
-        """        
-        self.F_FUEL = ["Diesel", "Ammonia", "Hydrogen", "Battery electric", "Electric train (CL)", "LNG", "MGO",
-                       'Biogas', 'Biodiesel', 'Biodiesel (HVO)', 'Battery train', "HFO"] # HARDCODED
-
-        self.FM_FUEL = {"Road": ["Diesel", "Hydrogen", "Battery electric", 'Biodiesel', 'Biogas'],
-                        "Rail": ["Diesel", "Hydrogen", "Battery train", "Electric train (CL)", 'Biodiesel'],  #Hybrid: non-existing
-                        "Sea": ["LNG", "MGO", "Hydrogen", "Ammonia", 'Biodiesel (HVO)', 'Biogas', "HFO"]} # HARDCODED
-
-        self.NEW_MF_LIST = [("Road", "Hydrogen"), ("Road", "Battery electric"), ("Rail", "Hydrogen"),
-                            ("Rail", "Battery train"), ("Sea", "Hydrogen"), ("Sea", "Ammonia"), ('Road', 'Biodiesel'),
-                            ('Road', 'Biogas'), ('Rail', 'Biodiesel'), ('Sea', 'Biodiesel (HVO)'), ('Sea', 'Biogas')] # HARDCODED       USED?
-
-        self.NEW_F_LIST = set([e[1] for e in self.NEW_MF_LIST])
-
-        self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
-        """
 
         # Products
-        product_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "products")
+        product_sets = pd.read_excel(r'Data/sets.xlsx', sheet_name = "products")
 
         self.P_PRODUCTS = []
         self.PC_PRODUCT_CLASSES = []
@@ -223,32 +239,9 @@ class TransportSets():
             self.P_TO_PC[cur_prod] = cur_prod_class
 
 
-        
-        # TO BE REPLACED:
-        """
-        self.P_TO_PC = {"Dry bulk":"Dry bulk", "Liquid bulk":"Liquid bulk", "Container (fast)":"Container", "Container (slow)":"Container", 
-                        "Break bulk":"Break bulk", "Neo bulk (fast)":"Neo bulk", "Neo bulk (slow)":"Neo bulk"}  # HARDCODED
-
-        self.P_PRODUCTS = []
-        self.PC_PRODUCT_CLASSES = []
-        for p in self.P_TO_PC:
-            self.P_PRODUCTS.append(p)
-            cur_pc = self.P_TO_PC[p]
-            if(cur_pc not in self.PC_PRODUCT_CLASSES):
-                self.PC_PRODUCT_CLASSES.append(cur_pc)
-        
-        self.PC_TO_P = {}
-        for pc in self.PC_PRODUCT_CLASSES:
-            self.PC_TO_P[pc] = []
-        for p in self.P_TO_PC:
-            pc = self.P_TO_PC[p]
-            self.PC_TO_P[pc].append(p)
-
-        """
-
        
         # Time periods
-        time_period_sets = pd.read_excel(self.prefix+r'sets.xlsx', sheet_name = "time_periods")
+        time_period_sets = pd.read_excel(r'Data/sets.xlsx', sheet_name = "time_periods")
 
         self.T_TIME_PERIODS = []    # all time periods (years) with decisions
         
@@ -272,22 +265,10 @@ class TransportSets():
         self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS           # all time periods
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]     # only first period (for initialization)
 
-
-        # TO BE REPLACED:
-        """
-        #NOTE: A BUNCH OF HARDCODING IN THE TIME-RELATED SETS BELOW
-        #self.T_TIME_PERIODS = [2020, 2025, 2030, 2040, 2050] #(OLD)
-        self.T_TIME_PERIODS = [2022, 2026, 2030, 2040, 2050] # HARDCODED
-        self.T_MIN1 = {self.T_TIME_PERIODS[tt]:self.T_TIME_PERIODS[tt-1] for tt in range(1,len(self.T_TIME_PERIODS))} 
-        self.T_TIME_FIRST_STAGE_BASE = [2022, 2026]  # HARDCODED
-        self.T_TIME_SECOND_STAGE_BASE = [2030, 2040, 2050] # HARDCODED
-        
-        #we have to switch between solving only first time period, and all time periods. (to initialize the transport shares and emissions)
-        self.T_TIME_PERIODS_ALL = self.T_TIME_PERIODS
-        self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]
+        # time periods for reading demand data
+        self.T_TIME_PERIODS_PWC = [2018, 2020, 2025, 2030, 2040, 2050]  # HARDCODED
 
 
-        """
 
         # -----------------------
         # ------- Network--------
@@ -385,11 +366,12 @@ class TransportSets():
 
         self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
 
-      
-        
+              
         # -----------------------
         # ------- Other--------
         # -----------------------
+
+        
 
         # TODO: DEPRECATE SOME STUFF BELOW HERE
         
@@ -566,10 +548,10 @@ class TransportSets():
                 self.KA_PATHS_UNIMODAL[a].append(kk)
         
         #Vehicle types
-        self.prod_to_vehicle_type = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
+        prod_to_vehicle_type = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
         self.VEHICLE_TYPE_MP = {}
         self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
-        for (m,p,v) in zip(self.prod_to_vehicle_type['Mode'], self.prod_to_vehicle_type['Product group'], self.prod_to_vehicle_type['Vehicle type']):
+        for (m,p,v) in zip(prod_to_vehicle_type['Mode'], prod_to_vehicle_type['Product group'], prod_to_vehicle_type['Vehicle type']):
             if p in self.P_PRODUCTS:
                 self.VEHICLE_TYPE_MP[(m,p)] = v
                 self.VEHICLE_TYPES_M[m].append(v)
@@ -592,29 +574,29 @@ class TransportSets():
 
         #------------------------
         "Parameters"
-        #-----------------------
-        
+        #-----------------------      
 
-        self.cost_data = pd.read_excel(r'Data/transport_costs_emissions.xlsx', sheet_name='costs_emissions')
+        cost_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output costs')        
         
+        # TODO: WHAT TO DO WITH THE FOUR LINES BELOW?
         #self.emission_data = pd.read_excel(r'Data/emission_cap.xlsx', sheet_name='emission_cap')
         #self.EMISSION_CAP_RELATIVE = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
         #self.EMISSION_CAP_RELATIVE = {year:round(cap/self.scaling_factor,0) for year,cap in self.EMISSION_CAP_RELATIVE.items()}   #this was max 4*10^13, now 4*10^7
         #self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
-        transfer_data = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
-        self.emission_data = pd.read_excel(self.prefix+r'cost_calculator.xlsx', sheet_name='Output emissions')
-        
+        emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
+
+        # TODO: WHAT TO DO WITH EMISSION CAP? ONLY USED FOR PLOTTING, RIGHT?        
         self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
 
-        self.transfer_data = pd.read_excel(self.prefix+r'cost_calculator.xlsx', sheet_name='Transfer costs')
+        transfer_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Transfer costs')
 
         self.TRANSFER_COST_PER_MODE_PAIR = {}   # transfer cost per origin mode, dest mode, product class
 
         # extract transfer costs from table
-        for index, row in self.transfer_data.iterrows():
+        for index, row in transfer_data.iterrows():
             self.TRANSFER_COST_PER_MODE_PAIR[(row["From"], row["To"], row["Product class"])] = round(row["Transfer cost"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
             self.TRANSFER_COST_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = round(row["Transfer cost"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
             #No immediate need for scaling, as already in NOK/Tonnes
@@ -635,57 +617,15 @@ class TransportSets():
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
 
 
-        print("test")
 
-        # TO BE REPLACED:
-
-        """
-        transfer_data = pd.read_excel(self.prefix+r'transport_costs_emissions_raw.xlsx', sheet_name='transfer_costs')
-        transfer_data.columns = ['Product', 'Transfer type', 'Transfer cost']
-        
-        
-        self.PATH_TYPES = ["sea-rail", "sea-road", "rail-road"]
-        # self.MULTI_MODE_PATHS_DICT = {q: [] for q in self.PATH_TYPES}
-        self.C_MULTI_MODE_PATH = {(q,p): 0  for q in self.PATH_TYPES for p in self.P_PRODUCTS}
-        for p in self.P_PRODUCTS:
-            if p in self.P_PRODUCTS:
-                for q in self.PATH_TYPES:
-                    data_index = transfer_data.loc[(transfer_data['Product'] == p) & (transfer_data['Transfer type'] == q)]
-                    self.C_MULTI_MODE_PATH[q,p] = round(data_index.iloc[0]['Transfer cost']/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)  #10E6NOK/10E6TONNES
-                    #No immediate need for scaling, as already in NOK/Tonnes
-            
-        mode_to_transfer = {('Sea','Rail'):'sea-rail',
-                            ('Sea','Road'):'sea-road',
-                            ('Rail','Road'):'rail-road',
-                            ('Rail','Sea'):'sea-rail',
-                            ('Road','Sea'):'sea-road',
-                            ('Road','Rail'):'rail-road'}            
-          
-        self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
-        
-        for kk in self.MULTI_MODE_PATHS:
-            k = self.K_PATH_DICT[kk]
-            for p in self.P_PRODUCTS:
-                cost = 0
-                num_transfers = len(k)-1
-                for n in range(num_transfers):
-                    mode_from = k[n][2]
-                    mode_to = k[n+1][2]
-                    if mode_from != mode_to: 
-                        cost += self.C_MULTI_MODE_PATH[(mode_to_transfer[(mode_from,mode_to)],p)]
-                self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
-
-        """
-
-
-        
+         
         # read CO2 fee
-        self.CO2_fee_data = load_workbook(self.prefix+r'cost_calculator.xlsx')["Parameter Input"]
+        self.CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx')["Parameter Input"]
         
 
         self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
         for y in self.T_TIME_PERIODS:
-            self.CO2_fee[y] = sigmoid(y, self.CO2_fee_data['L47'].value, self.CO2_fee_data['M47'].value, self.CO2_fee_data['L46'].value, self.CO2_fee_data['L47'].value, self.CO2_fee_data['O47'].value, self.CO2_fee_data['P47'].value, self.CO2_fee_data['Q47'].value)
+            self.CO2_fee[y] = sigmoid(y, self.CO2_fee_data['L47'].value, self.CO2_fee_data['M47'].value, self.CO2_fee_data['L46'].value, self.CO2_fee_data['M46'].value, self.CO2_fee_data['O47'].value, self.CO2_fee_data['P47'].value, self.CO2_fee_data['Q47'].value)
         
 
 
@@ -709,7 +649,7 @@ class TransportSets():
 
 
         # read emissions
-        for index, row in self.emission_data.iterrows():
+        for index, row in emission_data.iterrows():
             m = row["Mode"]
             f = row["Fuel"]
             if f in self.FM_FUEL[m]:
@@ -728,7 +668,7 @@ class TransportSets():
                             self.E_EMISSIONS_NORMALIZED[(m,f,p,y)] = round(cur_val * self.scaling_factor_weight/self.scaling_factor_emissions,self.precision_digits)
         
         # process emissions per arc
-        for index, row in self.cost_data.iterrows():
+        for index, row in cost_data.iterrows():
             for (i,j,m,r) in self.A_ARCS:
                 a = (i, j, m, r)
                 for f in self.FM_FUEL[m]:
@@ -741,7 +681,7 @@ class TransportSets():
 
 
         # read transport costs
-        for index, row in self.cost_data.iterrows():
+        for index, row in cost_data.iterrows():
             for (i,j,m,r) in self.A_ARCS:
                 a = (i, j, m, r)
                 if m == row["Mode"]:
@@ -756,10 +696,10 @@ class TransportSets():
                                 #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
                                 self.E_EMISSIONS[(i, j, m, r, f, p, y)] = round(self.AVG_DISTANCE[a] * self.E_EMISSIONS_NORMALIZED[(m,f,p,y)], self.precision_digits)
                                 #CO2 costs per tonne:
-                                self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[row["Year"]], self.precision_digits)
+                                self.C_CO2[(i, j, m, r, f, p, y)] =  round(self.E_EMISSIONS[(i, j, m, r, f, p, y)] * self.CO2_fee[y], self.precision_digits)
 
         
-
+        # define transport cost for each scenario
         for (i, j, m, r) in self.A_ARCS:
                 for f in self.FM_FUEL[m]:
                     for p in self.P_PRODUCTS:
@@ -931,13 +871,13 @@ class TransportSets():
             self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid"]
 
         #Technological readiness/maturity (with Bass diffusion model)
-        self.tech_readiness_data = pd.read_excel(r'Data/technological_maturity_readiness.xlsx',sheet_name="technological_readiness_bass") #new sheet with different readiness paths
+        tech_readiness_data = pd.read_excel(r'Data/technological_maturity_readiness.xlsx',sheet_name="technological_readiness_bass") #new sheet with different readiness paths
         self.tech_is_mature = {} # indicates whether technology is already mature
         self.tech_base_bass_model = {} # contains all bass diffusion models for the technologies (only for non-mature technologies)
         self.tech_active_bass_model = {} # active bass model (only for non-mature technologies)
         self.tech_scen_p_q_variation = {} # variation (as %) for parameters p and q in the bass diffusion model in each of the scenarios
         self.tech_scen_t_0_delay = {} # delay for parameter in the bass diffusion model in each of the scenarios
-        for index, row in self.tech_readiness_data.iterrows():
+        for index, row in tech_readiness_data.iterrows():
             # store whether technology is already mature or not 
             if row["Mature?"] == "yes":
                 self.tech_is_mature[(row['Mode'], row['Fuel'])] = True
@@ -965,17 +905,17 @@ class TransportSets():
             
 
         #Initializing transport work share in base year
-        self.init_transport_share = pd.read_excel(r'Data/init_mode_fuel_mix.xlsx',sheet_name="InitMix")
+        init_transport_share = pd.read_excel(r'Data/init_mode_fuel_mix.xlsx',sheet_name="init_fuel_mix")
         self.Q_SHARE_INIT_MAX = {}
         self.MFT_INIT_TRANSP_SHARE = []
-        for index, row in self.init_transport_share.iterrows():
+        for index, row in init_transport_share.iterrows():
             (m,f,t) = (row['Mode'], row['Fuel'],row['Year'])
             self.Q_SHARE_INIT_MAX[(m,f,t)] = round(row['Max_transp_share'],self.precision_digits)
             self.MFT_INIT_TRANSP_SHARE.append((m,f,t))
 
-        self.init_mode_share = pd.read_excel(r'Data/init_mode_fuel_mix.xlsx',sheet_name="InitModeMix")
+        init_mode_share = pd.read_excel(r'Data/init_mode_fuel_mix.xlsx',sheet_name="init_mode_mix")
         self.INIT_MODE_SPLIT = {m:None for m in self.M_MODES}
-        for index, row in self.init_mode_share.iterrows():
+        for index, row in init_mode_share.iterrows():
             (mm,share) = (row['Mode'], row['Share'])
             self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
 
@@ -1222,29 +1162,7 @@ class TransportSets():
 
 print("Finished reading sets and classes.")
 
-#base_data = TransportSets()
-
-#Testing:
-"""
-base_data = TransportSets(sheet_name_scenarios='scenarios_base')
-base_data.scenario_information
-
-base_data.scenario_information.scenario_names
-
-#base_data.update_scenario_dependent_parameters("LLH")
-for i in base_data.R_TECH_READINESS_MATURITY:
-    print(i, ": ", base_data.R_TECH_READINESS_MATURITY[i])
-
-for cur_scen in base_data.scenario_information.scenario_names:
-    base_data.update_scenario_dependent_parameters(cur_scen)
-    #base_data.tech_active_bass_model[('Road', 'Hydrogen')]
-    base_data.tech_active_bass_model[('Road', 'Hydrogen')].plot_A(show=False)
-
-plt.show()
 
 
 
-
-print("Finished testing")
-"""
 
