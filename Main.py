@@ -60,7 +60,7 @@ num_first_stage_periods = 2         # how many of the periods above are in first
 
 def construct_and_solve_SP(base_data,
                             risk_info, 
-                            single_time_period=None,
+                            single_time_period=None,   #If not None, add year for which the analysis will be performed ("static" case)
                             NoBalancingTrips = None):
 
     # ------ CONSTRUCT MODEL ----------#
