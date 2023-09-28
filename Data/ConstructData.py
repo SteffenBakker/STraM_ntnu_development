@@ -146,7 +146,7 @@ class TransportSets():
 
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
-        self.scenario_information = ScenarioInformation(sheet_name_scenarios) #TODO: check performance of this
+        self.scenario_information = ScenarioInformation(sheet_name_scenarios)
         self.scenario_information_EV = ScenarioInformation('EV_scenario') 
 
         self.risk_information = None
@@ -333,7 +333,6 @@ class TransportSets():
         #EDGES and DISTANCES
         
         self.E_EDGES = []
-        self.E_EDGES_RAIL = []        
         self.A_ARCS = []
         
         distances = pd.read_excel(r'Data/SPATIAL/spatial_data.xlsx',sheet_name="distances_STRAM")
@@ -356,9 +355,6 @@ class TransportSets():
                 self.AVG_DISTANCE[a1] = value/2
                 self.AVG_DISTANCE[a2] = value/2
                 # half the distance for international transport -> split the emissions and costs
-            if m == 'Rail':
-                #if (i not in self.N_ABROAD) or (j not in self.N_ABROAD): # We allow for investments in rail in Sweden.
-                self.E_EDGES_RAIL.append(a1)
 
         self.AE_ARCS = {e:[] for e in self.E_EDGES}
         self.AM_ARCS = {m:[] for m in self.M_MODES}
@@ -526,8 +522,7 @@ class TransportSets():
         
         emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
 
-        # TODO: WHAT TO DO WITH EMISSION CAP? ONLY USED FOR PLOTTING, RIGHT?      -> SB: correct    
-        self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # HARDCODED
+        self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
 
@@ -1012,6 +1007,265 @@ class TransportSets():
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
 
 
+        
+        if False:  #integrate above
+
+            #################
+            #  INVESTMENTS  #
+            #################
+            
+            node_cap_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='node_capacities')
+            edge_cap_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='edge_capacities')
+
+
+
+            # Edge upgrades
+            self.E_EDGES_INV = []           # list of edges that can be invested in, i.e., that are capacitated
+            self.E_EDGES_UPG = []           # list of upgradable edges
+            for index, row in edge_cap_data.iterrows():
+                # define edge
+                (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])           # TODO: how do we refer to nodes?
+                edge = (i,j,m,r)
+                if (i,j,m,r) not in self.E_EDGES:
+                    edge = (j,i,m,r)    # flip edge if necessary
+                # add to E_EDGES_INV if possible to invest
+                if row["Capacity"] != -1:
+                    self.E_EDGES_INV.append(edge)
+                # add to E_EDGES_UPG if possible to upgrade              
+                if row["Upgradable"] == 1:
+                    self.E_EDGES_UPG.append(edge) 
+            
+            self.U_UPGRADE = []     # list of type of upgrades
+            for e in self.E_EDGES_UPG:
+                self.U_UPGRADE.append((e,'Electric train (CL)'))        # TODO: check fuel naem     # HARDCODED
+
+
+        
+            # Initialize capacities, investments, and costs
+
+            # edges
+            self.Q_EDGE_BASE = {}           # dict of initial edge capacities       # TONNES      
+            self.Q_EDGE_INV = {}            # dict of possible edge investments     # TONNES -> MTONNES #TODO CHECK THESE UNITS
+            self.C_EDGE_INV = {}            # dict of edge investment costs         # NOK -> MNOK
+            self.C_EDGE_UPG = {}            # dict of edge upgrade costs            # NOK -> MNOK
+            self.L_EDGE_INV_LEAD_TIME = {}  # dict of edge investment lead times    # YEARS
+            self.L_EDGE_UPG_LEAD_TIME = {}  # dict of edge upgrade lead times       # YEARS
+
+            # nodes
+            self.Q_NODE_BASE = {}           # dict of initial node capacities       # TONNES      
+            self.Q_NODE_INV = {}            # dict of possible node investments     # TONNES -> MTONNES #TODO CHECK THESE UNITS
+            self.C_NODE_INV = {}            # dict of node investment costs         # NOK -> MNOK
+            self.L_NODE_INV_LEAD_TIME = {}  # dict of node investment lead times    # YEARS
+
+
+            # fill edge data
+            for index, row in edge_cap_data.iterrows():
+                # define edge
+                (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])           # TODO: how do we refer to nodes?
+                edge = (i,j,m,r)
+                if (i,j,m,r) not in self.E_EDGES:
+                    edge = (j,i,m,r)    # flip edge if necessary
+                
+                # initial capacities
+                self.Q_EDGE_BASE[edge] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
+
+                # investments
+                if row["Capacity increase"] > 0:
+                    self.Q_EDGE_INV[edge] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
+                    self.C_EDGE_INV[edge] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
+                    self.L_EDGE_INV_LEAD_TIME[edge] = row["Lead time"]
+
+                # upgrades
+                if row["Upgradable"] == 1:
+                    self.C_EDGE_UPG[(edge, 'Electric train (CL)')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
+                    self.L_EDGE_UPG_LEAD_TIME[(edge, 'Electric train (CL)')] = row["Upgrade lead time"]  # HARDCODED
+            
+            # fill node data
+            for index, row in node_cap_data.iterrows():
+                # define node
+                node = (row["centroid_name"], row["Mode"])    # TODO: HOW TO REFER TO NODES?
+                
+                # initial capacities
+                self.Q_NODE_BASE[node] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
+
+                # investments
+                if row["Capacity increase"] > 0:
+                    self.Q_NODE_INV[node] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
+                    self.C_NODE_INV[node] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
+                    self.L_NODE_INV_LEAD_TIME[node] = row["Lead time"]
+
+            
+
+            # TODO: HOW WE DEAL WITH UPGRADES IS A BIT MESSY.
+
+    
+            # Big M         # TODO: (what is this used for?)
+            self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES 
+            for e in self.E_EDGES_UPG:
+                if e in self.Q_EDGE_INV:
+                    self.BIG_M_UPG[e] =  1.5*(self.Q_EDGE_BASE[e] + self.Q_EDGE_INV[e])
+                else:
+                    self.BIG_M_UPG[e] =  1.5*self.Q_EDGE_BASE[e]
+
+
+            # Discount rate
+            self.risk_free_interest_rate = RISK_FREE_RATE # 2%
+            self.D_DISCOUNT_RATE = round(1 / (1 + self.risk_free_interest_rate),self.precision_digits)
+            
+
+            # --------------------------
+            # --------------------------
+            # CHARGING EDGES CONSTRAINT
+            # --------------------------
+            # --------------------------
+            
+            charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='charging_stations')
+            
+            self.CHARGING_TECH = []
+            for index,row in charging_data.iterrows():
+                #print((row["Mode"],row["Fuel"]))
+                self.CHARGING_TECH.append((row["Mode"],row["Fuel"]))
+            # all arcs (one per arc pair ij/ji) with mode Road and fuels Battery or Hydrogen
+            self.EF_CHARGING = []
+            for (i,j,m,r) in self.E_EDGES:
+                e =(i,j,m,r)
+                utlandet = ["Europa", "Sør-Sverige", "Nord-Sverige"]
+                if i not in utlandet or j not in utlandet: #and or 'or'
+                    for (m, f) in self.CHARGING_TECH:
+                        if e[2] == m:
+                            self.EF_CHARGING.append((e,f))
+            
+            
+
+            # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
+            self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
+            self.C_CHARGE = {(e,f): 100000 for (e,f) in self.EF_CHARGING}  
+            self.LEAD_TIME_CHARGING = {(e,f): 50 for (e,f) in self.EF_CHARGING}
+            max_truck_cap = MAX_TRUCK_CAP  # HARDCODED random average in tonnes, should be product based? or fuel based??
+            for ((i, j, m, r),f) in self.EF_CHARGING:
+                e = (i, j, m, r) 
+                data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
+                self.C_CHARGE[(e,f)] = round((self.AVG_DISTANCE[e]
+                                                    / data_index.iloc[0]["Max_station_dist"]
+                                                    * data_index.iloc[0]["Station_cost"]
+                                                    / (data_index.iloc[0]["Trucks_filled_daily"] * max_truck_cap * 365)
+                                                    /self.scaling_factor_monetary
+                                                    *self.scaling_factor_weight),
+                                            self.precision_digits)  # 0.7 or not??? MKR/TONNES, 
+                self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid"]
+
+            # ------------------------------------------------------------------------------
+            # ------------------------------------------------------------------------------
+            # TECHNOLOGICAL READINESS/MATURITY (WITH BASS DIFFUSION MODEL)
+            # ------------------------------------------------------------------------------
+            # ------------------------------------------------------------------------------
+
+
+            #Technological readiness/maturity (with Bass diffusion model)
+            self.tech_readiness_data = pd.read_excel(self.prefix+r'technological_maturity_readiness.xlsx',sheet_name="technological_readiness_bass") #new sheet with different readiness paths
+            self.tech_is_mature = {} # indicates whether technology is already mature
+            self.tech_base_bass_model = {} # contains all bass diffusion models for the technologies (only for non-mature technologies)
+            self.tech_active_bass_model = {} # active bass model (only for non-mature technologies)
+            self.tech_scen_p_q_variation = {} # variation (as %) for parameters p and q in the bass diffusion model in each of the scenarios
+            self.tech_scen_t_0_delay = {} # delay for parameter in the bass diffusion model in each of the scenarios
+            for index, row in self.tech_readiness_data.iterrows():
+                # store whether technology is already mature or not 
+                if row["Mature?"] == "yes":
+                    self.tech_is_mature[(row['Mode'], row['Fuel'])] = True
+                else:
+                    self.tech_is_mature[(row['Mode'], row['Fuel'])] = False
+                    # if not mature, add bass diffusion model
+                    self.tech_base_bass_model[(row['Mode'], row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
+                    # set base bass model as active bass model
+                    #self.tech_active_bass_model[(row['Mode'] ,row['Fuel'])] = BassDiffusion(float(row["p"]), float(row["q"]), float(row["m"]), int(row["t_0"]))
+                    # store variations
+                    self.tech_scen_p_q_variation[(row['Mode'], row['Fuel'])] = row["p_q_variation"]
+                    self.tech_scen_t_0_delay[(row['Mode'], row['Fuel'])] = row["t_0_delay"]
+            
+            self.R_TECH_READINESS_MATURITY = {} # contains the active maturity path (number between 0 and 100)
+            # initialize R_TECH_READINESS_MATURITY at base path
+            for s in self.S_SCENARIOS:
+                for (m,f) in self.tech_is_mature:
+                    if self.tech_is_mature[(m,f)]:
+                        for year in self.T_TIME_PERIODS:    
+                            self.R_TECH_READINESS_MATURITY[(m, f, year,s)] = 100 # assumption: all mature technologies have 100% market potential
+                    else:
+                        for year in self.T_TIME_PERIODS:
+                            #we can remove this one!
+                            self.R_TECH_READINESS_MATURITY[(m, f, year,s)] = round(self.tech_base_bass_model[(m,f)].A(year),self.precision_digits) # compute maturity level based on base Bass diffusion model 
+                
+
+            #Initializing transport work share in base year
+            self.init_transport_share = pd.read_excel(self.prefix+r'init_mode_fuel_mix.xlsx',sheet_name="InitMix")
+            self.Q_SHARE_INIT_MAX = {}
+            self.MFT_INIT_TRANSP_SHARE = []
+            for index, row in init_transport_share.iterrows():
+                (m,f,t) = (row['Mode'], row['Fuel'], row['Year'])
+                self.Q_SHARE_INIT_MAX[(m,f,t)] = round(row['Max_transp_share'],self.precision_digits)
+                self.MFT_INIT_TRANSP_SHARE.append((m,f,t))
+
+            self.init_mode_share = pd.read_excel(self.prefix+r'init_mode_fuel_mix.xlsx',sheet_name="InitModeMix")
+            self.INIT_MODE_SPLIT = {m:None for m in self.M_MODES}
+            for index, row in self.init_mode_share.iterrows():
+                (mm,share) = (row['Mode'], row['Share'])
+                self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
+
+
+            
+            #update R_TECH_READINESS_MATURITY based on scenario information
+            for s in self.S_SCENARIOS:
+                active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
+                for m in self.M_MODES:
+                    for f in self.FM_FUEL[m]:
+                        if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
+                            cur_fg = self.scenario_information.mf_to_fg[(m,f)]
+                            cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
+                            # extract info from current base Bass model
+                            cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                            cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
+                            cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
+                                        
+                            # find current scenario's level of variation for q and p and delay for t_0 from base case
+                            cur_scen_p_q_variation = 0.0 
+                            cur_scen_t_0_delay = 0.0
+                            if cur_path_name == "base":
+                                cur_scen_p_q_variation = 0.0
+                                cur_scen_t_0_delay = 0.0
+                            if cur_path_name == "fast":
+                                cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
+                                cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
+                            elif cur_path_name == "slow":
+                                cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
+                                cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
+
+                            # construct scenario bass model
+                            cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
+                                                                cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
+                                                                cur_base_bass_model.m, 
+                                                                cur_base_bass_model.t_0 + cur_scen_t_0_delay)
+                            
+                            # set as active bass model
+                            self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
+
+                            # find start of second stage
+                            for t in self.T_TIME_PERIODS:
+                                if t not in self.T_TIME_FIRST_STAGE_BASE:
+                                    start_of_second_stage = t
+                                    break
+
+                            # fill R_TECH_READINESS_MATURITY based on current scenario bass model
+                            for t in self.T_TIME_PERIODS:
+                                if t in self.T_TIME_FIRST_STAGE_BASE:
+                                    # first stage: follow base bass model
+                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
+                                else:
+                                    # second stage: use scenario bass model, with starting point A(2030) from base bass model
+                                    t_init = start_of_second_stage #initialize diffusion at start of second stage
+                                    A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
+                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
+
+
+
     def combined_sets(self):
 
         self.SS_SCENARIOS_NONANT = []
@@ -1092,12 +1346,12 @@ class TransportSets():
                          self.T_TIME_PERIODS ]  
         self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
         self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
-        self.ET_RAIL= [l+(t,) for l in self.E_EDGES_RAIL for t in self.T_TIME_PERIODS                                   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_RAIL[l]) and (t in self.T_TIME_FIRST_STAGE)]
-        self.EAT_RAIL = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_RAIL[e]) and (t in self.T_TIME_FIRST_STAGE)]
-        self.EAT_RAIL_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_RAIL for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
+        self.ET_INV = [l+(t,) for l in self.E_EDGES_INV for t in self.T_TIME_PERIODS                                   if (t <= self.T_TIME_PERIODS[-1] - self.L_EDGE_INV_LEAD_TIME[l]) and (t in self.T_TIME_FIRST_STAGE)]
+        self.EAT_INV = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS   if (t <= self.T_TIME_PERIODS[-1] - self.L_EDGE_INV_LEAD_TIME[e]) and (t in self.T_TIME_FIRST_STAGE)]
+        self.EAT_INV_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
         self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_CHARGING[(e,f)]]
         self.EFT_CHARGE_CONSTR = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS_OPERATIONAL]
-        self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_NODE[i,c,m]]
+        self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.L_NODE_INV_LEAD_TIME[i,c,m]]
         self.NCMT_CONSTR = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS_OPERATIONAL ]
         self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
                                     for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
@@ -1145,11 +1399,11 @@ class TransportSets():
         self.APT_CONSTR_S =    combinations(self.APT_CONSTR,self.S_SCENARIOS)
         self.AFVT_S =          combinations(self.AFVT,self.S_SCENARIOS)
         self.AVT_CONSTR_S =    combinations(self.AVT_CONSTR,self.S_SCENARIOS)
-        self.EAT_RAIL_CONSTR_S = combinations(self.EAT_RAIL_CONSTR,self.S_SCENARIOS)
-        self.E_EDGES_RAIL_S = combinations(self.E_EDGES_RAIL,self.S_SCENARIOS)
+        self.EAT_INV_CONSTR_S = combinations(self.EAT_INV_CONSTR,self.S_SCENARIOS)
+        self.E_EDGES_INV_S = combinations(self.E_EDGES_INV,self.S_SCENARIOS)
         self.EFT_CHARGE_S = combinations(self.EFT_CHARGE,self.S_SCENARIOS)
         self.EFT_CHARGE_CONSTR_S = combinations(self.EFT_CHARGE_CONSTR,self.S_SCENARIOS)
-        self.ET_RAIL_S = combinations(self.ET_RAIL,self.S_SCENARIOS)
+        self.ET_INV_S = combinations(self.ET_INV,self.S_SCENARIOS)
         self.KPT_S = combinations(self.KPT,self.S_SCENARIOS)
         self.KVT_S = combinations(self.KVT,self.S_SCENARIOS)
         self.NCMT_S = combinations(self.NCMT,self.S_SCENARIOS)

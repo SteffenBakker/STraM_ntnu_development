@@ -15,6 +15,7 @@ if not os.path.exists(basepath+"/temp/pyomo"):
 
 #os.chdir('C://Users//steffejb//OneDrive - NTNU//Work//GitHub//AIM_Norwegian_Freight_Model//AIM_Norwegian_Freight_Model')
 #os.chdir("M:/Documents/GitHub/AIM_Norwegian_Freight_Model") #uncomment this for stand-alone testing of this fille
+os.chdir("C:/Users/Ruben/GitHub/STraM_ntnu_development") #uncomment this for stand-alone testing of this fille
 
 from Model import TranspModel, RiskInformation
 from ExtractResults import OutputData

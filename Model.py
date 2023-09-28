@@ -64,7 +64,7 @@ class TranspModel:
                 self.model.h_path_balancing[(k,v,t,s)].fix(0)
         self.model.StageCosts = Var(self.data.T_TIME_PERIODS_S, within = NonNegativeReals)
         
-        self.model.epsilon_edge = Var(self.data.ET_RAIL_S, within = Binary) #within = Binary
+        self.model.epsilon_edge = Var(self.data.ET_INV_S, within = Binary) #within = Binary
         self.model.upsilon_upg = Var(self.data.UT_UPG_S, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
         def contin01(model, i,c,m,t,s): #()
             return (0, 1)
@@ -116,7 +116,7 @@ class TranspModel:
         
         self.model.EdgeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def EdgeCost(model, t,s):
-            return (self.model.EdgeCost[t,s] >= sum(self.data.C_EDGE_RAIL[e]*self.model.epsilon_edge[(e,t,s)] for e in self.data.E_EDGES_RAIL if e +(t,) in self.data.ET_RAIL)- FEAS_RELAX )  
+            return (self.model.EdgeCost[t,s] >= sum(self.data.C_EDGE_INV[e]*self.model.epsilon_edge[(e,t,s)] for e in self.data.E_EDGES_INV if e +(t,) in self.data.ET_INV)- FEAS_RELAX )  
         self.model.EdgeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=EdgeCost)
         
         self.model.NodeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
@@ -287,22 +287,22 @@ class TranspModel:
             e = (i,j,m,r)
             a = (ii,jj,mm,rr)
             return (sum(self.model.x_flow[a, f, p, t, s] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[m]) + 
-                    sum(self.model.b_flow[a, f, v, t, s] for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) <= 0.5*(self.data.Q_EDGE_BASE_RAIL[e] +
-                   + self.data.Q_EDGE_RAIL[e] * sum(self.model.epsilon_edge[e, tau, s] 
+                    sum(self.model.b_flow[a, f, v, t, s] for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) <= 0.5*(self.data.Q_EDGE_BASE[e] +
+                   + self.data.Q_EDGE_INV[e] * sum(self.model.epsilon_edge[e, tau, s] 
                                                     for tau in self.data.T_TIME_PERIODS 
-                                                    if (tau <= (t-self.data.LEAD_TIME_EDGE_RAIL[e]))    #and((e,tau) in self.data.ET_RAIL)
+                                                    if (tau <= (t-self.data.L_EDGE_INV_LEAD_TIME[e]))    
                                                     and (tau in self.data.T_TIME_FIRST_STAGE)
                                                     )
                                                     )   
                    + FEAS_RELAX )
-        self.model.CapacitatedFlow = Constraint(self.data.EAT_RAIL_CONSTR_S, rule = CapacitatedFlowRule)
+        self.model.CapacitatedFlow = Constraint(self.data.EAT_INV_CONSTR_S, rule = CapacitatedFlowRule)
         
         #Num expansions
         def ExpansionLimitRule(model,i,j,m,r,s):
             e = (i,j,m,r)
-            return ( sum(self.model.epsilon_edge[(e,t,s)] for t in self.data.T_TIME_PERIODS if e+(t,) in self.data.ET_RAIL)<= 1)
+            return ( sum(self.model.epsilon_edge[(e,t,s)] for t in self.data.T_TIME_PERIODS if e+(t,) in self.data.ET_INV)<= 1)
         if len(self.data.T_TIME_PERIODS)>1:
-            self.model.ExpansionCap = Constraint(self.data.E_EDGES_RAIL_S, rule = ExpansionLimitRule)
+            self.model.ExpansionCap = Constraint(self.data.E_EDGES_INV_S, rule = ExpansionLimitRule)
         
         #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
         def TerminalCapRule(model, i, c, m,t,s):
@@ -506,7 +506,7 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_RAIL,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
+            self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_INV,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
 
             def Nonanticipativity_upg(model,i,j,m,r,f,t,s,ss):
                 e = (i,j,m,r)
@@ -653,7 +653,7 @@ class TranspModel:
 
         #-----------------------------------------------#
         if NO_INVESTMENTS:
-            for (i,j,m,r,tau,s) in self.data.ET_RAIL_S:
+            for (i,j,m,r,tau,s) in self.data.ET_IN_S:
                 self.model.epsilon_edge[i,j,m,r, tau,s].fix(0)
             for (e,f,t,s) in self.data.UT_UPG_S:
                 self.model.upsilon_upg[(e,f,t,s )].fix(0)
@@ -716,7 +716,7 @@ class TranspModel:
                 else:
                     pass #this does not happen
 
-        for (i,j,m,r,t,s) in self.data.ET_RAIL_S:
+        for (i,j,m,r,t,s) in self.data.ET_INV_S:
             if t in self.data.T_TIME_FIRST_STAGE:
                 e = (i,j,m,r)
                 weight = model_ev.epsilon_edge[(e,t,base_scenario)].value
@@ -778,7 +778,7 @@ class TranspModel:
                     self.model.b_flow[(a,f,v,t,s)].setlb(-ABSOLUTE_DEVIATION)
                     self.model.b_flow[(a,f,v,t,s)].setub(upperbound)   #maximum value is below 1000
 
-        for (i,j,m,r,t,s) in self.data.ET_RAIL_S:
+        for (i,j,m,r,t,s) in self.data.ET_INV_S:
             e = (i,j,m,r)
             self.model.epsilon_edge[(e,t,s)].fixed = False
         
