@@ -656,7 +656,7 @@ class TransportSets():
             if row["Capacity"] != -1:
                 self.E_EDGES_INV.append(edge)
             # add to E_EDGES_UPG if possible to upgrade              
-            if row["Upgradable"] == 1:
+            if row["Upgradeable"] == 1:
                 self.E_EDGES_UPG.append(edge) 
         
         self.U_UPGRADE = []     # list of type of upgrades
@@ -743,7 +743,7 @@ class TransportSets():
         # --------------------------
         # --------------------------
         
-        charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='carging_data')
+        charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='charging_data')
         
         self.CHARGING_TECH = []
         for index,row in charging_data.iterrows():

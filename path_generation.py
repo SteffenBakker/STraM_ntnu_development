@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 
+from dijkstar import Graph, find_path
+
 if False: # READ AND PROCESS DATA
 
 
-    from dijkstar import Graph, find_path
+    
 
 
     df_dist = pd.read_excel("Data/Spatial/spatial_data.xlsx", sheet_name="distances_STRAM", usecols=list(range(5)))
