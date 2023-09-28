@@ -11,10 +11,13 @@ Adapted by Ruben and Steffen
 import os
 import sys
 
-#os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
-#os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\STRAM_ntnu_development') # STEFFEN
-os.chdir('C:\\Github\\STRAM_ntnu_development') # RUBEN
-sys.path.insert(0, '') #make sure the modules are found in the new working directory
+
+standalone_testing = False
+if standalone_testing:
+    #os.chdir('M:/Documents/GitHub/AIM_Norwegian_Freight_Model') #uncomment this for stand-alone testing of this fille
+    os.chdir('C:\\Users\\steffejb\\OneDrive - NTNU\\Work\\GitHub\\STRAM_ntnu_development') # STEFFEN
+    #os.chdir('C:\\Github\\STRAM_ntnu_development') # RUBEN
+    sys.path.insert(0, '') #make sure the modules are found in the new working directory
 
 from Data.settings import *
 import pandas as pd
@@ -30,6 +33,7 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 import numpy as np
 from Data.BassDiffusion import BassDiffusion 
 from Data.sigmoid import sigmoid
+from path_generation import path_generation
 
 # from FreightTransportModel.Utils import plot_all_graphs  #FreightTransportModel.
 
@@ -285,14 +289,16 @@ class TransportSets():
         self.RAIL_NODES = []
         self.RAIL_NODES_NORWAY = []
         self.N_ABROAD = []
-        self.zone_nr_to_name = {}
+        self.centroid_to_nr = {}
+        self.centroid_to_zone = {}
         self.zone_nr_to_centroid = {}
 
         for index, row in zone_data.iterrows():
-            zone = row["zone_nr"]
+            zone = row["centroid_name"]
             self.N_NODES.append(zone) 
-            self.zone_nr_to_name[zone] = row["zone_name"]
-            self.zone_nr_to_centroid[zone] = row["centroid_name"]
+            self.centroid_to_nr[zone] = row["zone_nr"]
+            self.zone_nr_to_centroid[row["zone_nr"]] = row["centroid_name"]
+            self.centroid_to_zone[zone] = row["zone_name"]
             if row["abroad"] == 1:
                 self.N_ABROAD.append(zone)
             if row["sea"] == 1:
@@ -317,12 +323,12 @@ class TransportSets():
 
         self.M_MODES_CAP = ["Rail", "Sea"]
         
-        self.N_ZONE_NAME = dict(zip(zone_data.zone_nr, zone_data.zone_name))
-        self.N_CITY_NAME = dict(zip(zone_data.zone_nr, zone_data.centroid_name))
-        self.N_LATITUDE = dict(zip(zone_data.zone_nr, zone_data.latitude))
-        self.N_LONGITUDE = dict(zip(zone_data.zone_nr, zone_data.longitude))
-        self.N_LATITUDE_PLOT = dict(zip(zone_data.zone_nr, zone_data.lat_plot))
-        self.N_LONGITUDE_PLOT = dict(zip(zone_data.zone_nr, zone_data.long_plot))
+        self.N_ZONE_NR = dict(zip(zone_data.centroid_name, zone_data.zone_nr))
+        self.N_ZONE_NAME = dict(zip(zone_data.centroid_name, zone_data.zone_name))
+        self.N_LATITUDE = dict(zip(zone_data.centroid_name, zone_data.latitude))
+        self.N_LONGITUDE = dict(zip(zone_data.centroid_name, zone_data.longitude))
+        self.N_LATITUDE_PLOT = dict(zip(zone_data.centroid_name, zone_data.lat_plot))
+        self.N_LONGITUDE_PLOT = dict(zip(zone_data.centroid_name, zone_data.long_plot))
 
         #EDGES and DISTANCES
         
@@ -333,7 +339,9 @@ class TransportSets():
         distances = pd.read_excel(r'Data/SPATIAL/spatial_data.xlsx',sheet_name="distances_STRAM")
         distances_dict = {}
         for index, row in distances.iterrows():
-            distances_dict[(row["From"],row["To"],row["Mode"],int(row["Route"]))] = row["DistanceKM"]   
+            i = self.zone_nr_to_centroid[row["From"]]
+            j = self.zone_nr_to_centroid[row["To"]]
+            distances_dict[(i,j,row["Mode"],int(row["Route"]))] = row["DistanceKM"]   
 
         self.AVG_DISTANCE = {}
         for (i,j,m,r),value in distances_dict.items():
@@ -371,23 +379,23 @@ class TransportSets():
         # ------- Other--------
         # -----------------------
 
-        
+        if False:
 
-        # TODO: DEPRECATE SOME STUFF BELOW HERE
-        
-        commodities = pd.read_csv(r'Data/commodities.csv', sep=';')
-        self.P_PRODUCT_NR_TO_NAME = dict(zip(commodities.Comm_aggr_nr, commodities.Comm_aggr_name))
-        self.P_PRODUCTS = list(self.P_PRODUCT_NR_TO_NAME.keys())  
+            # TODO: DEPRECATE SOME STUFF BELOW HERE
+            
+            commodities = pd.read_csv(r'Data/commodities.csv', sep=';')
+            self.P_PRODUCT_NR_TO_NAME = dict(zip(commodities.Comm_aggr_nr, commodities.Comm_aggr_name))
+            self.P_PRODUCTS = list(self.P_PRODUCT_NR_TO_NAME.keys())  
 
         if NO_DRY_BULK:
-            self.P_PRODUCTS.remove(6) #Dry bulk   HARDCODING
+            self.P_PRODUCTS.remove("Dry bulk") #Dry bulk   HARDCODING
         if NO_WET_BULK:
-            self.P_PRODUCTS.remove(7) #Wet bulk
+            self.P_PRODUCTS.remove("Liquid bulk") #Wet bulk
 
         self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]}
         
-        self.PT = {"Combination": list(set(self.P_PRODUCTS)-set([4])),   #HARDCODING
-                   "Timber": [4],   #['Timber']
+        self.PT = {"Combination": list(set(self.P_PRODUCTS)-set(["Break bulk"])),   #HARDCODING
+                   "Timber": ["Break bulk"],   #['Timber']
                    "All": self.P_PRODUCTS}
 
         ####################################
@@ -475,77 +483,9 @@ class TransportSets():
             self.D_DEMAND_AGGR[t] += value
 
 
-        # ------------------------
-        # ----LOAD ALL PATHS------
-        # ------------------------
-
-
-        self.K_PATHS = []
-        filename = r'generated_paths_'+str(NUM_MODE_PATHS)+'_modes.csv'
-        all_generated_paths = pd.read_csv(r'Data/SPATIAL/'+filename, converters={'paths': eval})
-        self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
-        for index, row in all_generated_paths.iterrows():
-            elem = tuple(row['paths']) 
-            self.K_PATHS.append(index)
-            self.K_PATH_DICT[index]=elem
-        
-        self.OD_PATHS = {od: [] for od in self.OD_PAIRS_ALL}
-        for od in self.OD_PAIRS_ALL:
-            for k in self.K_PATHS:
-                path = self.K_PATH_DICT[k]
-                if od[0] == path[0][0] and od[-1] == path[-1][1]:
-                    self.OD_PATHS[od].append(k)
-
-        
-
-        #multi-mode paths and unimodal paths
-        self.MULTI_MODE_PATHS = []
-        for kk in self.K_PATHS:
-            k = self.K_PATH_DICT[kk]
-            if len(k) > 1:
-                for i in range(len(k)-1):
-                    if k[i][2] != k[i+1][2]:
-                        self.MULTI_MODE_PATHS.append(kk)
-        self.UNI_MODAL_PATHS = list(set(self.K_PATHS)-set(self.MULTI_MODE_PATHS))
-
-        #Paths with transfer in node i to/from mode m
-        self.TRANSFER_PATHS = {(i,m) : [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
-        
-        for m in self.M_MODES_CAP:
-            for i in self.N_NODES_CAP_NORWAY[m]:
-                for kk in self.MULTI_MODE_PATHS:
-                    k = self.K_PATH_DICT[kk]
-                    for j in range(len(k)-1):
-                        if (k[j][1] == i) and (k[j][2] == m or k[j+1][2] == m) and (k[j][2] != k[j+1][2]):
-                            self.TRANSFER_PATHS[(i,m)].append(kk)
-
-        #Origin and destination paths
-        self.ORIGIN_PATHS = {(i,m): [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
-        self.DESTINATION_PATHS = {(i,m): [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
-        
-        for m in self.M_MODES_CAP:
-            for i in self.N_NODES_CAP_NORWAY[m]:
-                for kk in self.K_PATHS:
-                    k = self.K_PATH_DICT[kk]
-                    if (k[0][0] == i) and (k[0][2] == m):
-                        self.ORIGIN_PATHS[(i,m)].append(kk)
-                    if (k[-1][1] == i) and (k[-1][2] == m):
-                        self.DESTINATION_PATHS[(i,m)].append(kk)
-        
-        
-        self.KA_PATHS = {a:[] for a in self.A_ARCS}
-        for kk in self.K_PATHS:
-            k = self.K_PATH_DICT[kk]
-            for (i,j,m,r) in k:
-                a = (i,j,m,r)
-                self.KA_PATHS[a].append(kk)
-
-        self.KA_PATHS_UNIMODAL = {a:[] for a in self.A_ARCS}
-        for kk in self.UNI_MODAL_PATHS:
-            k = self.K_PATH_DICT[kk]
-            for (i,j,m,r) in k:
-                a = (i,j,m,r)
-                self.KA_PATHS_UNIMODAL[a].append(kk)
+        #####################
+        ## VEHICLE TYPES ####
+        #####################
         
         #Vehicle types
         prod_to_vehicle_type = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
@@ -573,7 +513,7 @@ class TransportSets():
 
 
         #------------------------
-        "Parameters"
+        "Parameters part 1"
         #-----------------------      
 
         cost_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output costs')        
@@ -586,7 +526,7 @@ class TransportSets():
         
         emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
 
-        # TODO: WHAT TO DO WITH EMISSION CAP? ONLY USED FOR PLOTTING, RIGHT?        
+        # TODO: WHAT TO DO WITH EMISSION CAP? ONLY USED FOR PLOTTING, RIGHT?      -> SB: correct    
         self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
@@ -601,24 +541,7 @@ class TransportSets():
             self.TRANSFER_COST_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = round(row["Transfer cost"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
             #No immediate need for scaling, as already in NOK/Tonnes
 
-          
-        self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
-        
-        for kk in self.MULTI_MODE_PATHS:
-            k = self.K_PATH_DICT[kk]
-            for p in self.P_PRODUCTS:
-                cost = 0
-                num_transfers = len(k)-1
-                for n in range(num_transfers):
-                    mode_from = k[n][2]
-                    mode_to = k[n+1][2]
-                    if mode_from != mode_to: 
-                        cost += self.TRANSFER_COST_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]
-                self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
 
-
-
-         
         # read CO2 fee
         self.CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx')["Parameter Input"]
         
@@ -776,99 +699,104 @@ class TransportSets():
                 #if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and u == 'Partially electrified rail':
                 #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.scaling_factor
 
-        for m in self.M_MODES_CAP:
-            for i in self.N_NODES_CAP_NORWAY[m]:
-                for c in self.TERMINAL_TYPE[m]:
-                    if m == "Rail" and c=="Combination":
-                        cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet combi 2014 (tonn)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
-                        cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
-                        self.Q_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
-                        self.C_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Kostnad (combi)']/self.scaling_factor_monetary,self.precision_digits)   #MNOK
-                        self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeCombi']
-                    if m == "Rail" and c=="Timber":
-                        cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
-                        cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
-                        self.Q_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Økning av kapasitet (tømmer)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
-                        self.C_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Kostnad (tømmer)']/self.scaling_factor_monetary,self.precision_digits)  #MNOK
-                        self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeTimber']
-                    if m == "Sea":
-                        cap_data = inv_sea_data.loc[(inv_sea_data['Fylke'] == i)]
-                        self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet']/self.scaling_factor_weight,self.precision_digits)  #MTONNES
-                        self.Q_NODE[i,c,m] = round(cap_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor_weight,self.precision_digits)  #MTONNES
-                        self.C_NODE[i,c,m] = round(cap_data.iloc[0]['Kostnad']/self.scaling_factor_monetary,self.precision_digits)  #MNOK
-                        self.LEAD_TIME_NODE[i,c,m] = cap_data.iloc[0]['Ledetid']
+        if False:
+            for m in self.M_MODES_CAP:
+                for i in self.N_NODES_CAP_NORWAY[m]:
+                    for c in self.TERMINAL_TYPE[m]:
+                        if m == "Rail" and c=="Combination":
+                            cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
+                            self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet combi 2014 (tonn)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
+                            cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
+                            self.Q_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Økning i kapasitet (combi)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
+                            self.C_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Kostnad (combi)']/self.scaling_factor_monetary,self.precision_digits)   #MNOK
+                            self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeCombi']
+                        if m == "Rail" and c=="Timber":
+                            cap_data = rail_cap_data.loc[(rail_cap_data['Fylke'] == i)]
+                            self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet tømmer (tonn)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
+                            cap_exp_data = inv_rail_data.loc[(inv_rail_data['Fylke'] == i)]
+                            self.Q_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Økning av kapasitet (tømmer)']/self.scaling_factor_weight,self.precision_digits)   #MTONNES
+                            self.C_NODE[i,c,m] = round(cap_exp_data.iloc[0]['Kostnad (tømmer)']/self.scaling_factor_monetary,self.precision_digits)  #MNOK
+                            self.LEAD_TIME_NODE[i,c,m] = cap_exp_data.iloc[0]['LeadtimeTimber']
+                        if m == "Sea":
+                            cap_data = inv_sea_data.loc[(inv_sea_data['Fylke'] == i)]
+                            self.Q_NODE_BASE[i,c,m] = round(cap_data.iloc[0]['Kapasitet']/self.scaling_factor_weight,self.precision_digits)  #MTONNES
+                            self.Q_NODE[i,c,m] = round(cap_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor_weight,self.precision_digits)  #MTONNES
+                            self.C_NODE[i,c,m] = round(cap_data.iloc[0]['Kostnad']/self.scaling_factor_monetary,self.precision_digits)  #MNOK
+                            self.LEAD_TIME_NODE[i,c,m] = cap_data.iloc[0]['Ledetid']
 
-        #this is bad programming -> To do: update
-        for (i, j, m, r) in self.E_EDGES_RAIL:
-            a1 = (i, j, m, r)
-            a2 = (j, i, m, r)
-            capacity_data1 = rail_cap_data.loc[(rail_cap_data['Fra'] == i) & (rail_cap_data['Til'] == j) & (rail_cap_data['Rute'] == r)]
-            capacity_data2 = rail_cap_data.loc[(rail_cap_data['Fra'] == j) & (rail_cap_data['Til'] == i) & (rail_cap_data['Rute'] == r)]
-            capacity_exp_data1 = inv_rail_data.loc[(inv_rail_data['Fra'] == i) & (inv_rail_data['Til'] == j) & (inv_rail_data['Rute'] == r)]
-            capacity_exp_data2 = inv_rail_data.loc[(inv_rail_data['Fra'] == j) & (inv_rail_data['Til'] == i) & (inv_rail_data['Rute'] == r)]
-            if len(capacity_data1) > 0:
-                capacity_data = capacity_data1
-            elif len(capacity_data2) > 0:
-                capacity_data = capacity_data2
-            if len(capacity_exp_data1) > 0:
-                capacity_exp_data = capacity_exp_data1
-            elif len(capacity_exp_data2) > 0:
-                capacity_exp_data = capacity_exp_data2
+            #this is bad programming -> To do: update
+            for (i, j, m, r) in self.E_EDGES_RAIL:
+                a1 = (i, j, m, r)
+                a2 = (j, i, m, r)
+                capacity_data1 = rail_cap_data.loc[(rail_cap_data['Fra'] == i) & (rail_cap_data['Til'] == j) & (rail_cap_data['Rute'] == r)]
+                capacity_data2 = rail_cap_data.loc[(rail_cap_data['Fra'] == j) & (rail_cap_data['Til'] == i) & (rail_cap_data['Rute'] == r)]
+                capacity_exp_data1 = inv_rail_data.loc[(inv_rail_data['Fra'] == i) & (inv_rail_data['Til'] == j) & (inv_rail_data['Rute'] == r)]
+                capacity_exp_data2 = inv_rail_data.loc[(inv_rail_data['Fra'] == j) & (inv_rail_data['Til'] == i) & (inv_rail_data['Rute'] == r)]
+                if len(capacity_data1) > 0:
+                    capacity_data = capacity_data1
+                elif len(capacity_data2) > 0:
+                    capacity_data = capacity_data2
+                if len(capacity_exp_data1) > 0:
+                    capacity_exp_data = capacity_exp_data1
+                elif len(capacity_exp_data2) > 0:
+                    capacity_exp_data = capacity_exp_data2
+                
+                self.Q_EDGE_BASE_RAIL[a1] = round(capacity_data.iloc[0]['Maks kapasitet']/self.scaling_factor_weight,self.precision_digits)
+                self.Q_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor_weight,self.precision_digits)
+                self.C_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kostnad']/self.scaling_factor_monetary,self.precision_digits) #
+                self.LEAD_TIME_EDGE_RAIL[a1] = capacity_exp_data.iloc[0]['Ledetid'] #
+
+            for l in self.E_EDGES_UPG:
+                self.BIG_M_UPG[l] =  1.5*(self.Q_EDGE_BASE_RAIL[l] + self.Q_EDGE_RAIL[l])#*self.INV_LINK[l] 
+
+            "Discount rate"
+            self.risk_free_interest_rate = RISK_FREE_RATE # 2%
+            self.D_DISCOUNT_RATE = round(1 / (1 + self.risk_free_interest_rate),self.precision_digits)
             
-            self.Q_EDGE_BASE_RAIL[a1] = round(capacity_data.iloc[0]['Maks kapasitet']/self.scaling_factor_weight,self.precision_digits)
-            self.Q_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kapasitetsøkning']/self.scaling_factor_weight,self.precision_digits)
-            self.C_EDGE_RAIL[a1] = round(capacity_exp_data.iloc[0]['Kostnad']/self.scaling_factor_monetary,self.precision_digits) #
-            self.LEAD_TIME_EDGE_RAIL[a1] = capacity_exp_data.iloc[0]['Ledetid'] #
 
-        for l in self.E_EDGES_UPG:
-            self.BIG_M_UPG[l] =  1.5*(self.Q_EDGE_BASE_RAIL[l] + self.Q_EDGE_RAIL[l])#*self.INV_LINK[l] 
+            # --------------------------
+            # --------------------------
+            # CHARGING EDGES CONSTRAINT
+            # --------------------------
+            # --------------------------
+            
+            charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest road')
+            
+            self.CHARGING_TECH = []
+            for index,row in charging_data.iterrows():
+                #print((row["Mode"],row["Fuel"]))
+                self.CHARGING_TECH.append((row["Mode"],row["Fuel"]))
+            # all arcs (one per arc pair ij/ji) with mode Road and fuels Battery or Hydrogen
+            self.EF_CHARGING = []
+            for (i,j,m,r) in self.E_EDGES:
+                e =(i,j,m,r)
+                if i not in self.N_ABROAD or j not in self.N_ABROAD: #and or 'or'
+                    for (m, f) in self.CHARGING_TECH:
+                        if e[2] == m:
+                            self.EF_CHARGING.append((e,f))
+            
+            
 
-        "Discount rate"
-        self.risk_free_interest_rate = RISK_FREE_RATE # 2%
-        self.D_DISCOUNT_RATE = round(1 / (1 + self.risk_free_interest_rate),self.precision_digits)
-        
+            # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
+            self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
+            self.C_CHARGE = {(e,f): 100000 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
+            self.LEAD_TIME_CHARGING = {(e,f): 50 for (e,f) in self.EF_CHARGING}
+            max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
+            for ((i, j, m, r),f) in self.EF_CHARGING:
+                e = (i, j, m, r) 
+                data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
+                self.C_CHARGE[(e,f)] = round((self.AVG_DISTANCE[e]
+                                                    / data_index.iloc[0]["Max_station_dist"]
+                                                    * data_index.iloc[0]["Station_cost"]
+                                                    / (data_index.iloc[0]["Trucks_filled_daily"] * max_truck_cap * 365)
+                                                    /self.scaling_factor_monetary
+                                                    *self.scaling_factor_weight),
+                                            self.precision_digits)  # 0.7 or not??? MKR/TONNES, 
+                self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid"]
 
-        # --------------------------
-        # --------------------------
-        # CHARGING EDGES CONSTRAINT
-        # --------------------------
-        # --------------------------
-        
-        charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest road')
-        
-        self.CHARGING_TECH = []
-        for index,row in charging_data.iterrows():
-            #print((row["Mode"],row["Fuel"]))
-            self.CHARGING_TECH.append((row["Mode"],row["Fuel"]))
-        # all arcs (one per arc pair ij/ji) with mode Road and fuels Battery or Hydrogen
-        self.EF_CHARGING = []
-        for (i,j,m,r) in self.E_EDGES:
-            e =(i,j,m,r)
-            if i not in self.N_ABROAD or j not in self.N_ABROAD: #and or 'or'
-                for (m, f) in self.CHARGING_TECH:
-                    if e[2] == m:
-                        self.EF_CHARGING.append((e,f))
-        
-        
-
-        # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
-        self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
-        self.C_CHARGE = {(e,f): 100000 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
-        self.LEAD_TIME_CHARGING = {(e,f): 50 for (e,f) in self.EF_CHARGING}
-        max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
-        for ((i, j, m, r),f) in self.EF_CHARGING:
-            e = (i, j, m, r) 
-            data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
-            self.C_CHARGE[(e,f)] = round((self.AVG_DISTANCE[e]
-                                                   / data_index.iloc[0]["Max_station_dist"]
-                                                   * data_index.iloc[0]["Station_cost"]
-                                                   / (data_index.iloc[0]["Trucks_filled_daily"] * max_truck_cap * 365)
-                                                   /self.scaling_factor_monetary
-                                                   *self.scaling_factor_weight),
-                                        self.precision_digits)  # 0.7 or not??? MKR/TONNES, 
-            self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid"]
+        ##################################
+        #    Technological readiness
+        ##################################
 
         #Technological readiness/maturity (with Bass diffusion model)
         tech_readiness_data = pd.read_excel(r'Data/technological_maturity_readiness.xlsx',sheet_name="technological_readiness_bass") #new sheet with different readiness paths
@@ -909,7 +837,7 @@ class TransportSets():
         self.Q_SHARE_INIT_MAX = {}
         self.MFT_INIT_TRANSP_SHARE = []
         for index, row in init_transport_share.iterrows():
-            (m,f,t) = (row['Mode'], row['Fuel'],row['Year'])
+            (m,f,t) = (row['Mode'], row['Fuel'],self.T_TIME_PERIODS[0])
             self.Q_SHARE_INIT_MAX[(m,f,t)] = round(row['Max_transp_share'],self.precision_digits)
             self.MFT_INIT_TRANSP_SHARE.append((m,f,t))
 
@@ -920,59 +848,168 @@ class TransportSets():
             self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
 
 
-          
-        #update R_TECH_READINESS_MATURITY based on scenario information
-        for s in self.S_SCENARIOS:
-            active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
-            for m in self.M_MODES:
-                for f in self.FM_FUEL[m]:
-                    if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
-                        cur_fg = self.scenario_information.mf_to_fg[(m,f)]
-                        cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
-                        # extract info from current base Bass model
-                        cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
-                        cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
-                        cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
-                                    
-                        # find current scenario's level of variation for q and p and delay for t_0 from base case
-                        cur_scen_p_q_variation = 0.0 
-                        cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "base":
-                            cur_scen_p_q_variation = 0.0
+        if False:     #ERROR HERE
+            #update R_TECH_READINESS_MATURITY based on scenario information
+            for s in self.S_SCENARIOS:
+                active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
+                for m in self.M_MODES:
+                    for f in self.FM_FUEL[m]:
+                        if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
+                            cur_fg = self.scenario_information.mf_to_fg[(m,f)]
+                            cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
+                            # extract info from current base Bass model
+                            cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                            cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
+                            cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
+                                        
+                            # find current scenario's level of variation for q and p and delay for t_0 from base case
+                            cur_scen_p_q_variation = 0.0 
                             cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "fast":
-                            cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
-                            cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
-                        elif cur_path_name == "slow":
-                            cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
-                            cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
+                            if cur_path_name == "base":
+                                cur_scen_p_q_variation = 0.0
+                                cur_scen_t_0_delay = 0.0
+                            if cur_path_name == "fast":
+                                cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
+                                cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
+                            elif cur_path_name == "slow":
+                                cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
+                                cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
 
-                        # construct scenario bass model
-                        cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
-                                                            cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
-                                                            cur_base_bass_model.m, 
-                                                            cur_base_bass_model.t_0 + cur_scen_t_0_delay)
-                        
-                        # set as active bass model
-                        self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
+                            # construct scenario bass model
+                            cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
+                                                                cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
+                                                                cur_base_bass_model.m, 
+                                                                cur_base_bass_model.t_0 + cur_scen_t_0_delay)
+                            
+                            # set as active bass model
+                            self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
 
-                        # find start of second stage
-                        for t in self.T_TIME_PERIODS:
-                            if t not in self.T_TIME_FIRST_STAGE_BASE:
-                                start_of_second_stage = t
-                                break
+                            # find start of second stage
+                            for t in self.T_TIME_PERIODS:
+                                if t not in self.T_TIME_FIRST_STAGE_BASE:
+                                    start_of_second_stage = t
+                                    break
 
-                        # fill R_TECH_READINESS_MATURITY based on current scenario bass model
-                        for t in self.T_TIME_PERIODS:
-                            if t in self.T_TIME_FIRST_STAGE_BASE:
-                                # first stage: follow base bass model
-                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
-                            else:
-                                # second stage: use scenario bass model, with starting point A(2030) from base bass model
-                                t_init = start_of_second_stage #initialize diffusion at start of second stage
-                                A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
-                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
+                            # fill R_TECH_READINESS_MATURITY based on current scenario bass model
+                            for t in self.T_TIME_PERIODS:
+                                if t in self.T_TIME_FIRST_STAGE_BASE:
+                                    # first stage: follow base bass model
+                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
+                                else:
+                                    # second stage: use scenario bass model, with starting point A(2030) from base bass model
+                                    t_init = start_of_second_stage #initialize diffusion at start of second stage
+                                    A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
+                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
 
+        #----------------------------------------
+        #      PATH GENERATION
+        #-----------------------------------------
+
+        self.K_PATHS = []
+
+        filename = r'generated_paths_'+str(NUM_MODE_PATHS)+'_modes.csv'
+        path = r'Data/SPATIAL/'+filename
+        if not os.path.exists(path):         
+            path_generation(
+                    products=self.P_PRODUCTS, 
+                    modes=self.M_MODES, 
+                    nodes=self.N_NODES, 
+                    edges=self.E_EDGES, 
+                    years=self.T_TIME_PERIODS, 
+                    distances=self.AVG_DISTANCE,
+                    transp_costs = self.C_TRANSP_COST_NORMALIZED,     
+                    emissions=self.E_EMISSIONS_NORMALIZED,              
+                    emission_fee=self.CO2_fee,           
+                    prod_transfer_costs=self.TRANSFER_COST_PER_MODE_PAIR,    
+                    mode_to_fuels=self.FM_FUEL,           
+                    mode_comb_level=NUM_MODE_PATHS         
+                    )
+
+
+        all_generated_paths = pd.read_csv(r'Data/SPATIAL/'+filename, converters={'paths': eval})
+            
+        
+        self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
+        for index, row in all_generated_paths.iterrows():
+            elem = tuple(row['paths']) 
+            self.K_PATHS.append(index)
+            self.K_PATH_DICT[index]=elem
+        
+        self.OD_PATHS = {od: [] for od in self.OD_PAIRS_ALL}
+        for od in self.OD_PAIRS_ALL:
+            for k in self.K_PATHS:
+                path = self.K_PATH_DICT[k]
+                if od[0] == path[0][0] and od[-1] == path[-1][1]:
+                    self.OD_PATHS[od].append(k)
+
+        
+
+        #multi-mode paths and unimodal paths
+        self.MULTI_MODE_PATHS = []
+        for kk in self.K_PATHS:
+            k = self.K_PATH_DICT[kk]
+            if len(k) > 1:
+                for i in range(len(k)-1):
+                    if k[i][2] != k[i+1][2]:
+                        self.MULTI_MODE_PATHS.append(kk)
+        self.UNI_MODAL_PATHS = list(set(self.K_PATHS)-set(self.MULTI_MODE_PATHS))
+
+        #Paths with transfer in node i to/from mode m
+        self.TRANSFER_PATHS = {(i,m) : [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
+        
+        for m in self.M_MODES_CAP:
+            for i in self.N_NODES_CAP_NORWAY[m]:
+                for kk in self.MULTI_MODE_PATHS:
+                    k = self.K_PATH_DICT[kk]
+                    for j in range(len(k)-1):
+                        if (k[j][1] == i) and (k[j][2] == m or k[j+1][2] == m) and (k[j][2] != k[j+1][2]):
+                            self.TRANSFER_PATHS[(i,m)].append(kk)
+
+        #Origin and destination paths
+        self.ORIGIN_PATHS = {(i,m): [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
+        self.DESTINATION_PATHS = {(i,m): [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
+        
+        for m in self.M_MODES_CAP:
+            for i in self.N_NODES_CAP_NORWAY[m]:
+                for kk in self.K_PATHS:
+                    k = self.K_PATH_DICT[kk]
+                    if (k[0][0] == i) and (k[0][2] == m):
+                        self.ORIGIN_PATHS[(i,m)].append(kk)
+                    if (k[-1][1] == i) and (k[-1][2] == m):
+                        self.DESTINATION_PATHS[(i,m)].append(kk)
+        
+        
+        self.KA_PATHS = {a:[] for a in self.A_ARCS}
+        for kk in self.K_PATHS:
+            k = self.K_PATH_DICT[kk]
+            for (i,j,m,r) in k:
+                a = (i,j,m,r)
+                self.KA_PATHS[a].append(kk)
+
+        self.KA_PATHS_UNIMODAL = {a:[] for a in self.A_ARCS}
+        for kk in self.UNI_MODAL_PATHS:
+            k = self.K_PATH_DICT[kk]
+            for (i,j,m,r) in k:
+                a = (i,j,m,r)
+                self.KA_PATHS_UNIMODAL[a].append(kk)
+        
+
+        #----------------------------------------
+        #      Parameters part 2
+        #-----------------------------------------
+
+        self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
+        for kk in self.MULTI_MODE_PATHS:
+            k = self.K_PATH_DICT[kk]
+            for p in self.P_PRODUCTS:
+                cost = 0
+                num_transfers = len(k)-1
+                for n in range(num_transfers):
+                    mode_from = k[n][2]
+                    mode_to = k[n+1][2]
+                    if mode_from != mode_to: 
+                        cost += self.TRANSFER_COST_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]
+                self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
 
 
     def combined_sets(self):
