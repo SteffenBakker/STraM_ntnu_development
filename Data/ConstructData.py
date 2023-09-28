@@ -645,7 +645,7 @@ class TransportSets():
 
         # Edge upgrades
         self.E_EDGES_INV = []           # list of edges that can be invested in, i.e., that are capacitated
-        self.E_EDGES_UPG = []           # list of upgradable edges
+        self.E_EDGES_UPG = []           # list of upgradeable edges
         for index, row in edge_cap_data.iterrows():
             # define edge
             (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])           # TODO: how do we refer to nodes?
@@ -700,7 +700,7 @@ class TransportSets():
                 self.L_EDGE_INV_LEAD_TIME[edge] = row["Lead time"]
 
             # upgrades
-            if row["Upgradable"] == 1:
+            if row["Upgradeable"] == 1:
                 self.C_EDGE_UPG[(edge, 'Electric train (CL)')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
                 self.L_EDGE_UPG_LEAD_TIME[(edge, 'Electric train (CL)')] = row["Upgrade lead time"]  # HARDCODED
         
@@ -743,7 +743,7 @@ class TransportSets():
         # --------------------------
         # --------------------------
         
-        charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest road')
+        charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='carging_data')
         
         self.CHARGING_TECH = []
         for index,row in charging_data.iterrows():
