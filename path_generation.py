@@ -104,7 +104,7 @@ def path_generation(products,
         for f in mode_to_fuels[m]:
             for p in products:
                 for y in years:
-                    costs = transp_costs[(m,f,p,y)] + emissions[(m,f,p,y)]*emission_fee[y]
+                    costs[(m,f,p,y)] = transp_costs[(m,f,p,y)] + emissions[(m,f,p,y)]*emission_fee[y]
 
     #distance_mapping
     max_dist = 999999.0
@@ -315,7 +315,7 @@ def path_generation(products,
                         for m_index in range(len(modes)):
                             f = cur_mode_fuels[m_index]
                             m= modes[m_index]
-                            mode_cost[m] = costs[(m,p,f,y)]
+                            mode_cost[m] = costs[(m,f,p,y)]
                         
                         #run the path generation for the current costs 
                         (sh_path, sh_dist, generated_paths, generated_path_lengths) = gen_paths(mode_cost,
@@ -331,16 +331,18 @@ def path_generation(products,
     file_name = "Data/SPATIAL/generated_paths_"+str(mode_comb_level)+"_modes.csv"
     with open(file_name, "w") as f:
         f.write(",paths\n")
-        for i in range(len(all_gen_paths)):
+        num_paths = len(all_gen_paths)
+        for i in range(num_paths):
             f.write(str(i) + ",\"[")
-            for l in range(len(all_gen_paths[i])):
+            num_legs = len(all_gen_paths[i])
+            for l in range(num_legs):
                 leg = all_gen_paths[i][l]
                 i = leg[0]
                 j = leg[1]
                 m = leg[2]
                 r = leg[3]
                 f.write("({}, {}, '{}', {})".format(i,j,m,r))
-                if l < len(all_gen_paths[i]) - 1:
+                if l < num_legs - 1:
                     f.write(", ")
             f.write("]\"\n")
     
