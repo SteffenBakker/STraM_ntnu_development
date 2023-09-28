@@ -125,7 +125,6 @@ if True:
         output.emission_stats['AvgEmission_perc'] = output.emission_stats['AvgEmission']/output.total_yearly_emissions[(base_data.T_TIME_PERIODS[0],base_data.S_SCENARIOS[0])]*100  #NEW: 2022
         #output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[2020,'AvgEmission']*100 #OLD: 2020
         output.emission_stats['Std_perc'] = output.emission_stats['Std']/output.emission_stats.at[base_data.T_TIME_PERIODS[0],'AvgEmission']*100  #NEW: 2022
-        #goals = list(base_data.EMISSION_CAP_RELATIVE.values())
         #output.emission_stats['Goal'] = goals
         #output.emission_stats['StdGoals'] = [0 for g in goals]       
 

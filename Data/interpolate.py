@@ -80,8 +80,6 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
     
     # OTHER PARAMETERS
 
-    # TODO: EMISSION_CAP_RELATIVE (probably not needed anymore, since we got rid of emission constraint)
-
     new_data.CO2_fee = {t: 10000000 for t in new_data.T_TIME_PERIODS}   #UNIT: nok/gCO2
     for t in new_data.T_TIME_PERIODS:
         if new_data.T_LEFT[t] == -np.infty:

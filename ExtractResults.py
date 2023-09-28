@@ -97,7 +97,7 @@ class OutputData():
                                 a_series = pd.Series([variable,kk, p, t, weight, scen_name], index=h_path.columns)
                                 h_path = pd.concat([h_path,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'epsilon_edge'
-            for (i,j,m,r,t) in base_data.ET_RAIL:
+            for (i,j,m,r,t) in base_data.ET_INV:
                     e = (i,j,m,r)
                     weight = modell.epsilon_edge[(e, t,scen_name)].value
                     if weight is None:
