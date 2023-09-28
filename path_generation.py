@@ -1,89 +1,10 @@
 import pandas as pd
 import numpy as np
 from dijkstar import Graph, find_path
+import pickle
 
-if False: # READ AND PROCESS DATA
-
-    df_dist = pd.read_excel("Data/Spatial/spatial_data.xlsx", sheet_name="distances_STRAM", usecols=list(range(5)))
-    df_zones = pd.read_excel("Data/Spatial/spatial_data.xlsx", sheet_name="zones_STRAM")
-
-    df_costs = pd.read_excel("Data/transport_costs_emissions.xlsx", sheet_name="costs_emissions",usecols=list(range(7)))
-    df_co2_fee = pd.read_excel("Data/transport_costs_emissions_raw.xlsx", sheet_name="CO2_fee")
-    df_transfer_costs = pd.read_excel("Data/transport_costs_emissions_raw.xlsx", sheet_name="transfer_costs")
-
-    colnames_dist = ["orig", "dest", "dist","mode","route"]
-    colnames_costs = ["mode", "product", "vehicle", "fuel", "year", "costs", "emissions"]
-    colnames_transfer = ["product", "transfer_from","transfer_to", "transfer_cost"]
-    colnames_co2_fee = ["year", "co2_fee_base", "co2_fee_scen2", "co2_fee_scen3"]
-
-    df_dist.columns = colnames_dist
-    df_costs.columns = colnames_costs
-    df_transfer_costs.columns = colnames_transfer
-    df_co2_fee.columns = colnames_co2_fee
-
-    #define product list
-    products = df_costs['product'].unique()
-    num_products = len(products)
-
-    #define mode list 
-    modes = df_costs["mode"].unique()
-    num_modes = len(modes)
-    mode_dict = {mode: idx for idx, mode in enumerate(modes)}
-
-    #define nodes
-    nodes = []
-    nodes.extend(df_dist['orig'].unique())
-    nodes.extend(df_dist['dest'].unique())
-
-    nodes = list(set(nodes))
-    nodes = [node for node in nodes]
-    num_nodes = len(nodes)
-
-
-    #define fuel list
-    mode_to_fuels = {m:list() for m in modes}
-    for m in modes:
-        for index,row in df_costs.iterrows(): 
-            if row['mode'] == m:
-                if row['fuel'] not in mode_to_fuels[m]:
-                    mode_to_fuels[m].append(row['fuel'])
-
-    #define years
-    years = [2022, 2026, 2030, 2040, 2050]
-    num_years = len(years)
-    year_dict = {year: idx for idx, year in enumerate(years)}
-
-    #create cost matrix
-    costs = {(m,p,f,y):0 for m in modes for p in products for f in mode_to_fuels[m] for y in years}
-    for index,row in df_costs.iterrows():
-        m = row['mode']
-        p = row['product']
-        f = row['fuel']
-        y = row['year']
-        costs[(m,p,f,y)] = row['costs']  +  row['emissions']* df_co2_fee['co2_fee_base'][year_dict[y]]  
-
-    #create transfer cost matrix 
-    prod_transfer_cost = {(m,mm,p):0 for m in modes for mm in modes for p in products}
-    for index,row in df_transfer_costs.iterrows():
-        m1 = row['transfer_from']
-        m2 = row['transfer_to']
-        p = row['product']
-        prod_transfer_cost[(m1, m2, p)] = row['transfer_cost']
-
-
-    #distance_mapping
-    max_dist = 999999.0
-    distance = {(i,j,m):max_dist for i in nodes for j in nodes for m in modes}
-    for index,row in df_dist.iterrows():
-        i = row["orig"]
-        j = row["dest"]
-        m = row["mode"]
-        dist = row["dist"]
-        distance[(i,j,m)] = dist
-        distance[(j,i,m)] = dist
-
-
-def path_generation(products, 
+def path_generation(products,
+                    p_to_pc, 
                     modes, 
                     nodes, 
                     edges, 
@@ -92,7 +13,7 @@ def path_generation(products,
                     transp_costs,                  #C_TRANSP_COST_NORMALIZED[(m,f,p,y)]     #independent on scenario
                     emissions,              #E_EMISSIONS_NORMALIZED[(m,f,p,y)]
                     emission_fee,           #CO2_fee[y]    
-                    prod_transfer_costs,    #TRANSFER_COST_PER_MODE_PAIR[(m1,m2,p)]
+                    prod_transfer_costs,    #TRANSFER_COST_PER_MODE_PAIR[(m1,m2,pc)]
                     mode_to_fuels,           #FM_FUEL
                     mode_comb_level         #NUM_MODE_PATHS
                     ):
@@ -132,7 +53,7 @@ def path_generation(products,
     ####################################
 
     def gen_paths(mode_cost,                #this depends on the scenario/fuel/etc
-                  transfer_cost, 
+                  transfer_cost,            #is a dictionary (m1,m2):cost
                   mode_comb_level):
         sh_path_uni = {(i,j,m):[] for i in nodes for j in nodes for m in modes}  #unimodal shortest paths
         max_dist = 999999.0
@@ -304,7 +225,7 @@ def path_generation(products,
 
     for y in years:
         for p in products:
-            transf_costs ={(m1,m2):cc for (m1,m2,pp),cc in prod_transfer_costs.items() if (p == pp)}
+            transf_costs ={(m1,m2):cc for (m1,m2,pp),cc in prod_transfer_costs.items() if (p_to_pc[p] == pp)}
             #consider all combinations of mode fuels 
             for f1 in mode_to_fuels[modes[0]]: #road fuel 
                 for f2 in mode_to_fuels[modes[1]]: #sea fuel 
@@ -325,23 +246,27 @@ def path_generation(products,
                             all_gen_paths.add(tuple(path))
 
     all_gen_paths = list(all_gen_paths)
-    print(len(all_gen_paths))
 
-    # WRITE TO CSV FILE    UPDATE
+    
+    file_name = "Data/SPATIAL/generated_paths_"+str(mode_comb_level)+"_modes.pkl"
+    with open(file_name, "wb") as f:
+        pickle.dump(all_gen_paths, f)
+            
+    # WRITE TO CSV FILE    UPDATE # this currently gives a utf-8 encoding error when reading
     file_name = "Data/SPATIAL/generated_paths_"+str(mode_comb_level)+"_modes.csv"
     with open(file_name, "w") as f:
         f.write(",paths\n")
         num_paths = len(all_gen_paths)
-        for i in range(num_paths):
-            f.write(str(i) + ",\"[")
-            num_legs = len(all_gen_paths[i])
+        for p in range(num_paths):
+            f.write(str(p) + ",\"[")
+            num_legs = len(all_gen_paths[p])
             for l in range(num_legs):
-                leg = all_gen_paths[i][l]
+                leg = all_gen_paths[p][l]
                 i = leg[0]
                 j = leg[1]
                 m = leg[2]
                 r = leg[3]
-                f.write("({}, {}, '{}', {})".format(i,j,m,r))
+                f.write("('{}', '{}', '{}', {})".format(i,j,m,r))
                 if l < num_legs - 1:
                     f.write(", ")
             f.write("]\"\n")

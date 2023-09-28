@@ -10,7 +10,7 @@ Adapted by Ruben and Steffen
 
 import os
 import sys
-
+import pickle
 
 standalone_testing = False
 if standalone_testing:
@@ -637,62 +637,63 @@ class TransportSets():
         #  INVESTMENTS  #
         #################
         
-        rail_cap_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Cap rail')
-        inv_rail_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest rail')
-        inv_sea_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest sea')
+        if False:
+            rail_cap_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Cap rail')
+            inv_rail_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest rail')
+            inv_sea_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='Invest sea')
 
-        self.E_EDGES_UPG = []
-        for index, row in inv_rail_data.iterrows():
-            if pd.isnull(row["From"]):
-                pass
-            else:
-                (i,j,m,r) = (row["From"],row["To"],row["Mode"],int(row["Route"]))
-                edge = (i,j,m,r)
-                if (i,j,m,r) not in self.E_EDGES_RAIL:
-                    edge = (j,i,m,r)
-                self.E_EDGES_UPG.append(edge)   
-        
-        self.U_UPGRADE=[] #only one option, upgrade to electrify by means of electric train
-        for e in self.E_EDGES_UPG:
-            self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
+            self.E_EDGES_UPG = []
+            for index, row in inv_rail_data.iterrows():
+                if pd.isnull(row["From"]):
+                    pass
+                else:
+                    (i,j,m,r) = (row["From"],row["To"],row["Mode"],int(row["Route"]))
+                    edge = (i,j,m,r)
+                    if (i,j,m,r) not in self.E_EDGES_RAIL:
+                        edge = (j,i,m,r)
+                    self.E_EDGES_UPG.append(edge)   
+            
+            self.U_UPGRADE=[] #only one option, upgrade to electrify by means of electric train
+            for e in self.E_EDGES_UPG:
+                self.U_UPGRADE.append((e,'Electric train (CL)')) #removed 'Battery electric' train as an option.
 
-        BIG_COST_NUMBER = 12*10**10/self.scaling_factor_monetary # nord-norge banen = 113 milliarder = 113*10**9  
-        self.C_EDGE_RAIL = {e: BIG_COST_NUMBER for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
-        self.Q_EDGE_RAIL = {e: 0 for e in self.E_EDGES_RAIL}   # TONNES ->MTONNES
-        self.Q_EDGE_BASE_RAIL = {e: 100000 for e in self.E_EDGES_RAIL}   # TONNES
-        self.LEAD_TIME_EDGE_RAIL = {e: 50 for e in self.E_EDGES_RAIL} #years
+            BIG_COST_NUMBER = 12*10**10/self.scaling_factor_monetary # nord-norge banen = 113 milliarder = 113*10**9  
+            self.C_EDGE_RAIL = {e: BIG_COST_NUMBER for e in self.E_EDGES_RAIL}  #NOK  -> MNOK
+            self.Q_EDGE_RAIL = {e: 0 for e in self.E_EDGES_RAIL}   # TONNES ->MTONNES
+            self.Q_EDGE_BASE_RAIL = {e: 100000 for e in self.E_EDGES_RAIL}   # TONNES
+            self.LEAD_TIME_EDGE_RAIL = {e: 50 for e in self.E_EDGES_RAIL} #years
 
-        self.C_NODE = {(i,c,m) : BIG_COST_NUMBER for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]}  # NOK
-        self.Q_NODE_BASE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #endret    # TONNES
-        self.Q_NODE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #lagt til 03.05    # TONNES
-        self.LEAD_TIME_NODE = {(i,c,m): 50 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #years
+            self.C_NODE = {(i,c,m) : BIG_COST_NUMBER for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]}  # NOK
+            self.Q_NODE_BASE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #endret    # TONNES
+            self.Q_NODE = {(i,c,m): 100000 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #lagt til 03.05    # TONNES
+            self.LEAD_TIME_NODE = {(i,c,m): 50 for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m] for c in self.TERMINAL_TYPE[m]} #years
 
-        self.C_UPG = {(e,f) : BIG_COST_NUMBER for (e,f) in self.U_UPGRADE}  #NOK
-        self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES
-        self.LEAD_TIME_UPGRADE = {(e,f): 50 for (e,f) in self.U_UPGRADE} #years
+            self.C_UPG = {(e,f) : BIG_COST_NUMBER for (e,f) in self.U_UPGRADE}  #NOK
+            self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES
+            self.LEAD_TIME_UPGRADE = {(e,f): 50 for (e,f) in self.U_UPGRADE} #years
 
-        #how many times can you invest?
-        #self.INV_NODE = {(i,m,b): 4 for (i,m,b) in self.NMB_CAP}
-        #self.INV_LINK = {(l): 1 for l in self.E_EDGES_RAIL}
+            #how many times can you invest?
+            #self.INV_NODE = {(i,m,b): 4 for (i,m,b) in self.NMB_CAP}
+            #self.INV_LINK = {(l): 1 for l in self.E_EDGES_RAIL}
 
-        for index, row in inv_rail_data.iterrows():
-            ii = row["From"] 
-            jj = row["To"] 
-            mm = row["Mode"] 
-            rr = row["Route"]   
-            for ((i,j,m,r),f) in self.U_UPGRADE:
-                #if f == "Electric train (CL)":
-                if (ii,jj,mm,rr)==(i,j,m,r) or (jj,ii,mm,rr)==(i,j,m,r):
-                    if (ii,jj,mm,rr)==(i,j,m,r):
-                        e = (i,j,m,r)
-                    elif (jj,ii,mm,rr)==(i,j,m,r):
-                        e = (i,j,m,r)
-                    self.C_UPG[(e,f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor_monetary,self.precision_digits)
-                    self.LEAD_TIME_UPGRADE[(e,f)] = row['Leadtime']
-                    #TO DO: allow for partially electrified rail. Now we only take fully electrified. 
+            for index, row in inv_rail_data.iterrows():
+                ii = row["From"] 
+                jj = row["To"] 
+                mm = row["Mode"] 
+                rr = row["Route"]   
+                for ((i,j,m,r),f) in self.U_UPGRADE:
+                    #if f == "Electric train (CL)":
+                    if (ii,jj,mm,rr)==(i,j,m,r) or (jj,ii,mm,rr)==(i,j,m,r):
+                        if (ii,jj,mm,rr)==(i,j,m,r):
+                            e = (i,j,m,r)
+                        elif (jj,ii,mm,rr)==(i,j,m,r):
+                            e = (i,j,m,r)
+                        self.C_UPG[(e,f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor_monetary,self.precision_digits)
+                        self.LEAD_TIME_UPGRADE[(e,f)] = row['Leadtime']
+                        #TO DO: allow for partially electrified rail. Now we only take fully electrified. 
 
-                #if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and u == 'Partially electrified rail':
-                #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.scaling_factor
+                    #if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and u == 'Partially electrified rail':
+                    #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.scaling_factor
 
         if False:
             for m in self.M_MODES_CAP:
@@ -902,11 +903,14 @@ class TransportSets():
 
         self.K_PATHS = []
 
-        filename = r'generated_paths_'+str(NUM_MODE_PATHS)+'_modes.csv'
+        #from Data.settings import *
+
+        filename = r'generated_paths_'+str(NUM_MODE_PATHS)+'_modes.pkl'
         path = r'Data/SPATIAL/'+filename
         if not os.path.exists(path):         
             path_generation(
                     products=self.P_PRODUCTS, 
+                    p_to_pc=self.P_TO_PC,
                     modes=self.M_MODES, 
                     nodes=self.N_NODES, 
                     edges=self.E_EDGES, 
@@ -921,15 +925,22 @@ class TransportSets():
                     )
 
 
-        all_generated_paths = pd.read_csv(r'Data/SPATIAL/'+filename, converters={'paths': eval})
-            
+        #import ast
+        #all_generated_paths = pd.read_csv(r'Data/SPATIAL/'+filename, converters={'paths': ast.literal_eval})  #, converters={'paths': eval}        #This provides an encoding error
+        
+        with open(path, 'rb') as file:
+            all_generated_paths = pickle.load(file)
         
         self.K_PATH_DICT = {i:None for i in range(len(all_generated_paths))}
-        for index, row in all_generated_paths.iterrows():
-            elem = tuple(row['paths']) 
-            self.K_PATHS.append(index)
-            self.K_PATH_DICT[index]=elem
-        
+        #for index, row in all_generated_paths.iterrows():
+        #    elem = tuple(row['paths']) 
+        #    self.K_PATHS.append(index)
+        #    self.K_PATH_DICT[index]=elem
+        for i in range(len(all_generated_paths)):
+            elem = tuple(all_generated_paths[i]) 
+            self.K_PATHS.append(i)
+            self.K_PATH_DICT[i]=elem        
+
         self.OD_PATHS = {od: [] for od in self.OD_PAIRS_ALL}
         for od in self.OD_PAIRS_ALL:
             for k in self.K_PATHS:
