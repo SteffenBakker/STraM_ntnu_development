@@ -263,7 +263,7 @@ if False:
     from ConstructData import *
 
     # load original data (based on [2022, 2026, 2030, 2040, 2050])
-    orig_data = TransportSets(sheet_name_scenarios='three_scenarios_new')
+    orig_data = TransportSets(sheet_name_scenarios='four_scenarios')
 
     # define new timeline
     time_periods = [2023, 2028, 2034, 2040, 2050]   # new time periods

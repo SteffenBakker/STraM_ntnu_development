@@ -213,9 +213,9 @@ def construct_and_solve_SP_warm_start(base_data,
 def generate_base_data():
     
     if scenario_tree == 'AllScen':
-        sheet_name_scenarios = 'scenarios_base' 
+        sheet_name_scenarios = 'scenarios' 
     elif scenario_tree == '4Scen':
-        sheet_name_scenarios = 'three_scenarios_new' 
+        sheet_name_scenarios = 'four_scenarios' 
     elif scenario_tree == '9Scen':
         sheet_name_scenarios = 'nine_scenarios' 
     
@@ -248,7 +248,7 @@ def main(analysis_type,
     if scenario_tree == 'AllScen':
         sheet_name_scenarios = 'scenarios_base' 
     elif scenario_tree == '4Scen':
-        sheet_name_scenarios = 'three_scenarios_new' 
+        sheet_name_scenarios = 'four_scenarios' 
     elif scenario_tree == '9Scen':
         sheet_name_scenarios = 'nine_scenarios' 
         

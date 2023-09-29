@@ -95,24 +95,40 @@ class ScenarioInformation():
     
         # read and process scenario data
         self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
-        scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="scenarios_base")
+        scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="scenarios_new")
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
         
+        variability_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="variability")
+        self.variability = None
+        for index, row in variability_data.iterrows():
+            if index == 0:
+                self.variability = row["Variability"]
 
-        self.fg_cost_factor = [{}] * self.num_scenarios
         self.fg_maturity_path_name = [{}] * self.num_scenarios
+        self.fg_cost_factor = [{}] * self.num_scenarios
         for index, row in scenario_data.iterrows():
             if "Name" in scenario_data:
                 self.scenario_names[index] = row["Name"] #update scenario names if available
             if "Probability" in scenario_data:
                 self.probabilities[index] = row["Probability"] #update probabilities if available
             for fg in self.fuel_group_names:
-                new_cost_entry = {fg : row[f"Cost_{fg}"]} #new entry for the dictionary fg_cost_factor[index]
+                new_maturity_entry = {fg : row[fg]}
+                self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry) #add new entry to existing dict (trick from internet)
+                new_cost_factor = None
+                if row[fg] == "base":
+                    new_cost_factor = 1.0
+                elif row[fg] ==  "fast":
+                    new_cost_factor = 1.0 - self.variability
+                elif row[fg] == "slow":
+                    new_cost_factor = 1.0 + self.variability
+                new_cost_entry = {fg : new_cost_factor} #new entry for the dictionary fg_cost_factor[index]
                 self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_cost_entry) #add new entry to existing dict (trick from internet)
-                new_maturity_entry = {fg : row[f"Maturity_{fg}"]}
-                self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry)
+        
+        print(self.fg_maturity_path_name)
+        print(self.fg_cost_factor)
+        
 
         #make dicts for scenario name to nr and vice versa
         self.scen_name_to_nr = {}
