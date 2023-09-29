@@ -254,7 +254,7 @@ def path_generation(products,
         pickle.dump(all_gen_paths, f)
             
     # WRITE TO CSV FILE    UPDATE # this currently gives a utf-8 encoding error when reading
-    file_name = "Data/SPATIAL/generated_paths_"+str(mode_comb_level)+"_modes.csv"
+    file_name = "Data/SPATIAL/generated_paths_"+str(mode_comb_level)+"_modes.csv"   #the problem is that we have Norwegian characters! 
     with open(file_name, "w") as f:
         f.write(",paths\n")
         num_paths = len(all_gen_paths)
