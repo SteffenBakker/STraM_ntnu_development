@@ -271,7 +271,7 @@ class TransportSets():
         self.T_TIME_PERIODS_INIT = [self.T_TIME_PERIODS[0]]     # only first period (for initialization)
 
         # time periods for reading demand data
-        self.T_TIME_PERIODS_PWC = [2018, 2020, 2025, 2030, 2040, 2050]  # HARDCODED
+        self.T_TIME_PERIODS_PWC = [2018, 2020, 2025, 2030, 2040, 2050]  # this should still be HARDCODED
 
 
 
@@ -293,12 +293,14 @@ class TransportSets():
         self.centroid_to_nr = {}
         self.centroid_to_zone = {}
         self.zone_nr_to_centroid = {}
+        self.zone_to_centroid = {}
 
         for index, row in zone_data.iterrows():
             zone = row["centroid_name"]
             self.N_NODES.append(zone) 
             self.centroid_to_nr[zone] = row["zone_nr"]
             self.zone_nr_to_centroid[row["zone_nr"]] = row["centroid_name"]
+            self.zone_to_centroid[row["zone_name"]] = row["centroid_name"]
             self.centroid_to_zone[zone] = row["zone_name"]
             if row["abroad"] == 1:
                 self.N_ABROAD.append(zone)
@@ -376,13 +378,6 @@ class TransportSets():
         # ------- Other--------
         # -----------------------
 
-        if False:
-
-            # TODO: DEPRECATE SOME STUFF BELOW HERE
-            
-            commodities = pd.read_csv(r'Data/commodities.csv', sep=';')
-            self.P_PRODUCT_NR_TO_NAME = dict(zip(commodities.Comm_aggr_nr, commodities.Comm_aggr_name))
-            self.P_PRODUCTS = list(self.P_PRODUCT_NR_TO_NAME.keys())  
 
         if NO_DRY_BULK:
             self.P_PRODUCTS.remove("Dry bulk") #Dry bulk   HARDCODING
@@ -399,87 +394,87 @@ class TransportSets():
         ### ORIGIN, DESTINATION AND DEMAND #
         ####################################
 
-        if False:
+        pwc_aggr = pd.read_csv(r'Data/SPATIAL/demand.csv')
 
-            pwc_aggr = pd.read_csv(r'Data/SPATIAL/demand.csv')
+        #Start with filtering of demand data. What to include and what not.
+        D_DEMAND_ALL = {}  #5330 entries, after cutting off the small elements, only 4105 entries
 
-            #Start with filtering of demand data. What to include and what not.
-            D_DEMAND_ALL = {}  #5330 entries, after cutting off the small elements, only 4105 entries
+        #then read the pwc_aggr data
+        for index, row in pwc_aggr.iterrows(): #WE ONLY TAKE DEMAND BETWEEN COUNTIES! SO, THIS IS OUR DEFINITION OF LONG-DISTANCE TRANSPORT
+            from_zone = row['from_aggr_zone']
+            to_zone = row['to_aggr_zone']
+            from_node = self.zone_to_centroid[from_zone]
+            to_node = self.zone_to_centroid[to_zone]
+            product = row['product_group']
+            if product in self.P_PRODUCTS:
+                D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
+    
 
-            #then read the pwc_aggr data
-            for index, row in pwc_aggr.iterrows(): #WE ONLY TAKE DEMAND BETWEEN COUNTIES! SO, THIS IS OUR DEFINITION OF LONG-DISTANCE TRANSPORT
-                from_node = row['from_aggr_zone']
-                to_node = row['to_aggr_zone']
-                product = row['commodity_aggr']
-                if product in self.P_PRODUCTS:
-                    D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
+        demands = pd.Series(D_DEMAND_ALL.values())         
         
-
-            demands = pd.Series(D_DEMAND_ALL.values())         
-            
-            # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES? should not matter too much. distances are somewhat similar
-            print('describing original demand data')
-            #print(demands.describe())   #huge spread -> remove the very small stuff. Even demand of 5E-1
-            #demands.plot.hist(by=None, bins=1000)
-            #demands.hist(cumulative=True, density=1, bins=100)
-            
-            total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
-            cutoff = demands.quantile(0.12) #HARDCODED, requires some analyses. Do not remove too much. These are actual things that need to be transported. And not too much complexity because of it
-            print('cutoff (in Tonnes):', cutoff)
-            demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
-            reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
-            print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  
-            
-            # demands2.plot.hist(by=None, bins=1000)
-            # demands2.hist(cumulative=True, density=1, bins=100)
-            
-            # print("{:e}".format(round(cutoff,0)))    # '3.306000e+03'
-            # print("{:e}".format(round(demands.max(),0)))           # '2.739037e+07'
+        # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES? should not matter too much. distances are somewhat similar
+        print('describing original demand data')
+        #print(demands.describe())   #huge spread -> remove the very small stuff. Even demand of 5E-1
+        #demands.plot.hist(by=None, bins=1000)
+        #demands.hist(cumulative=True, density=1, bins=100)
         
-            #D_DEMAND_CUT = D_DEMAND_ALL #
-            D_DEMAND_CUT = {key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
-            
-            #print('D_DEMAND_CUT:')
-            #print(pd.Series(list(D_DEMAND_CUT.values())).describe())
+        total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
+        cutoff = demands.quantile(0.12) #HARDCODED, requires some analyses. Do not remove too much. These are actual things that need to be transported. And not too much complexity because of it
+        print('cutoff (in Tonnes):', cutoff)
+        demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
+        reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
+        print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  
+        
+        # demands2.plot.hist(by=None, bins=1000)
+        # demands2.hist(cumulative=True, density=1, bins=100)
+        
+        # print("{:e}".format(round(cutoff,0)))    # '3.306000e+03'
+        # print("{:e}".format(round(demands.max(),0)))           # '2.739037e+07'
+    
+        #D_DEMAND_CUT = D_DEMAND_ALL #
+        D_DEMAND_CUT = {key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
+        
+        #print('D_DEMAND_CUT:')
+        #print(pd.Series(list(D_DEMAND_CUT.values())).describe())
 
-            #ODP
-            self.OD_PAIRS = {p: [] for p in self.P_PRODUCTS}
-            for (o,d,p,t), value in D_DEMAND_CUT.items():
-                if ((o,d) not in self.OD_PAIRS[p]):
-                    self.OD_PAIRS[p].append((o,d))
-            self.ODP = []
-            self.OD_PAIRS_ALL = set()
-            for p in self.P_PRODUCTS:
-                for (o, d) in self.OD_PAIRS[p]:
-                    self.OD_PAIRS_ALL.add((o, d))
-                    self.ODP.append((o, d, p))
-            self.OD_PAIRS_ALL = list(self.OD_PAIRS_ALL)
-            
-            self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS_PWC for (o,d,p) in self.ODP}        
-            for (o,d,p,t), value in D_DEMAND_CUT.items():
-                self.D_DEMAND[(o,d,p,t)] = round(value / self.scaling_factor_weight,self.precision_digits)
-            
-            #print('D_DEMAND:')
-            #print(pd.Series(list(self.D_DEMAND.values())).describe())
+        #ODP
+        self.OD_PAIRS = {p: [] for p in self.P_PRODUCTS}
+        for (o,d,p,t), value in D_DEMAND_CUT.items():
+            if ((o,d) not in self.OD_PAIRS[p]):
+                self.OD_PAIRS[p].append((o,d))
+        self.ODP = []
+        self.OD_PAIRS_ALL = set()
+        for p in self.P_PRODUCTS:
+            for (o, d) in self.OD_PAIRS[p]:
+                self.OD_PAIRS_ALL.add((o, d))
+                self.ODP.append((o, d, p))
+        self.OD_PAIRS_ALL = list(self.OD_PAIRS_ALL)
+        
+        self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS_PWC for (o,d,p) in self.ODP}        
+        for (o,d,p,t), value in D_DEMAND_CUT.items():
+            self.D_DEMAND[(o,d,p,t)] = round(value / self.scaling_factor_weight,self.precision_digits)
+        
+        #print('D_DEMAND:')
+        #print(pd.Series(list(self.D_DEMAND.values())).describe())
 
-            if INTERPOLATE_DEMAND_DATA_2040:                    # TODO: HARDCODING OF YEARS HERE
-                for (o,d,p,t), value in self.D_DEMAND.items(): 
-                    if t == 2040:
-                        v30 = self.D_DEMAND[(o,d,p,2030)]
-                        v40 = self.D_DEMAND[(o,d,p,2040)]
-                        v50 = self.D_DEMAND[(o,d,p,2050)]
-                        if  (v30 <= v40 <=v50) or (v30 >= v40 >=v50):
-                            pass
-                        else:
-                            self.D_DEMAND[(o,d,p,2040)] = float(np.mean([v30,v50]))
-            
-            #self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
-            #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
+        if INTERPOLATE_DEMAND_DATA_2040:                    # TODO: HARDCODING OF YEARS HERE
+            for (o,d,p,t), value in self.D_DEMAND.items(): 
+                if t == 2040:
+                    v30 = self.D_DEMAND[(o,d,p,2030)]
+                    v40 = self.D_DEMAND[(o,d,p,2040)]
+                    v50 = self.D_DEMAND[(o,d,p,2050)]
+                    if  (v30 <= v40 <=v50) or (v30 >= v40 >=v50):
+                        pass
+                    else:
+                        self.D_DEMAND[(o,d,p,2040)] = float(np.mean([v30,v50]))
+        
+        #self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
+        #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
 
 
-            self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS_PWC}
-            for (o,d,p,t),value in self.D_DEMAND.items():
-                self.D_DEMAND_AGGR[t] += value
+        self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS_PWC}
+        for (o,d,p,t),value in self.D_DEMAND.items():
+            self.D_DEMAND_AGGR[t] += value
 
 
         #####################
