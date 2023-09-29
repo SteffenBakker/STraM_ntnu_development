@@ -387,7 +387,14 @@ class TransportSets():
 
         self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
 
-              
+
+        self.ANM_ARCS_IN = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
+        self.ANM_ARCS_OUT = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
+        for (i,j,m,r) in self.A_ARCS:
+            a = (i,j,m,r)
+            self.ANM_ARCS_IN[(j,m)].append(a)
+            self.ANM_ARCS_OUT[(i,m)].append(a)
+
         # -----------------------
         # ------- Other--------
         # -----------------------
@@ -486,32 +493,29 @@ class TransportSets():
             self.D_DEMAND_AGGR[t] += value
 
 
-        #####################
-        ## VEHICLE TYPES ####
-        #####################
+        if False:
         
-        #Vehicle types
-        prod_to_vehicle_type = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
-        self.VEHICLE_TYPE_MP = {}
-        self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
-        for (m,p,v) in zip(prod_to_vehicle_type['Mode'], prod_to_vehicle_type['Product group'], prod_to_vehicle_type['Vehicle type']):
-            if p in self.P_PRODUCTS:
-                self.VEHICLE_TYPE_MP[(m,p)] = v
-                self.VEHICLE_TYPES_M[m].append(v)
-        for m in self.M_MODES:
-            self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
-        self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
-        
-        self.PV_PRODUCTS = {v:[] for v in self.V_VEHICLE_TYPES}
-        for (m,p),v in self.VEHICLE_TYPE_MP.items():
-            self.PV_PRODUCTS[v].append(p)
+            #####################
+            ## VEHICLE TYPES ####
+            #####################
+            
+            #Vehicle types
+            prod_to_vehicle_type = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
+            self.VEHICLE_TYPE_MP = {}
+            self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
+            for (m,p,v) in zip(prod_to_vehicle_type['Mode'], prod_to_vehicle_type['Product group'], prod_to_vehicle_type['Vehicle type']):
+                if p in self.P_PRODUCTS:
+                    self.VEHICLE_TYPE_MP[(m,p)] = v
+                    self.VEHICLE_TYPES_M[m].append(v)
+            for m in self.M_MODES:
+                self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
+            self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
+            
+            self.PV_PRODUCTS = {v:[] for v in self.V_VEHICLE_TYPES}
+            for (m,p),v in self.VEHICLE_TYPE_MP.items():
+                self.PV_PRODUCTS[v].append(p)
 
-        self.ANM_ARCS_IN = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
-        self.ANM_ARCS_OUT = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
-        for (i,j,m,r) in self.A_ARCS:
-            a = (i,j,m,r)
-            self.ANM_ARCS_IN[(j,m)].append(a)
-            self.ANM_ARCS_OUT[(i,m)].append(a)
+        
 
 
 
