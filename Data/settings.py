@@ -26,7 +26,7 @@ NO_DRY_BULK = False
 NO_WET_BULK = True
 
 #path generation
-NUM_MODE_PATHS = 1  #hvor mange modes kan bli brukt på en path? 
+NUM_MODE_PATHS = 2  #hvor mange modes kan bli brukt på en path? 
 # single mode paths can lead to infeasibilities in the model (the flow/demand constraint). Some demand requests are then not feasible.
 
 NUM_DIGITS_PRECISION = 5 #for the rounding in data generation

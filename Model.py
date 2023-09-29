@@ -232,12 +232,10 @@ class TranspModel:
             demand = self.data.D_DEMAND[(o, d, p, t)]
             if  demand < ABSOLUTE_DEVIATION:
                 return Constraint.Skip
-            elif isinstance(demand, bool):
-                return Constraint.Infeasible
             else:
                 return (sum(self.model.h_path[(k,p,t,s)] for k in self.data.OD_PATHS[(o, d)]) >= demand - FEAS_RELAX)
         self.model.Flow = Constraint(self.data.ODPTS_CONSTR_S, rule=FlowRule)
-        
+        # when using uni-modal paths, then this gives an error as there are no paths from World to Hamar/Umeå
 
         # PATHFLOW
 
