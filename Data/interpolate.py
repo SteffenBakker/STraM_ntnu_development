@@ -35,6 +35,24 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
     LAST_PERIOD = orig_data.T_TIME_PERIODS[len(orig_data.T_TIME_PERIODS)-1]
     PENULT_PERIOD = orig_data.T_TIME_PERIODS[len(orig_data.T_TIME_PERIODS)-2]
 
+    # define left and right endpoints for interpolation for PWC
+    new_data.T_LEFT_PWC = {}
+    new_data.T_RIGHT_PWC = {}
+    for t in time_periods:
+        # initialize
+        new_data.T_LEFT_PWC[t] = -np.infty 
+        new_data.T_RIGHT_PWC[t] = np.infty 
+        # find correct value
+        for tt in orig_data.T_TIME_PERIODS_PWC:
+            if tt <= t:
+                new_data.T_LEFT_PWC[t] = tt
+        for tt in reversed(orig_data.T_TIME_PERIODS_PWC):
+            if tt >= t:
+                new_data.T_RIGHT_PWC[t] = tt
+
+    LAST_PERIOD_PWC = orig_data.T_TIME_PERIODS_PWC[len(orig_data.T_TIME_PERIODS_PWC)-1]
+    PENULT_PERIOD_PWC = orig_data.T_TIME_PERIODS_PWC[len(orig_data.T_TIME_PERIODS_PWC)-2]
+
 
     # update other sets based on the above
     new_data.T_MIN1 = {new_data.T_TIME_PERIODS[tt]:new_data.T_TIME_PERIODS[tt-1] for tt in range(1,len(new_data.T_TIME_PERIODS))} 
@@ -49,18 +67,18 @@ def interpolate(orig_data, time_periods, num_first_stage_periods):
     new_data.D_DEMAND = {(o,d,p,t):0 for t in new_data.T_TIME_PERIODS for (o,d,p) in new_data.ODP} 
     for (o,d,p) in new_data.ODP:
         for t in new_data.T_TIME_PERIODS:
-            if new_data.T_LEFT[t] == -np.infty:
+            if new_data.T_LEFT_PWC[t] == -np.infty:
                 # extrapolate into the past
                 raise Exception("We haven't implemented extrapolation into the past yet")
-            elif new_data.T_RIGHT[t] == np.infty:
+            elif new_data.T_RIGHT_PWC[t] == np.infty:
                 # extrapolate into the future (linearly)
-                last_value = orig_data.D_DEMAND[(o,d,p,LAST_PERIOD)]
-                penult_value = orig_data.D_DEMAND[(o,d,p,PENULT_PERIOD)]
-                new_data.D_DEMAND[(o,d,p,t)] = last_value + (t - LAST_PERIOD) * max(last_value - penult_value, 0) / (LAST_PERIOD - PENULT_PERIOD)
+                last_value = orig_data.D_DEMAND[(o,d,p,LAST_PERIOD_PWC)]
+                penult_value = orig_data.D_DEMAND[(o,d,p,PENULT_PERIOD_PWC)]
+                new_data.D_DEMAND[(o,d,p,t)] = last_value + (t - LAST_PERIOD_PWC) * max(last_value - penult_value, 0) / (LAST_PERIOD_PWC - PENULT_PERIOD_PWC)
             else:
                 # interpolate between left and right (linearly)
-                t_left = new_data.T_LEFT[t]
-                t_right = new_data.T_RIGHT[t]
+                t_left = new_data.T_LEFT_PWC[t]
+                t_right = new_data.T_RIGHT_PWC[t]
                 left_value = orig_data.D_DEMAND[(o,d,p,t_left)]
                 right_value = orig_data.D_DEMAND[(o,d,p,t_right)]
                 if t_left == t_right:

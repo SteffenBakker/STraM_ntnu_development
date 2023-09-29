@@ -473,16 +473,6 @@ class TransportSets():
         #print('D_DEMAND:')
         #print(pd.Series(list(self.D_DEMAND.values())).describe())
 
-        if INTERPOLATE_DEMAND_DATA_2040:                    # TODO: HARDCODING OF YEARS HERE
-            for (o,d,p,t), value in self.D_DEMAND.items(): 
-                if t == 2040:
-                    v30 = self.D_DEMAND[(o,d,p,2030)]
-                    v40 = self.D_DEMAND[(o,d,p,2040)]
-                    v50 = self.D_DEMAND[(o,d,p,2050)]
-                    if  (v30 <= v40 <=v50) or (v30 >= v40 >=v50):
-                        pass
-                    else:
-                        self.D_DEMAND[(o,d,p,2040)] = float(np.mean([v30,v50]))
         
         #self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
         #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
@@ -493,7 +483,7 @@ class TransportSets():
             self.D_DEMAND_AGGR[t] += value
 
 
-        if False:
+        if True:
         
             #####################
             ## VEHICLE TYPES ####
@@ -709,8 +699,8 @@ class TransportSets():
 
             # upgrades
             if row["Upgradeable"] == 1:
-                self.C_EDGE_UPG[(edge, 'Electric train (CL)')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
-                self.LEAD_TIME_EDGE_UPG[(edge, 'Electric train (CL)')] = row["Upgrade lead time"]  # HARDCODED
+                self.C_EDGE_UPG[(edge, 'Catenary')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
+                self.LEAD_TIME_EDGE_UPG[(edge, 'Catenary')] = row["Upgrade lead time"]  # HARDCODED
         
         # fill node data
         for index, row in node_cap_data.iterrows():
@@ -839,59 +829,6 @@ class TransportSets():
             (mm,share) = (row['Mode'], row['Share'])
             self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
 
-
-        if False:     #ERROR HERE
-            #update R_TECH_READINESS_MATURITY based on scenario information
-            for s in self.S_SCENARIOS:
-                active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
-                for m in self.M_MODES:
-                    for f in self.FM_FUEL[m]:
-                        if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
-                            cur_fg = self.scenario_information.mf_to_fg[(m,f)]
-                            cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
-                            # extract info from current base Bass model
-                            cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
-                            cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
-                            cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
-                                        
-                            # find current scenario's level of variation for q and p and delay for t_0 from base case
-                            cur_scen_p_q_variation = 0.0 
-                            cur_scen_t_0_delay = 0.0
-                            if cur_path_name == "base":
-                                cur_scen_p_q_variation = 0.0
-                                cur_scen_t_0_delay = 0.0
-                            if cur_path_name == "fast":
-                                cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
-                                cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
-                            elif cur_path_name == "slow":
-                                cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
-                                cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
-
-                            # construct scenario bass model
-                            cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
-                                                                cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
-                                                                cur_base_bass_model.m, 
-                                                                cur_base_bass_model.t_0 + cur_scen_t_0_delay)
-                            
-                            # set as active bass model
-                            self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
-
-                            # find start of second stage
-                            for t in self.T_TIME_PERIODS:
-                                if t not in self.T_TIME_FIRST_STAGE_BASE:
-                                    start_of_second_stage = t
-                                    break
-
-                            # fill R_TECH_READINESS_MATURITY based on current scenario bass model
-                            for t in self.T_TIME_PERIODS:
-                                if t in self.T_TIME_FIRST_STAGE_BASE:
-                                    # first stage: follow base bass model
-                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
-                                else:
-                                    # second stage: use scenario bass model, with starting point A(2030) from base bass model
-                                    t_init = start_of_second_stage #initialize diffusion at start of second stage
-                                    A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
-                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
 
         #----------------------------------------
         #      PATH GENERATION

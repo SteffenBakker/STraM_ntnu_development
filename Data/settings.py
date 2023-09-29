@@ -33,7 +33,6 @@ NUM_DIGITS_PRECISION = 5 #for the rounding in data generation
 MAX_TRUCK_CAP = 30 #to do: check this value
 EMPTY_VEHICLE_FACTOR = 0.6
 
-INTERPOLATE_DEMAND_DATA_2040 = False #there
 
 
 
