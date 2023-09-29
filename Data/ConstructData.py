@@ -95,7 +95,7 @@ class ScenarioInformation():
     
         # read and process scenario data
         self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
-        scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="scenarios_new")
+        scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="scenarios_base")
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
@@ -126,8 +126,6 @@ class ScenarioInformation():
                 new_cost_entry = {fg : new_cost_factor} #new entry for the dictionary fg_cost_factor[index]
                 self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_cost_entry) #add new entry to existing dict (trick from internet)
         
-        print(self.fg_maturity_path_name)
-        print(self.fg_cost_factor)
         
 
         #make dicts for scenario name to nr and vice versa
