@@ -659,7 +659,7 @@ class TransportSets():
         
         self.U_UPGRADE = []     # list of type of upgrades
         for e in self.E_EDGES_UPG:
-            self.U_UPGRADE.append((e,'Catenary'))        # TODO: check fuel name     # HARDCODED
+            self.U_UPGRADE.append((e,'Catenary'))            # HARDCODED
 
 
     
@@ -667,16 +667,16 @@ class TransportSets():
 
         # edges
         self.Q_EDGE_BASE = {}           # dict of initial edge capacities       # TONNES      
-        self.Q_EDGE_INV = {}            # dict of possible edge investments     # TONNES -> MTONNES #TODO CHECK THESE UNITS
-        self.C_EDGE_INV = {}            # dict of edge investment costs         # NOK -> MNOK
-        self.C_EDGE_UPG = {}            # dict of edge upgrade costs            # NOK -> MNOK
+        self.Q_EDGE_INV = {}            # dict of possible edge investments     # TONNES 
+        self.C_EDGE_INV = {}            # dict of edge investment costs         # NOK 
+        self.C_EDGE_UPG = {}            # dict of edge upgrade costs            # NOK 
         self.LEAD_TIME_EDGE_INV = {}  # dict of edge investment lead times    # YEARS
         self.LEAD_TIME_EDGE_UPG = {}  # dict of edge upgrade lead times       # YEARS
 
         # nodes
         self.Q_NODE_BASE = {}           # dict of initial node capacities       # TONNES      
-        self.Q_NODE_INV = {}            # dict of possible node investments     # TONNES -> MTONNES #TODO CHECK THESE UNITS
-        self.C_NODE_INV = {}            # dict of node investment costs         # NOK -> MNOK
+        self.Q_NODE_INV = {}            # dict of possible node investments     # TONNES 
+        self.C_NODE_INV = {}            # dict of node investment costs         # NOK 
         self.LEAD_TIME_NODE_INV = {}  # dict of node investment lead times    # YEARS
 
 
@@ -718,10 +718,7 @@ class TransportSets():
 
         
 
-        # TODO: HOW WE DEAL WITH UPGRADES IS A BIT MESSY.
-
-
-        # Big M         # TODO: (what is this used for?)
+        # Big M        
         self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES 
         for e in self.E_EDGES_UPG:
             if e in self.Q_EDGE_INV:
