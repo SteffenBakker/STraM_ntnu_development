@@ -113,8 +113,8 @@ def path_generation(products,
 
         #DEFINE ALL SHORTEST PATHS (both uni and multimodal)
         
-        sh_path = {(i,j,mc):[] for i in nodes for j in nodes for mc in mode_combi}  #unimodal shortest paths
-        sh_dist = {(i,j,mc):max_dist for i in nodes for j in nodes for mc in mode_combi} #unimodal shortest distances
+        sh_path = {(i,j,mc):[] for i in nodes for j in nodes for mc in mode_combi}  #multimodal shortest paths
+        sh_dist = {(i,j,mc):max_dist for i in nodes for j in nodes for mc in mode_combi} #multimodal shortest distances
 
         for mc_index in mode_combi:
             mc = mode_combi_dict[mc_index]
@@ -149,8 +149,8 @@ def path_generation(products,
                             #find best mid-point 
                             for n in nodes:
                                 cur_dist = max_dist + 1
-                                if len(sh_path[(o,d,m1_index)]) > 1:
-                                    if len(sh_path[(o,d,m2_index)]) > 1:
+                                if len(sh_path[(o,n,m1_index)]) > 1:
+                                    if len(sh_path[(n,d,m2_index)]) > 1:
                                         cur_dist = sh_dist[(o,n,m1_index)] + sh_dist[(n,d,m2_index)] + transfer_cost[(m1,m2)]
                                         if cur_dist < best_dist:
                                             best_mid_point = n
@@ -158,6 +158,8 @@ def path_generation(products,
                             if best_mid_point != 0: #found a best midpoint 
                                 sh_path[(o,d,mc_index)] = sh_path[(o,best_mid_point,m1_index)] + sh_path[(best_mid_point,d,m2_index)]
                                 sh_dist[(o,d,mc_index)] = sh_dist[(o,best_mid_point,m1_index)] + sh_dist[(best_mid_point,d,m2_index)] + transfer_cost[(m1,m2)]
+                            
+                                
             #three-mode paths (note that all two-mode paths are already done)
             elif len(mc) == 3:
                 m1 = mc[0]
