@@ -1139,25 +1139,6 @@ class TransportSets():
 
 print("Finished reading sets and classes.")
 
-#base_data = TransportSets()
-
-#Testing:
-"""
-base_data = TransportSets(sheet_name_scenarios='scenarios_base')
-base_data.scenario_information
-
-base_data.scenario_information.scenario_names
-
-#base_data.update_scenario_dependent_parameters("LLH")
-for i in base_data.R_TECH_READINESS_MATURITY:
-    print(i, ": ", base_data.R_TECH_READINESS_MATURITY[i])
-
-for cur_scen in base_data.scenario_information.scenario_names:
-    base_data.update_scenario_dependent_parameters(cur_scen)
-    #base_data.tech_active_bass_model[('Road', 'Hydrogen')]
-    base_data.tech_active_bass_model[('Road', 'Hydrogen')].plot_A(show=False)
-
-plt.show()
 
 
 
