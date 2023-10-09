@@ -100,19 +100,33 @@ class ScenarioInformation():
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
         
+        variability_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="variability")
+        self.variability = None
+        for index, row in variability_data.iterrows():
+            if index == 0:
+                self.variability = row["Variability"]
 
-        self.fg_cost_factor = [{}] * self.num_scenarios
         self.fg_maturity_path_name = [{}] * self.num_scenarios
+        self.fg_cost_factor = [{}] * self.num_scenarios
         for index, row in scenario_data.iterrows():
             if "Name" in scenario_data:
                 self.scenario_names[index] = row["Name"] #update scenario names if available
             if "Probability" in scenario_data:
                 self.probabilities[index] = row["Probability"] #update probabilities if available
             for fg in self.fuel_group_names:
-                new_cost_entry = {fg : row[f"Cost_{fg}"]} #new entry for the dictionary fg_cost_factor[index]
+                new_maturity_entry = {fg : row[fg]}
+                self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry) #add new entry to existing dict (trick from internet)
+                new_cost_factor = None
+                if row[fg] == "base":
+                    new_cost_factor = 1.0
+                elif row[fg] ==  "fast":
+                    new_cost_factor = 1.0 - self.variability
+                elif row[fg] == "slow":
+                    new_cost_factor = 1.0 + self.variability
+                new_cost_entry = {fg : new_cost_factor} #new entry for the dictionary fg_cost_factor[index]
                 self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_cost_entry) #add new entry to existing dict (trick from internet)
-                new_maturity_entry = {fg : row[f"Maturity_{fg}"]}
-                self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry)
+        
+        
 
         #make dicts for scenario name to nr and vice versa
         self.scen_name_to_nr = {}
@@ -391,11 +405,6 @@ class TransportSets():
         if NO_WET_BULK:
             self.P_PRODUCTS.remove("Liquid bulk") #Wet bulk
 
-        self.TERMINAL_TYPE = {"Rail": ["Combination", "Timber"], "Sea": ["All"]}
-        
-        self.PT = {"Combination": list(set(self.P_PRODUCTS)-set(["Break bulk"])),   #HARDCODING
-                   "Timber": ["Break bulk"],   #['Timber']
-                   "All": self.P_PRODUCTS}
 
         ####################################
         ### ORIGIN, DESTINATION AND DEMAND #
@@ -464,16 +473,6 @@ class TransportSets():
         #print('D_DEMAND:')
         #print(pd.Series(list(self.D_DEMAND.values())).describe())
 
-        if INTERPOLATE_DEMAND_DATA_2040:                    # TODO: HARDCODING OF YEARS HERE
-            for (o,d,p,t), value in self.D_DEMAND.items(): 
-                if t == 2040:
-                    v30 = self.D_DEMAND[(o,d,p,2030)]
-                    v40 = self.D_DEMAND[(o,d,p,2040)]
-                    v50 = self.D_DEMAND[(o,d,p,2050)]
-                    if  (v30 <= v40 <=v50) or (v30 >= v40 >=v50):
-                        pass
-                    else:
-                        self.D_DEMAND[(o,d,p,2040)] = float(np.mean([v30,v50]))
         
         #self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
         #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
@@ -484,7 +483,7 @@ class TransportSets():
             self.D_DEMAND_AGGR[t] += value
 
 
-        if False:
+        if True:
         
             #####################
             ## VEHICLE TYPES ####
@@ -647,7 +646,7 @@ class TransportSets():
         self.E_EDGES_UPG = []           # list of upgradeable edges
         for index, row in edge_cap_data.iterrows():
             # define edge
-            (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])           # TODO: how do we refer to nodes?
+            (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])           # TODO: how do we refer to nodes? numbers? centroid names? zone names?
             edge = (i,j,m,r)
             if (i,j,m,r) not in self.E_EDGES:
                 edge = (j,i,m,r)    # flip edge if necessary
@@ -660,7 +659,7 @@ class TransportSets():
         
         self.U_UPGRADE = []     # list of type of upgrades
         for e in self.E_EDGES_UPG:
-            self.U_UPGRADE.append((e,'Electric train (CL)'))        # TODO: check fuel naem     # HARDCODED
+            self.U_UPGRADE.append((e,'Catenary'))            # HARDCODED
 
 
     
@@ -668,17 +667,17 @@ class TransportSets():
 
         # edges
         self.Q_EDGE_BASE = {}           # dict of initial edge capacities       # TONNES      
-        self.Q_EDGE_INV = {}            # dict of possible edge investments     # TONNES -> MTONNES #TODO CHECK THESE UNITS
-        self.C_EDGE_INV = {}            # dict of edge investment costs         # NOK -> MNOK
-        self.C_EDGE_UPG = {}            # dict of edge upgrade costs            # NOK -> MNOK
-        self.L_EDGE_INV_LEAD_TIME = {}  # dict of edge investment lead times    # YEARS
-        self.L_EDGE_UPG_LEAD_TIME = {}  # dict of edge upgrade lead times       # YEARS
+        self.Q_EDGE_INV = {}            # dict of possible edge investments     # TONNES 
+        self.C_EDGE_INV = {}            # dict of edge investment costs         # NOK 
+        self.C_EDGE_UPG = {}            # dict of edge upgrade costs            # NOK 
+        self.LEAD_TIME_EDGE_INV = {}  # dict of edge investment lead times    # YEARS
+        self.LEAD_TIME_EDGE_UPG = {}  # dict of edge upgrade lead times       # YEARS
 
         # nodes
         self.Q_NODE_BASE = {}           # dict of initial node capacities       # TONNES      
-        self.Q_NODE_INV = {}            # dict of possible node investments     # TONNES -> MTONNES #TODO CHECK THESE UNITS
-        self.C_NODE_INV = {}            # dict of node investment costs         # NOK -> MNOK
-        self.L_NODE_INV_LEAD_TIME = {}  # dict of node investment lead times    # YEARS
+        self.Q_NODE_INV = {}            # dict of possible node investments     # TONNES 
+        self.C_NODE_INV = {}            # dict of node investment costs         # NOK 
+        self.LEAD_TIME_NODE_INV = {}  # dict of node investment lead times    # YEARS
 
 
         # fill edge data
@@ -693,15 +692,15 @@ class TransportSets():
             self.Q_EDGE_BASE[edge] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
 
             # investments
-            if row["Capacity increase"] > 0:
+            if row["Capacity"] != -1:
                 self.Q_EDGE_INV[edge] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
                 self.C_EDGE_INV[edge] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
-                self.L_EDGE_INV_LEAD_TIME[edge] = row["Lead time"]
+                self.LEAD_TIME_EDGE_INV[edge] = row["Lead time"]
 
             # upgrades
             if row["Upgradeable"] == 1:
-                self.C_EDGE_UPG[(edge, 'Electric train (CL)')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
-                self.L_EDGE_UPG_LEAD_TIME[(edge, 'Electric train (CL)')] = row["Upgrade lead time"]  # HARDCODED
+                self.C_EDGE_UPG[(edge, 'Catenary')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
+                self.LEAD_TIME_EDGE_UPG[(edge, 'Catenary')] = row["Upgrade lead time"]  # HARDCODED
         
         # fill node data
         for index, row in node_cap_data.iterrows():
@@ -712,17 +711,14 @@ class TransportSets():
             self.Q_NODE_BASE[node] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
 
             # investments
-            if row["Capacity increase"] > 0:
+            if row["Capacity"] != -1:
                 self.Q_NODE_INV[node] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
                 self.C_NODE_INV[node] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
-                self.L_NODE_INV_LEAD_TIME[node] = row["Lead time"]
+                self.LEAD_TIME_NODE_INV[node] = row["Lead time"]
 
         
 
-        # TODO: HOW WE DEAL WITH UPGRADES IS A BIT MESSY.
-
-
-        # Big M         # TODO: (what is this used for?)
+        # Big M        
         self.BIG_M_UPG = {e: [] for e in self.E_EDGES_UPG}        # TONNES 
         for e in self.E_EDGES_UPG:
             if e in self.Q_EDGE_INV:
@@ -830,59 +826,6 @@ class TransportSets():
             (mm,share) = (row['Mode'], row['Share'])
             self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
 
-
-        if False:     #ERROR HERE
-            #update R_TECH_READINESS_MATURITY based on scenario information
-            for s in self.S_SCENARIOS:
-                active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
-                for m in self.M_MODES:
-                    for f in self.FM_FUEL[m]:
-                        if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
-                            cur_fg = self.scenario_information.mf_to_fg[(m,f)]
-                            cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
-                            # extract info from current base Bass model
-                            cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
-                            cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
-                            cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
-                                        
-                            # find current scenario's level of variation for q and p and delay for t_0 from base case
-                            cur_scen_p_q_variation = 0.0 
-                            cur_scen_t_0_delay = 0.0
-                            if cur_path_name == "base":
-                                cur_scen_p_q_variation = 0.0
-                                cur_scen_t_0_delay = 0.0
-                            if cur_path_name == "fast":
-                                cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
-                                cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
-                            elif cur_path_name == "slow":
-                                cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
-                                cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
-
-                            # construct scenario bass model
-                            cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
-                                                                cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
-                                                                cur_base_bass_model.m, 
-                                                                cur_base_bass_model.t_0 + cur_scen_t_0_delay)
-                            
-                            # set as active bass model
-                            self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
-
-                            # find start of second stage
-                            for t in self.T_TIME_PERIODS:
-                                if t not in self.T_TIME_FIRST_STAGE_BASE:
-                                    start_of_second_stage = t
-                                    break
-
-                            # fill R_TECH_READINESS_MATURITY based on current scenario bass model
-                            for t in self.T_TIME_PERIODS:
-                                if t in self.T_TIME_FIRST_STAGE_BASE:
-                                    # first stage: follow base bass model
-                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
-                                else:
-                                    # second stage: use scenario bass model, with starting point A(2030) from base bass model
-                                    t_init = start_of_second_stage #initialize diffusion at start of second stage
-                                    A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
-                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
 
         #----------------------------------------
         #      PATH GENERATION
@@ -1066,7 +1009,7 @@ class TransportSets():
         "Combined sets - time independent"
         #------------------------
 
-        self.NCM = [(i,c,m) for (i,m) in self.NM_LIST_CAP for c in self.TERMINAL_TYPE[m]]
+        self.NM = [(i,m) for (i,m) in self.NM_LIST_CAP]
         self.MF = [(m,f) for m in self.M_MODES for f in self.FM_FUEL[m]]
 
         "Combined sets - time dependent"
@@ -1089,13 +1032,13 @@ class TransportSets():
                          self.T_TIME_PERIODS ]  
         self.KPT = [(k, p, t) for k in self.K_PATHS for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS]
         self.KVT = [(k, v, t) for k in self.K_PATHS for v in self.V_VEHICLE_TYPES for t in self.T_TIME_PERIODS]
-        self.ET_INV = [l+(t,) for l in self.E_EDGES_INV for t in self.T_TIME_PERIODS                                   if (t <= self.T_TIME_PERIODS[-1] - self.L_EDGE_INV_LEAD_TIME[l]) and (t in self.T_TIME_FIRST_STAGE)]
-        self.EAT_INV = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS   if (t <= self.T_TIME_PERIODS[-1] - self.L_EDGE_INV_LEAD_TIME[e]) and (t in self.T_TIME_FIRST_STAGE)]
+        self.ET_INV = [l+(t,) for l in self.E_EDGES_INV for t in self.T_TIME_PERIODS                                   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_INV[l]) and (t in self.T_TIME_FIRST_STAGE)]
+        self.EAT_INV = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_INV[e]) and (t in self.T_TIME_FIRST_STAGE)]
         self.EAT_INV_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
         self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_CHARGING[(e,f)]]
         self.EFT_CHARGE_CONSTR = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS_OPERATIONAL]
-        self.NCMT = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.L_NODE_INV_LEAD_TIME[i,c,m]]
-        self.NCMT_CONSTR = [(i,c,m,t) for (i,c,m) in self.NCM for t in self.T_TIME_PERIODS_OPERATIONAL ]
+        self.NMT = [(i,m,t) for (i,m) in self.NM for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_NODE_INV[i,m]]
+        self.NMT_CONSTR = [(i,m,t) for (i,m) in self.NM for t in self.T_TIME_PERIODS_OPERATIONAL ]
         self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
                                     for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
         self.NMFVT_CONSTR = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
@@ -1123,7 +1066,7 @@ class TransportSets():
         self.MFT_NEW_YEARLY_SECOND_STAGE = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in self.T_YEARLY_TIME_SECOND_STAGE if not self.tech_is_mature[(m,f)]]
         self.MFT_NEW_FIRST_PERIOD = [(m,f,t) for m in self.M_MODES for f in self.FM_FUEL[m] for t in [self.T_TIME_PERIODS[0]] if not self.tech_is_mature[(m,f)]]
 
-        self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_UPGRADE[(e,f)]) and (t in self.T_TIME_FIRST_STAGE) ]       
+        self.UT_UPG = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_UPG[(e,f)]) and (t in self.T_TIME_FIRST_STAGE) ]       
         self.UT_UPG_CONSTR = [(e,f,t) for (e,f) in self.U_UPGRADE for t in self.T_TIME_PERIODS_OPERATIONAL]  
 
         #
@@ -1149,7 +1092,7 @@ class TransportSets():
         self.ET_INV_S = combinations(self.ET_INV,self.S_SCENARIOS)
         self.KPT_S = combinations(self.KPT,self.S_SCENARIOS)
         self.KVT_S = combinations(self.KVT,self.S_SCENARIOS)
-        self.NCMT_S = combinations(self.NCMT,self.S_SCENARIOS)
+        self.NMT_S = combinations(self.NMT,self.S_SCENARIOS)
         self.MFT_S = combinations(self.MFT,self.S_SCENARIOS)
         self.MFT_MATURITY_CONSTR_S = combinations(self.MFT_MATURITY_CONSTR,self.S_SCENARIOS)
         self.MFT_NEW_YEARLY_S = combinations(self.MFT_NEW_YEARLY,self.S_SCENARIOS)
@@ -1164,8 +1107,8 @@ class TransportSets():
         self.MT_S = combinations(self.MT,self.S_SCENARIOS)
         self.MFT_CONSTR_S = combinations(self.MFT_CONSTR,self.S_SCENARIOS)
         self.M_MODES_S = combinations([(m,) for m in self.M_MODES],self.S_SCENARIOS)
-        self.NCM_S = combinations(self.NCM,self.S_SCENARIOS)
-        self.NCMT_CONSTR_S = combinations(self.NCMT_CONSTR,self.S_SCENARIOS)
+        self.NM_S = combinations(self.NM,self.S_SCENARIOS)
+        self.NMT_CONSTR_S = combinations(self.NMT_CONSTR,self.S_SCENARIOS)
         self.NMFVT_CONSTR_S = combinations(self.NMFVT_CONSTR,self.S_SCENARIOS)
         self.ODPTS_CONSTR_S = combinations(self.ODPTS_CONSTR,self.S_SCENARIOS)
         self.TS_S = combinations(self.TS,self.S_SCENARIOS)
