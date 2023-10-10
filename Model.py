@@ -306,23 +306,30 @@ class TranspModel:
         
         #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
         def TerminalCapRule(model, i, m,t,s):
-            return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                   sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                   sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
-                   self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
-                                                                            for tau in self.data.T_TIME_PERIODS 
-                                                                            if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) )
-                                                                            ) #and((i,m,tau) in self.data.NMT)
-                   + FEAS_RELAX )
+            if i in self.data.NM_NODES[m]:
+                return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                    sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                    sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
+                    self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
+                                                                                for tau in self.data.T_TIME_PERIODS 
+                                                                                if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) )
+                                                                                ) #and((i,m,tau) in self.data.NMT)
+                    + FEAS_RELAX )
+            else:
+                Constraint.Skip
         self.model.TerminalCap = Constraint(self.data.NMT_CONSTR_S, rule = TerminalCapRule)
         
         #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
         def TerminalCapExpRule(model, i, m,s):
-            return(sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
+            expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
                                                         if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE_INV[i,m])  ) 
-                                                        <= 1) 
+                                                        <= 1)
+            if isinstance(expression, bool):
+                return Constraint.Skip
+            else:
+                return(expression) 
         if len(self.data.T_TIME_PERIODS)>1:
-            self.model.TerminalCapExp = Constraint(self.data.NCM_S, rule = TerminalCapExpRule)
+            self.model.TerminalCapExp = Constraint(self.data.NM_S, rule = TerminalCapExpRule)
 
         #Charging / Filling
         def ChargingCapArcRule(model, i, j, m, r,f, t,s):

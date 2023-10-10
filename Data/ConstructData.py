@@ -310,24 +310,24 @@ class TransportSets():
         self.zone_to_centroid = {}
 
         for index, row in zone_data.iterrows():
-            zone = row["centroid_name"]
-            self.N_NODES.append(zone) 
-            self.centroid_to_nr[zone] = row["zone_nr"]
+            node = row["centroid_name"]
+            self.N_NODES.append(node) 
+            self.centroid_to_nr[node] = row["zone_nr"]
             self.zone_nr_to_centroid[row["zone_nr"]] = row["centroid_name"]
             self.zone_to_centroid[row["zone_name"]] = row["centroid_name"]
-            self.centroid_to_zone[zone] = row["zone_name"]
+            self.centroid_to_zone[node] = row["zone_name"]
             if row["abroad"] == 1:
-                self.N_ABROAD.append(zone)
+                self.N_ABROAD.append(node)
             if row["sea"] == 1:
-                self.SEA_NODES.append(zone)
+                self.SEA_NODES.append(node)
                 if row["abroad"] == 0:
-                    self.SEA_NODES_NORWAY.append(zone)
+                    self.SEA_NODES_NORWAY.append(node)
             if row["road"] == 1:
-                self.ROAD_NODES.append(zone)
+                self.ROAD_NODES.append(node)
             if row["rail"] == 1:
-                self.RAIL_NODES.append(zone)
+                self.RAIL_NODES.append(node)
                 if row["abroad"] == 0:
-                    self.RAIL_NODES_NORWAY.append(zone)
+                    self.RAIL_NODES_NORWAY.append(node)
 
         self.N_NODES_NORWAY = list(set(self.N_NODES) - set(self.N_ABROAD))
         self.N_NODES_CAP_NORWAY = {"Rail": self.RAIL_NODES_NORWAY,
@@ -652,7 +652,8 @@ class TransportSets():
                 edge = (j,i,m,r)    # flip edge if necessary
             # add to E_EDGES_INV if possible to invest
             if row["Capacity"] != -1:
-                self.E_EDGES_INV.append(edge)
+                if row["Capacity increase"] > 0:
+                    self.E_EDGES_INV.append(edge)
             # add to E_EDGES_UPG if possible to upgrade              
             if row["Upgradeable"] == 1:
                 self.E_EDGES_UPG.append(edge) 

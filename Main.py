@@ -38,7 +38,7 @@ from Utils import Logger
 #                   user input                  #
 #################################################
 
-
+READ_DATA_FROM_FILE = False  #Setting this to true is currently not working. (it potentially can save a lot of time in debug mode)
 analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
 scenario_tree = "4Scen" #4Scen, 9Scen
 analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
@@ -210,27 +210,31 @@ def construct_and_solve_SP_warm_start(base_data,
 
     return model_instance,base_data
 
-def generate_base_data():
+def generate_base_data(co2_factor=1,READ_FROM_FILE=False):
     
-    if scenario_tree == 'AllScen':
-        sheet_name_scenarios = 'scenarios' 
-    elif scenario_tree == '4Scen':
-        sheet_name_scenarios = 'four_scenarios' 
-    elif scenario_tree == '9Scen':
-        sheet_name_scenarios = 'nine_scenarios' 
+    if READ_FROM_FILE:
+        with open(r'Data//base_data//'+scenario_tree+'.pickle', 'rb') as data_file: 
+            base_data = pickle.load(data_file)
     
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios) 
-    base_data = interpolate(base_data, time_periods, num_first_stage_periods)
-    
-    risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
-    base_data.risk_information = risk_info
+    else:    
 
-    base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
-    
-    base_data.combined_sets()
+        if scenario_tree == 'AllScen':
+            sheet_name_scenarios = 'scenarios' 
+        elif scenario_tree == '4Scen':
+            sheet_name_scenarios = 'four_scenarios' 
+        elif scenario_tree == '9Scen':
+            sheet_name_scenarios = 'nine_scenarios' 
+        
+        print("Reading data...", flush=True)
+        start = time.time()
+        base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=co2_factor)                                # how many of the periods above are in first stage
+        base_data = interpolate(base_data, time_periods, num_first_stage_periods)
+        print("Done reading data.", flush=True)
+        print("Time used reading the base data:", time.time() - start,flush=True)
+        sys.stdout.flush()
 
-    with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file: 
-        pickle.dump(base_data, data_file)
+        #with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file:   #file becomes larger than 100MB
+        #    pickle.dump(base_data, data_file)
     
     return base_data
 
@@ -276,15 +280,7 @@ def main(analysis_type,
     
     #     --------- DATA  ---------   #
     
-            
-    print("Reading data...", flush=True)
-    start = time.time()
-    base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=co2_factor)                                # how many of the periods above are in first stage
-    base_data = interpolate(base_data, time_periods, num_first_stage_periods)
-
-    print("Done reading data.", flush=True)
-    print("Time used reading the base data:", time.time() - start,flush=True)
-    sys.stdout.flush()
+    base_data = generate_base_data(co2_factor=co2_factor,READ_FROM_FILE=READ_DATA_FROM_FILE)        
 
     if risk_aversion=="averse":
         cvar_alpha = 1-1/len(base_data.S_SCENARIOS)
@@ -294,6 +290,8 @@ def main(analysis_type,
     if single_time_period is not None:
         base_data.single_time_period = single_time_period
         base_data.combined_sets()
+
+
 
     #     --------- MODEL  ---------   #
     # solve model
@@ -364,6 +362,24 @@ if __name__ == "__main__":
     
     if analysis == "only_generate_data":
         base_data = generate_base_data()
+
+        if scenario_tree == 'AllScen':
+            sheet_name_scenarios = 'scenarios' 
+        elif scenario_tree == '4Scen':
+            sheet_name_scenarios = 'four_scenarios' 
+        elif scenario_tree == '9Scen':
+            sheet_name_scenarios = 'nine_scenarios' 
+
+        base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=1) 
+        base_data = interpolate(base_data, time_periods, num_first_stage_periods)
+        
+        risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
+        base_data.risk_information = risk_info
+
+        base_data.S_SCENARIOS = base_data.S_SCENARIOS_ALL
+        
+        base_data.combined_sets()
+
     elif analysis == "risk":
         risk_analysis()
     elif analysis == "standard":
