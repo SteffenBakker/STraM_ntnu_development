@@ -113,7 +113,7 @@ class TransportSets():
 
         #read/construct scenario information
         self.active_scenario_name = "benchmark" #no scenario has been activated; all data is from benchmark setting
-        self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios) #TODO: check performance of this
+        self.scenario_information = ScenarioInformation(self.prefix,sheet_name_scenarios)
         self.scenario_information_EV = ScenarioInformation(self.prefix,'EV_scenario') 
 
         self.risk_information = None
@@ -650,7 +650,7 @@ class TransportSets():
                         e = (i,j,m,r)
                     self.C_UPG[(e,f)] = round(row['Elektrifisering (NOK)']/self.scaling_factor_monetary,self.precision_digits)
                     self.LEAD_TIME_UPGRADE[(e,f)] = row['Leadtime']
-                    #TO DO: allow for partially electrified rail. Now we only take fully electrified. 
+                    #TODO: allow for partially electrified rail. Now we only take fully electrified. 
 
                 #if i == row["From"] and j == row["To"] and m == row["Mode"] and r == row["Route"] and u == 'Partially electrified rail':
                 #    self.C_INV_UPG[(l,u)] = row['Delelektrifisering (NOK)']/self.scaling_factor
@@ -679,7 +679,7 @@ class TransportSets():
                         self.C_NODE[i,c,m] = round(cap_data.iloc[0]['Kostnad']/self.scaling_factor_monetary,self.precision_digits)  #MNOK
                         self.LEAD_TIME_NODE[i,c,m] = cap_data.iloc[0]['Ledetid']
 
-        #this is bad programming -> To do: update
+        #this is bad programming -> TODO: update
         for (i, j, m, r) in self.E_EDGES_RAIL:
             a1 = (i, j, m, r)
             a2 = (j, i, m, r)

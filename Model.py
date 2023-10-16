@@ -432,7 +432,7 @@ class TranspModel:
             if len(self.data.T_TIME_PERIODS) > 1:
                 #Bass diffusion paths (1st stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]    (based on pessimistic beta)
                 def BassDiffusionRuleFirstStage(model,m,f,t,s):
-                    diff_has_started = (t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
+                    diff_has_started = int(t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
                     return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
                         <= diff_has_started * (self.data.tech_base_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s]
                         #+ (1 - self.data.tech_scen_p_q_variation[(m,f)]) * self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial pessimistic path
@@ -441,7 +441,7 @@ class TranspModel:
 
                 # Bass diffusion paths (2nd stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]   (based on scenario beta)
                 def BassDiffusionRuleSecondStage(model,m,f,t,s):
-                    diff_has_started = (t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
+                    diff_has_started = int(t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
                     return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
                         <= diff_has_started * ( self.data.tech_active_bass_model[(m,f,s)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s] 
                         + self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ) )  

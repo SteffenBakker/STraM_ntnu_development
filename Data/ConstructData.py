@@ -514,16 +514,10 @@ class TransportSets():
         #-----------------------      
 
         cost_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output costs')        
-        
-        # TODO: WHAT TO DO WITH THE FOUR LINES BELOW?
-        #self.emission_data = pd.read_excel(r'Data/emission_cap.xlsx', sheet_name='emission_cap')
-        #self.EMISSION_CAP_RELATIVE = dict(zip(self.emission_data['Year'], self.emission_data['Percentage']))
-        #self.EMISSION_CAP_RELATIVE = {year:round(cap/self.scaling_factor,0) for year,cap in self.EMISSION_CAP_RELATIVE.items()}   #this was max 4*10^13, now 4*10^7
-        #self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
-        
+              
         emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
 
-        self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes
+        self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes    # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
 
@@ -646,7 +640,7 @@ class TransportSets():
         self.E_EDGES_UPG = []           # list of upgradeable edges
         for index, row in edge_cap_data.iterrows():
             # define edge
-            (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])           # TODO: how do we refer to nodes? numbers? centroid names? zone names?
+            (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])    
             edge = (i,j,m,r)
             if (i,j,m,r) not in self.E_EDGES:
                 edge = (j,i,m,r)    # flip edge if necessary
@@ -684,7 +678,7 @@ class TransportSets():
         # fill edge data
         for index, row in edge_cap_data.iterrows():
             # define edge
-            (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])           # TODO: how do we refer to nodes?
+            (i,j,m,r) = (row["from_centroid"], row["to_centroid"], row["Mode"], row["Route"])       
             edge = (i,j,m,r)
             if (i,j,m,r) not in self.E_EDGES:
                 edge = (j,i,m,r)    # flip edge if necessary
@@ -706,7 +700,7 @@ class TransportSets():
         # fill node data
         for index, row in node_cap_data.iterrows():
             # define node
-            node = (row["centroid_name"], row["Mode"])    # TODO: HOW TO REFER TO NODES?
+            node = (row["centroid_name"], row["Mode"])   
             
             # initial capacities
             self.Q_NODE_BASE[node] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
@@ -758,7 +752,7 @@ class TransportSets():
 
         # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
         self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
-        self.C_CHARGE = {(e,f): 100000 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}    # TO DO, pick the right value
+        self.C_CHARGE = {(e,f): 100000 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}  
         self.LEAD_TIME_CHARGING = {(e,f): 50 for (e,f) in self.EF_CHARGING}
         max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
         for ((i, j, m, r),f) in self.EF_CHARGING:
@@ -826,6 +820,58 @@ class TransportSets():
         for index, row in init_mode_share.iterrows():
             (mm,share) = (row['Mode'], row['Share'])
             self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
+
+        #update R_TECH_READINESS_MATURITY based on scenario information
+        for s in self.S_SCENARIOS:
+            active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
+            for m in self.M_MODES:
+                for f in self.FM_FUEL[m]:
+                    if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
+                        cur_fg = self.scenario_information.mf_to_fg[(m,f)]
+                        cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
+                        # extract info from current base Bass model
+                        cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                        cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
+                        cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
+                                    
+                        # find current scenario's level of variation for q and p and delay for t_0 from base case
+                        cur_scen_p_q_variation = 0.0 
+                        cur_scen_t_0_delay = 0.0
+                        if cur_path_name == "base":
+                            cur_scen_p_q_variation = 0.0
+                            cur_scen_t_0_delay = 0.0
+                        if cur_path_name == "fast":
+                            cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
+                            cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
+                        elif cur_path_name == "slow":
+                            cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
+                            cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
+
+                        # construct scenario bass model
+                        cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
+                                                            cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
+                                                            cur_base_bass_model.m, 
+                                                            cur_base_bass_model.t_0 + cur_scen_t_0_delay)
+                        
+                        # set as active bass model
+                        self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
+
+                        # find start of second stage
+                        for t in self.T_TIME_PERIODS:
+                            if t not in self.T_TIME_FIRST_STAGE_BASE:
+                                start_of_second_stage = t
+                                break
+
+                        # fill R_TECH_READINESS_MATURITY based on current scenario bass model
+                        for t in self.T_TIME_PERIODS:
+                            if t in self.T_TIME_FIRST_STAGE_BASE:
+                                # first stage: follow base bass model
+                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
+                            else:
+                                # second stage: use scenario bass model, with starting point A(2030) from base bass model
+                                t_init = start_of_second_stage #initialize diffusion at start of second stage
+                                A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
+                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
 
 
         #----------------------------------------
