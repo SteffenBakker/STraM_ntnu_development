@@ -19,7 +19,7 @@ if not os.path.exists(basepath+"/temp/pyomo"):
 
 from Model import TranspModel, RiskInformation
 from ExtractResults import OutputData
-from Data.ConstructData import TransportSets
+from Data.ConstructData import TransportSets, get_scen_sheet_name
 from Data.settings import *
 from Data.interpolate import interpolate
 from VisualizeResults import visualize_results
@@ -40,7 +40,7 @@ from Utils import Logger
 
 READ_DATA_FROM_FILE = False  #Setting this to true is currently not working. (it potentially can save a lot of time in debug mode)
 analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-scenario_tree = "4Scen" #4Scen, 9Scen
+scenario_tree = "4Scen"     # Options: 4Scen, 9Scen, AllScen
 analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
@@ -218,12 +218,7 @@ def generate_base_data(co2_factor=1,READ_FROM_FILE=False):
     
     else:    
 
-        if scenario_tree == 'AllScen':
-            sheet_name_scenarios = 'scenarios' 
-        elif scenario_tree == '4Scen':
-            sheet_name_scenarios = 'four_scenarios' 
-        elif scenario_tree == '9Scen':
-            sheet_name_scenarios = 'nine_scenarios' 
+        sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
         
         print("Reading data...", flush=True)
         start = time.time()
@@ -249,12 +244,7 @@ def main(analysis_type,
     
     #     --------- Setup  ---------   #
 
-    if scenario_tree == 'AllScen':
-        sheet_name_scenarios = 'scenarios_base' 
-    elif scenario_tree == '4Scen':
-        sheet_name_scenarios = 'four_scenarios' 
-    elif scenario_tree == '9Scen':
-        sheet_name_scenarios = 'nine_scenarios' 
+    sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
         
     run_identifier = analysis_type + '_' + scenario_tree
 
@@ -363,12 +353,7 @@ if __name__ == "__main__":
     if analysis == "only_generate_data":
         base_data = generate_base_data()
 
-        if scenario_tree == 'AllScen':
-            sheet_name_scenarios = 'scenarios' 
-        elif scenario_tree == '4Scen':
-            sheet_name_scenarios = 'four_scenarios' 
-        elif scenario_tree == '9Scen':
-            sheet_name_scenarios = 'nine_scenarios' 
+        sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
 
         base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=1) 
         base_data = interpolate(base_data, time_periods, num_first_stage_periods)

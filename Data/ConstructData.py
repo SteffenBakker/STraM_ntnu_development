@@ -38,6 +38,17 @@ from path_generation import path_generation
 
 # from FreightTransportModel.Utils import plot_all_graphs  #FreightTransportModel.
 
+# Translate scenario_tree to the name of the corresponding excel sheet
+def get_scen_sheet_name(scenario_tree):
+    sheet_name_scenarios = ""
+    if scenario_tree == 'AllScen':
+        sheet_name_scenarios = 'scenarios_base' 
+    elif scenario_tree == '4Scen':
+        sheet_name_scenarios = 'four_scenarios' 
+    elif scenario_tree == '9Scen':
+        sheet_name_scenarios = 'nine_scenarios' 
+    return sheet_name_scenarios
+
 #Class containing information about all scenarios
 #Information in this class can be used to activate a scenario in a TransportSets object, meaning that the corresponding parameter values are changed
 class ScenarioInformation():
@@ -94,13 +105,12 @@ class ScenarioInformation():
 
     
         # read and process scenario data
-        self.scenario_file = "scenarios.xlsx" #potentially make this an input parameter to choose a scenario set
-        scenario_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="scenarios_base")
+        scenario_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name=sh_name)
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
         
-        variability_data = pd.read_excel(r'Data/'+self.scenario_file, sheet_name="variability")
+        variability_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name="variability")
         self.variability = None
         for index, row in variability_data.iterrows():
             if index == 0:
@@ -141,11 +151,6 @@ class ScenarioInformation():
             for fg in self.fuel_group_names:
                 for mf in self.fuel_groups[fg]:
                     self.mode_fuel_cost_factor[s][mf] = self.fg_cost_factor[s][fg]
-
-        
-
-test_scenario_information = ScenarioInformation('Data/')
-
 
 
 
