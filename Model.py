@@ -280,6 +280,8 @@ class TranspModel:
         
         # self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
 
+        
+
         #-----------------------------------------------#
         
         #CAPACITY
@@ -288,13 +290,13 @@ class TranspModel:
             a = (ii,jj,mm,rr)
             return (sum(self.model.x_flow[a, f, p, t, s] for p in self.data.P_PRODUCTS for f in self.data.FM_FUEL[m]) + 
                     sum(self.model.b_flow[a, f, v, t, s] for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) <= 0.5*(self.data.Q_EDGE_BASE[e] +
-                   + self.data.Q_EDGE_INV[e] * sum(self.model.epsilon_edge[e, tau, s] 
+                + self.data.Q_EDGE_INV[e] * sum(self.model.epsilon_edge[e, tau, s] 
                                                     for tau in self.data.T_TIME_PERIODS 
                                                     if (tau <= (t-self.data.LEAD_TIME_EDGE_INV[e]))    
                                                     and (tau in self.data.T_TIME_FIRST_STAGE)
                                                     )
                                                     )   
-                   + FEAS_RELAX )
+                + FEAS_RELAX )
         self.model.CapacitatedFlow = Constraint(self.data.EAT_INV_CONSTR_S, rule = CapacitatedFlowRule)
         
         #Num expansions
@@ -303,45 +305,51 @@ class TranspModel:
             return ( sum(self.model.epsilon_edge[(e,t,s)] for t in self.data.T_TIME_PERIODS if e+(t,) in self.data.ET_INV)<= 1)
         if len(self.data.T_TIME_PERIODS)>1:
             self.model.ExpansionCap = Constraint(self.data.E_EDGES_INV_S, rule = ExpansionLimitRule)
+
+
         
-        #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
-        def TerminalCapRule(model, i, m,t,s):
-            if i in self.data.NM_NODES[m]:
-                return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                    sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                    sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
-                    self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
-                                                                                for tau in self.data.T_TIME_PERIODS 
-                                                                                if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) )
-                                                                                ) #and((i,m,tau) in self.data.NMT)
-                    + FEAS_RELAX )
-            else:
-                Constraint.Skip
-        self.model.TerminalCap = Constraint(self.data.NMT_CONSTR_S, rule = TerminalCapRule)
+        if False: #This currently leads to infeasibility
+
+            #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
+            def TerminalCapRule(model, i, m,t,s):
+                if i in self.data.NM_NODES[m]:
+                    return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                        sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                        sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
+                        self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
+                                                                                    for tau in self.data.T_TIME_PERIODS 
+                                                                                    if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) )
+                                                                                    ) #and((i,m,tau) in self.data.NMT)
+                        + FEAS_RELAX )
+                else:
+                    Constraint.Skip
+            self.model.TerminalCap = Constraint(self.data.NMT_CONSTR_S, rule = TerminalCapRule)
+            
+            #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
+            def TerminalCapExpRule(model, i, m,s):
+                expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
+                                                            if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE_INV[i,m])  ) 
+                                                            <= 1)
+                if isinstance(expression, bool):
+                    return Constraint.Skip
+                else:
+                    return(expression) 
+            if len(self.data.T_TIME_PERIODS)>1:
+                self.model.TerminalCapExp = Constraint(self.data.NM_S, rule = TerminalCapExpRule)
+
         
-        #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
-        def TerminalCapExpRule(model, i, m,s):
-            expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
-                                                        if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE_INV[i,m])  ) 
-                                                        <= 1)
-            if isinstance(expression, bool):
-                return Constraint.Skip
-            else:
-                return(expression) 
-        if len(self.data.T_TIME_PERIODS)>1:
-            self.model.TerminalCapExp = Constraint(self.data.NM_S, rule = TerminalCapExpRule)
 
         #Charging / Filling
         def ChargingCapArcRule(model, i, j, m, r,f, t,s):
             e = (i, j, m, r)
             return (sum(self.model.x_flow[a,f,p, t,s] for p in self.data.P_PRODUCTS
-                       for a in self.data.AE_ARCS[e]) + sum(self.model.b_flow[a,f,v, t,s] for a in self.data.AE_ARCS[e] 
+                    for a in self.data.AE_ARCS[e]) + sum(self.model.b_flow[a,f,v, t,s] for a in self.data.AE_ARCS[e] 
                         for v in self.data.VEHICLE_TYPES_M[m]) <= self.data.Q_CHARGE_BASE[(e,f)] +
-                   sum(self.model.y_charge[(e,f,tau,s)] 
-                       for tau in self.data.T_TIME_PERIODS 
-                       if ( (tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)]))  )   
-                       ) 
-                   + FEAS_RELAX )
+                sum(self.model.y_charge[(e,f,tau,s)] 
+                    for tau in self.data.T_TIME_PERIODS 
+                    if ( (tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)]))  )   
+                    ) 
+                + FEAS_RELAX )
         self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE_CONSTR_S, rule=ChargingCapArcRule)
         #AIM also looked into charging infrastructure in NODES
 
@@ -350,13 +358,15 @@ class TranspModel:
             e = (i,j,m,r)
             return (sum(self.model.x_flow[a,f,p,t,s] for p in self.data.P_PRODUCTS for a in self.data.AE_ARCS[e])
                     <= self.data.BIG_M_UPG[e]*sum(self.model.upsilon_upg[e,f,tau,s] 
-                                                  for tau in self.data.T_TIME_PERIODS 
-                                                  if (tau <= (t-self.data.LEAD_TIME_EDGE_UPG[(e,f)])) and
-                                                     (tau in self.data.T_TIME_FIRST_STAGE)   #and((e,f,tau) in self.data.UT_UPG)
-                                                  )   
+                                                for tau in self.data.T_TIME_PERIODS 
+                                                if (tau <= (t-self.data.LEAD_TIME_EDGE_UPG[(e,f)])) and
+                                                    (tau in self.data.T_TIME_FIRST_STAGE)   #and((e,f,tau) in self.data.UT_UPG)
+                                                )   
                     + FEAS_RELAX )
         self.model.InvestmentInfra = Constraint(self.data.UT_UPG_CONSTR_S, rule = InvestmentInfraRule)
-    
+        
+        
+
         #-----------------------------------------------#
     
         #TransportArbeid
@@ -371,82 +381,87 @@ class TranspModel:
             + FEAS_RELAX )   #R_TECH is the A from the Bass diffusion model
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY_CONSTR_S, rule = TechMaturityLimitRule)
 
+        if True:
 
-        if self.single_time_period is None:
-            
-            
-            #Initialize the transport amounts (put an upper bound at first)
-            def InitTranspAmountRule(model, m, f, t,s):
-                return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   
-            self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
-            
-            #Note, due to our initialization, this one can lead to infeasibility due to capacity limits on rail.  
-            def InitialModeSplit(model,m,s):
-                if m=='Rail':
-                    return Constraint.Skip                    
-                else:
-                    t0 = self.data.T_TIME_PERIODS[0]
-                    total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
-                    modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
-                    return modal_transport_amount >= (self.data.INIT_MODE_SPLIT[m]-0.01)*total_transport_amount    
-            self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
-        
-            #Auxiliary transport amount (q_aux equal to q in all decision periods t)
-            def AuxTransportAmountRule(model,m,f,t,s):
-                return (self.model.q_aux_transp_amount[m,f,t,s] == self.model.q_transp_amount[m,f,t,s]) #auxiliary q variable equal to "normal" q variable 
-            self.model.AuxTranspAmount = Constraint(self.data.MFT_NEW_S, rule = AuxTransportAmountRule) #note: only in decision periods
 
-            #Total mode transport amount (q_mode_total equal to sum over q_aux for all f in F[m], for decision periods)
-            def ModeTotalTransportAmountRule(model,m,t,s):
-                return (self.model.q_mode_total_transp_amount[m,t,s] == sum( self.model.q_transp_amount[m,f,t,s] for f in self.data.FM_FUEL[m] ))
-            self.model.ModeTotalTransportAmount = Constraint(self.data.MT_S, rule = ModeTotalTransportAmountRule) 
-
-            #Restriction on modal transport amount decrease
-            def DecreaseInModeTotalTransportAmountRule(model,m,t,s):
-                return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
-            self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule) 
+            if self.single_time_period is None:
+                
+                
+                if True:
+                    #Initialize the transport amounts (put an upper bound at first)
+                    def InitTranspAmountRule(model, m, f, t,s):
+                        return (self.model.q_transp_amount[(m,f,t,s)] <= round(self.data.Q_SHARE_INIT_MAX[(m,f,t)]/100,NUM_DIGITS_PRECISION)*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))   
+                    self.model.InitTranspAmount = Constraint(self.data.MFT_INIT_TRANSP_SHARE_S, rule = InitTranspAmountRule)
                     
-            #Fleet Renewal
-            def FleetRenewalRule(model,m,t,s):
-                all_decreases = sum(self.model.q_transp_delta[(m,f,t,s)] for f in self.data.FM_FUEL[m])
-                factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[m]
-                return (all_decreases <= factor*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
-            self.model.FleetRenewal = Constraint(self.data.MT_MIN0_S, rule = FleetRenewalRule)
+                    #Note, due to our initialization, this one can lead to infeasibility due to capacity limits on rail.  
+                    def InitialModeSplit(model,m,s):
+                        if m=='Rail':
+                            return Constraint.Skip                    
+                        else:
+                            t0 = self.data.T_TIME_PERIODS[0]
+                            total_transport_amount = sum(self.model.q_transp_amount[(mm,f,t0,s)] for mm in self.data.M_MODES for f in self.data.FM_FUEL[mm])
+                            modal_transport_amount = sum(self.model.q_transp_amount[(m,f,t0,s)] for f in self.data.FM_FUEL[m])
+                            return modal_transport_amount >= (self.data.INIT_MODE_SPLIT[m]-0.01)*total_transport_amount    
+                    self.model.InitialModeSplitConstr = Constraint(self.data.M_MODES_S,rule = InitialModeSplit)
             
-            def FleetRenewalPosPartRule(model,m,f,t,s):
-                decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)] - self.model.q_transp_amount[(m,f,t,s)]
-                return (self.model.q_transp_delta[(m,f,t,s)] >= decrease)
-            self.model.FleetRenewalPosPart = Constraint(self.data.MFT_MIN0_S, rule = FleetRenewalPosPartRule)
+                
+                    #Auxiliary transport amount (q_aux equal to q in all decision periods t)
+                    def AuxTransportAmountRule(model,m,f,t,s):
+                        return (self.model.q_aux_transp_amount[m,f,t,s] == self.model.q_transp_amount[m,f,t,s]) #auxiliary q variable equal to "normal" q variable 
+                    self.model.AuxTranspAmount = Constraint(self.data.MFT_NEW_S, rule = AuxTransportAmountRule) #note: only in decision periods
 
+                    #Total mode transport amount (q_mode_total equal to sum over q_aux for all f in F[m], for decision periods)
+                    def ModeTotalTransportAmountRule(model,m,t,s):
+                        return (self.model.q_mode_total_transp_amount[m,t,s] == sum( self.model.q_transp_amount[m,f,t,s] for f in self.data.FM_FUEL[m] ))
+                    self.model.ModeTotalTransportAmount = Constraint(self.data.MT_S, rule = ModeTotalTransportAmountRule) 
 
-            #-- Bass diffusion ----------------------
+                    #Restriction on modal transport amount decrease
+                    def DecreaseInModeTotalTransportAmountRule(model,m,t,s):
+                        return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
+                    self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule) 
 
-            #most likely not needed
-            #Bass diffusion paths first period (initial values): q[t] <= (2022 - t_0)^+ * alpha * q_bar[t]
-            def BassDiffusionRuleFirstPeriod(model,m,f,t,s):
-                pos_part = max(self.data.T_TIME_PERIODS[0] - self.data.tech_base_bass_model[(m,f)].t_0, 0)
-                return ( self.model.q_transp_amount[m,f,t,s] <= pos_part * self.data.tech_base_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,t,s] )
-            self.model.BassDiffusionFirstPeriod = Constraint(self.data.MFT_NEW_FIRST_PERIOD_S, rule = BassDiffusionRuleFirstPeriod)
+                if True:        
+                    #Fleet Renewal
+                    def FleetRenewalRule(model,m,t,s):
+                        all_decreases = sum(self.model.q_transp_delta[(m,f,t,s)] for f in self.data.FM_FUEL[m])
+                        factor = (t - self.data.T_MIN1[t]) / self.data.LIFETIME[m]
+                        return (all_decreases <= factor*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
+                    self.model.FleetRenewal = Constraint(self.data.MT_MIN0_S, rule = FleetRenewalRule)
+                    
+                    def FleetRenewalPosPartRule(model,m,f,t,s):
+                        decrease = self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)] - self.model.q_transp_amount[(m,f,t,s)]
+                        return (self.model.q_transp_delta[(m,f,t,s)] >= decrease)
+                    self.model.FleetRenewalPosPart = Constraint(self.data.MFT_MIN0_S, rule = FleetRenewalPosPartRule)
 
-            # only add remaining Bass diffusion constraints if we run the full model (not just first period in the initialization run)
-            if len(self.data.T_TIME_PERIODS) > 1:
-                #Bass diffusion paths (1st stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]    (based on pessimistic beta)
-                def BassDiffusionRuleFirstStage(model,m,f,t,s):
-                    diff_has_started = int(t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
-                    return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
-                        <= diff_has_started * (self.data.tech_base_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s]
-                        #+ (1 - self.data.tech_scen_p_q_variation[(m,f)]) * self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial pessimistic path
-                        + self.data.tech_base_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ))   #initial base path
-                self.model.BassDiffusionFirstStage = Constraint(self.data.MFT_NEW_YEARLY_FIRST_STAGE_MIN0_S, rule = BassDiffusionRuleFirstStage)
+                if True:
+                    #-- Bass diffusion ----------------------
 
-                # Bass diffusion paths (2nd stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]   (based on scenario beta)
-                def BassDiffusionRuleSecondStage(model,m,f,t,s):
-                    diff_has_started = int(t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
-                    return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
-                        <= diff_has_started * ( self.data.tech_active_bass_model[(m,f,s)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s] 
-                        + self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ) )  
-                        # q(t) - q(t-1) <= alpha * q_bar(|_t-1_|) + beta * q(t-1)
-                self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE_S, rule = BassDiffusionRuleSecondStage)
+                    #most likely not needed
+                    #Bass diffusion paths first period (initial values): q[t] <= (2022 - t_0)^+ * alpha * q_bar[t]
+                    def BassDiffusionRuleFirstPeriod(model,m,f,t,s):
+                        pos_part = max(self.data.T_TIME_PERIODS[0] - self.data.tech_base_bass_model[(m,f)].t_0, 0)
+                        return ( self.model.q_transp_amount[m,f,t,s] <= pos_part * self.data.tech_base_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,t,s] )
+                    self.model.BassDiffusionFirstPeriod = Constraint(self.data.MFT_NEW_FIRST_PERIOD_S, rule = BassDiffusionRuleFirstPeriod)
+
+                    # only add remaining Bass diffusion constraints if we run the full model (not just first period in the initialization run)
+                    if len(self.data.T_TIME_PERIODS) > 1:
+                        #Bass diffusion paths (1st stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]    (based on pessimistic beta)
+                        def BassDiffusionRuleFirstStage(model,m,f,t,s):
+                            diff_has_started = int(t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
+                            return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
+                                <= diff_has_started * (self.data.tech_base_bass_model[(m,f)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s]
+                                #+ (1 - self.data.tech_scen_p_q_variation[(m,f)]) * self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1] ))   #initial pessimistic path
+                                + self.data.tech_base_bass_model[(m,f)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ))   #initial base path
+                        self.model.BassDiffusionFirstStage = Constraint(self.data.MFT_NEW_YEARLY_FIRST_STAGE_MIN0_S, rule = BassDiffusionRuleFirstStage)
+
+                        # Bass diffusion paths (2nd stage): change in q is at most alpha * q_bar[t-1] + beta * q[t-1]   (based on scenario beta)
+                        def BassDiffusionRuleSecondStage(model,m,f,t,s):
+                            diff_has_started = int(t >= self.data.tech_base_bass_model[(m,f)].t_0) # boolean indicating whether diffusion process has started at time t
+                            return ( self.model.q_aux_transp_amount[m,f,t,s] - self.model.q_aux_transp_amount[m,f,t-1,s] 
+                                <= diff_has_started * ( self.data.tech_active_bass_model[(m,f,s)].p * self.model.q_mode_total_transp_amount[m,self.data.T_MOST_RECENT_DECISION_PERIOD[t-1],s] 
+                                + self.data.tech_active_bass_model[(m,f,s)].q * self.model.q_aux_transp_amount[m,f,t-1,s] ) )  
+                                # q(t) - q(t-1) <= alpha * q_bar(|_t-1_|) + beta * q(t-1)
+                        self.model.BassDiffusionSecondStage = Constraint(self.data.MFT_NEW_YEARLY_SECOND_STAGE_S, rule = BassDiffusionRuleSecondStage)
 
         #-----------------------------------------------#
 
@@ -824,20 +839,16 @@ class TranspModel:
                                         keepfiles=False)  
                                         #https://pyomo.readthedocs.io/en/stable/working_abstractmodels/pyomo_command.html
         if True:
-            if (results.solver.status == pyomo.opt.SolverStatus.ok) and (
-                    results.solver.termination_condition == pyomo.opt.TerminationCondition.optimal):
+            solver_stat = results.solver.status
+            termination_cond = results.solver.termination_condition
+            if (solver_stat == pyomo.opt.SolverStatus.ok) and (
+                    termination_cond == pyomo.opt.TerminationCondition.optimal):
                 print('the solution is feasible and optimal')
-            elif results.solver.termination_condition == pyomo.opt.TerminationCondition.infeasible:
-                print('the model is infeasible')
+            else:
                 log_infeasible_constraints(self.model)
                 log_infeasible_constraints(self.model, log_expression=True, log_variables=True)
                 logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
-                raise Exception('the model is infeasible')
-                #logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.INFO)
-                #print(value(model.z))
-
-            else:
-                raise Exception('Solver Status: ', results.solver.status, 'Termination Condition: ', results.solver.termination_condition )
+                raise Exception('Solver Status: ', solver_stat, 'Termination Condition: ', termination_cond )
                 #print('Solver Status: '), self.results.solver.status
                 #print('Termination Condition: '), self.results.solver.termination_condition
 

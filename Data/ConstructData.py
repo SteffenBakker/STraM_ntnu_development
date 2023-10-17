@@ -715,7 +715,7 @@ class TransportSets():
                 self.Q_NODE_INV[node] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
                 self.C_NODE_INV[node] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
                 self.LEAD_TIME_NODE_INV[node] = row["Lead time"]
-
+        
         
 
         # Big M        
