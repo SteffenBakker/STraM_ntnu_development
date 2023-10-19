@@ -305,9 +305,7 @@ class TransportSets():
         self.N_NODES = []
         self.SEA_NODES = []
         self.ROAD_NODES = []
-        self.SEA_NODES_NORWAY = []
         self.RAIL_NODES = []
-        self.RAIL_NODES_NORWAY = []
         self.N_ABROAD = []
         self.centroid_to_nr = {}
         self.centroid_to_zone = {}
@@ -325,26 +323,23 @@ class TransportSets():
                 self.N_ABROAD.append(node)
             if row["sea"] == 1:
                 self.SEA_NODES.append(node)
-                if row["abroad"] == 0:
-                    self.SEA_NODES_NORWAY.append(node)
             if row["road"] == 1:
                 self.ROAD_NODES.append(node)
             if row["rail"] == 1:
                 self.RAIL_NODES.append(node)
-                if row["abroad"] == 0:
-                    self.RAIL_NODES_NORWAY.append(node)
+
 
         self.N_NODES_NORWAY = list(set(self.N_NODES) - set(self.N_ABROAD))
-        self.N_NODES_CAP_NORWAY = {"Rail": self.RAIL_NODES_NORWAY,
-                                    "Sea": self.SEA_NODES_NORWAY}
+        
 
         self.NM_NODES = {m:None for m in self.M_MODES}
         self.NM_NODES["Road"] = self.ROAD_NODES
         self.NM_NODES["Sea"] = self.SEA_NODES
         self.NM_NODES["Rail"] = self.RAIL_NODES
 
-        self.M_MODES_CAP = ["Rail", "Sea"]
-        
+        self.M_MODES_CAP = ["Rail", "Sea"] #this should be done in capacity excel sheet
+        #self.N_NODES_CAP_NORWAY = {"Rail": self.RAIL_NODES_NORWAY,"Sea": self.SEA_NODES_NORWAY} #this should be done in capacity excel sheet
+
         self.N_ZONE_NR = dict(zip(zone_data.centroid_name, zone_data.zone_nr))
         self.N_ZONE_NAME = dict(zip(zone_data.centroid_name, zone_data.zone_name))
         self.N_LATITUDE = dict(zip(zone_data.centroid_name, zone_data.latitude))
@@ -387,10 +382,6 @@ class TransportSets():
             self.AE_ARCS[a1].append(a2)
             self.AM_ARCS[m].append(a1)
             self.AM_ARCS[m].append(a2)
-        
-        
-
-        self.NM_LIST_CAP = [(node, mode) for mode in self.M_MODES_CAP for node in self.N_NODES_CAP_NORWAY[mode]]
 
 
         self.ANM_ARCS_IN = {(n,m):[] for n in self.N_NODES for m in self.M_MODES}
@@ -537,14 +528,19 @@ class TransportSets():
             #No immediate need for scaling, as already in NOK/Tonnes
 
 
-        # read CO2 fee
-        self.CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx')["Parameter Input"]
-        
-
-        self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
-        for y in self.T_TIME_PERIODS:
-            self.CO2_fee[y] = sigmoid(y, self.CO2_fee_data['L47'].value, self.CO2_fee_data['M47'].value, self.CO2_fee_data['L46'].value, self.CO2_fee_data['M46'].value, self.CO2_fee_data['O47'].value, self.CO2_fee_data['P47'].value, self.CO2_fee_data['Q47'].value)
-        
+        if True: #I assume this leads to an error (maybe because there was a .self)
+            # read CO2 fee
+            CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx')["Parameter Input"]
+            
+            self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
+            for y in self.T_TIME_PERIODS:
+                self.CO2_fee[y] = sigmoid(y, CO2_fee_data['L47'].value, 
+                                        CO2_fee_data['M47'].value, 
+                                        CO2_fee_data['L46'].value, 
+                                        CO2_fee_data['M46'].value, 
+                                        CO2_fee_data['O47'].value, 
+                                        CO2_fee_data['P47'].value, 
+                                        CO2_fee_data['Q47'].value)
 
 
         COST_BIG_M = 10**8
@@ -702,20 +698,26 @@ class TransportSets():
                 self.C_EDGE_UPG[(edge, 'Catenary')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
                 self.LEAD_TIME_EDGE_UPG[(edge, 'Catenary')] = row["Upgrade lead time"]  # HARDCODED
         
+        self.NM_CAP = []
+        self.NM_CAP_INCR = []
         # fill node data
         for index, row in node_cap_data.iterrows():
             # define node
-            node = (row["centroid_name"], row["Mode"])   
+            i = row["centroid_name"]
+            m = row["Mode"]
             
-            # initial capacities
-            self.Q_NODE_BASE[node] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
-
+            
             # investments
             if row["Capacity"] != -1:
-                self.Q_NODE_INV[node] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
-                self.C_NODE_INV[node] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
-                self.LEAD_TIME_NODE_INV[node] = row["Lead time"]
-        
+                
+                # initial capacities
+                self.Q_NODE_BASE[(i,m)] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
+                self.Q_NODE_INV[(i,m)] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
+                self.C_NODE_INV[(i,m)] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
+                self.LEAD_TIME_NODE_INV[(i,m)] = row["Lead time"]
+                self.NM_CAP.append((i,m))
+                if row["Capacity increase"] > 0.01:
+                    self.NM_CAP_INCR.append((i,m))
         
 
         # Big M        
@@ -943,28 +945,27 @@ class TransportSets():
         self.UNI_MODAL_PATHS = list(set(self.K_PATHS)-set(self.MULTI_MODE_PATHS))
 
         #Paths with transfer in node i to/from mode m
-        self.TRANSFER_PATHS = {(i,m) : [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
-        
-        for m in self.M_MODES_CAP:
-            for i in self.N_NODES_CAP_NORWAY[m]:
-                for kk in self.MULTI_MODE_PATHS:
-                    k = self.K_PATH_DICT[kk]
-                    for j in range(len(k)-1):
-                        if (k[j][1] == i) and (k[j][2] == m or k[j+1][2] == m) and (k[j][2] != k[j+1][2]):
-                            self.TRANSFER_PATHS[(i,m)].append(kk)
+        #self.TRANSFER_PATHS = {(i,m) : [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
+        self.TRANSFER_PATHS = {(i,m) : [] for (i,m) in self.NM_CAP}  #When transfering, you will have to use a mode with a capacitated terminal (rail or sea)
 
-        #Origin and destination paths
-        self.ORIGIN_PATHS = {(i,m): [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
-        self.DESTINATION_PATHS = {(i,m): [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
+        for (i,m) in self.NM_CAP:
+            for kk in self.MULTI_MODE_PATHS:
+                k = self.K_PATH_DICT[kk]
+                for j in range(len(k)-1):
+                    if (k[j][1] == i) and (k[j][2] == m or k[j+1][2] == m) and (k[j][2] != k[j+1][2]):
+                        self.TRANSFER_PATHS[(i,m)].append(kk)
+
+        #Origin and destination paths  (this is used to calculate the capacity usage in terminals)
+        self.ORIGIN_PATHS = {(i,m): [] for (i,m) in self.NM_CAP}
+        self.DESTINATION_PATHS = {(i,m): [] for (i,m) in self.NM_CAP}
         
-        for m in self.M_MODES_CAP:
-            for i in self.N_NODES_CAP_NORWAY[m]:
-                for kk in self.K_PATHS:
-                    k = self.K_PATH_DICT[kk]
-                    if (k[0][0] == i) and (k[0][2] == m):
-                        self.ORIGIN_PATHS[(i,m)].append(kk)
-                    if (k[-1][1] == i) and (k[-1][2] == m):
-                        self.DESTINATION_PATHS[(i,m)].append(kk)
+        for (i,m) in self.NM_CAP:
+            for kk in self.K_PATHS:
+                k = self.K_PATH_DICT[kk]
+                if (k[0][0] == i) and (k[0][2] == m):
+                    self.ORIGIN_PATHS[(i,m)].append(kk)
+                if (k[-1][1] == i) and (k[-1][2] == m):
+                    self.DESTINATION_PATHS[(i,m)].append(kk)
         
         
         self.KA_PATHS = {a:[] for a in self.A_ARCS}
@@ -1061,7 +1062,6 @@ class TransportSets():
         "Combined sets - time independent"
         #------------------------
 
-        self.NM = [(i,m) for (i,m) in self.NM_LIST_CAP]
         self.MF = [(m,f) for m in self.M_MODES for f in self.FM_FUEL[m]]
 
         "Combined sets - time dependent"
@@ -1089,8 +1089,9 @@ class TransportSets():
         self.EAT_INV_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
         self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_CHARGING[(e,f)]]
         self.EFT_CHARGE_CONSTR = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS_OPERATIONAL]
-        self.NMT = [(i,m,t) for (i,m) in self.NM for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_NODE_INV[i,m]]
-        self.NMT_CONSTR = [(i,m,t) for (i,m) in self.NM for t in self.T_TIME_PERIODS_OPERATIONAL ]
+        self.NM_CAP_INCR_T = [(i,m,t) for (i,m) in self.NM_CAP_INCR for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_NODE_INV[i,m]]
+        self.NM_CAP_T = [(i,m,t) for (i,m) in self.NM_CAP for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_NODE_INV[i,m]]
+        self.NM_CAP_T_CONSTR = [(i,m,t) for (i,m) in self.NM_CAP for t in self.T_TIME_PERIODS_OPERATIONAL ]
         self.NMFVT = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
                                     for v in self.VEHICLE_TYPES_M[m] for t in self.T_TIME_PERIODS]
         self.NMFVT_CONSTR = [(i,m,f,v,t) for m in self.M_MODES for f in self.FM_FUEL[m] for i in self.NM_NODES[m]
@@ -1144,7 +1145,11 @@ class TransportSets():
         self.ET_INV_S = combinations(self.ET_INV,self.S_SCENARIOS)
         self.KPT_S = combinations(self.KPT,self.S_SCENARIOS)
         self.KVT_S = combinations(self.KVT,self.S_SCENARIOS)
-        self.NMT_S = combinations(self.NMT,self.S_SCENARIOS)
+        self.NM_CAP_S = combinations(self.NM_CAP,self.S_SCENARIOS)
+        self.NM_CAP_T_CONSTR_S = combinations(self.NM_CAP_T_CONSTR,self.S_SCENARIOS)
+        self.NM_CAP_T_S = combinations(self.NM_CAP_T,self.S_SCENARIOS)
+        self.NM_CAP_INCR_T_S = combinations(self.NM_CAP_INCR_T,self.S_SCENARIOS)
+        self.NM_CAP_INCR_S = combinations(self.NM_CAP_INCR,self.S_SCENARIOS)  
         self.MFT_S = combinations(self.MFT,self.S_SCENARIOS)
         self.MFT_MATURITY_CONSTR_S = combinations(self.MFT_MATURITY_CONSTR,self.S_SCENARIOS)
         self.MFT_NEW_YEARLY_S = combinations(self.MFT_NEW_YEARLY,self.S_SCENARIOS)
@@ -1159,8 +1164,6 @@ class TransportSets():
         self.MT_S = combinations(self.MT,self.S_SCENARIOS)
         self.MFT_CONSTR_S = combinations(self.MFT_CONSTR,self.S_SCENARIOS)
         self.M_MODES_S = combinations([(m,) for m in self.M_MODES],self.S_SCENARIOS)
-        self.NM_S = combinations(self.NM,self.S_SCENARIOS)
-        self.NMT_CONSTR_S = combinations(self.NMT_CONSTR,self.S_SCENARIOS)
         self.NMFVT_CONSTR_S = combinations(self.NMFVT_CONSTR,self.S_SCENARIOS)
         self.ODPTS_CONSTR_S = combinations(self.ODPTS_CONSTR,self.S_SCENARIOS)
         self.TS_S = combinations(self.TS,self.S_SCENARIOS)

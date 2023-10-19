@@ -13,9 +13,9 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-run_all_analyses = True
-analysis = "base" 
-scenarios = "9Scen"   # AllScen, 4Scen, 9Scen
+run_all_analyses = False
+analysis = "eev" 
+scenarios = "4Scen"   # AllScen, 4Scen, 9Scen
 
 #------------------------------------------------------#
 
@@ -323,17 +323,21 @@ def visualize_results(analyses_type,scenarios,
         
         #https://matplotlib.org/stable/gallery/color/named_colors.html
         color_dict = {'Diesel':                 'firebrick', 
+                        'Battery':              'mediumseagreen',
+                        'Catenary':              'mediumseagreen',
                         'Ammonia':              'royalblue', 
-                        'Hydrogen':             'deepskyblue', 
-                        'Battery electric':     'mediumseagreen',
-                        'Battery train':        'darkolivegreen', 
-                        'Electric train (CL)':  'mediumseagreen', 
-                        'LNG':                  'blue', 
-                        'MGO':                  'darkviolet', 
-                        'Biogas':               'teal', 
-                        'Biodiesel':            'darkorange', 
-                        'Biodiesel (HVO)':      'darkorange', 
-                        'HFO':                  'firebrick'           }
+                        'Hydrogen':             'deepskyblue',
+                        'Methanol':                  'firebrick'     
+                        #'Battery electric':     'mediumseagreen',
+                        #'Battery train':        'darkolivegreen', 
+                        #'Electric train (CL)':  'mediumseagreen', 
+                        #'LNG':                  'blue', 
+                        #'MGO':                  'darkviolet', 
+                        #'Biogas':               'teal', 
+                        #'Biodiesel':            'darkorange', 
+                        #'Biodiesel (HVO)':      'darkorange', 
+                        #'HFO':                  'firebrick'           
+                        }
 
 
         labels = [str(t) for t in  base_data.T_TIME_PERIODS]

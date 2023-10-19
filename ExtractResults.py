@@ -43,7 +43,7 @@ class OutputData():
         b_flow =               pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','vehicle_type','time_period','weight', 'scenario'])
         h_path =               pd.DataFrame(columns = ['variable','path','product','time_period','weight', 'scenario'])
         y_charging =           pd.DataFrame(columns = ['variable','from','to','mode','route','fuel','time_period','weight','scenario'])
-        nu_node =               pd.DataFrame(columns = ['variable','from', 'terminal_type','mode', 'time_period', 'weight', 'scenario'])
+        nu_node =               pd.DataFrame(columns = ['variable','from','mode', 'time_period', 'weight', 'scenario'])
         epsilon_edge =               pd.DataFrame(columns = ['variable','from','to','mode','route','time_period','weight','scenario'])
         upsilon_upgrade =            pd.DataFrame(columns = ['variable','from', 'to', 'mode', 'route','fuel', 'time_period', 'weight', 'scenario'])
         q_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','time_period','weight','scenario'])
@@ -115,11 +115,11 @@ class OutputData():
                     a_series = pd.Series([variable,i,j,m,r, f,t, weight, scen_name],index=upsilon_upgrade.columns)
                     upsilon_upgrade = pd.concat([upsilon_upgrade,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'nu_node'
-            for (i,c,m,t) in base_data.NCMT:
-                weight = modell.nu_node[(i, c, m, t,scen_name)].value
+            for (i,m,t) in base_data.NM_CAP_INCR_T:
+                weight = modell.nu_node[(i, m, t,scen_name)].value
                 if weight is None:
                     weight = 0
-                a_series = pd.Series([variable,i, c, m, t, weight, scen_name],index=nu_node.columns)
+                a_series = pd.Series([variable,i, m, t, weight, scen_name],index=nu_node.columns)
                 nu_node = pd.concat([nu_node,a_series.to_frame().T],axis=0, ignore_index=True)
             variable = 'y_charging'
             for (e,f,t) in base_data.EFT_CHARGE:

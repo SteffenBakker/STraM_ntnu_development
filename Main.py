@@ -39,9 +39,9 @@ from Utils import Logger
 #################################################
 
 READ_DATA_FROM_FILE = False  #Setting this to true is currently not working. (it potentially can save a lot of time in debug mode)
-analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+analysis = "only_generate_data"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
 scenario_tree = "4Scen"     # Options: 4Scen, 9Scen, AllScen
-analysis_type = "EEV" #,  'EEV' , 'SP'         expected value probem, expectation of EVP, stochastic program
+analysis_type = "EEV" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters
@@ -228,8 +228,8 @@ def generate_base_data(co2_factor=1,READ_FROM_FILE=False):
         print("Time used reading the base data:", time.time() - start,flush=True)
         sys.stdout.flush()
 
-        #with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file:   #file becomes larger than 100MB
-        #    pickle.dump(base_data, data_file)
+        with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file:   
+            pickle.dump(base_data, data_file)
     
     return base_data
 
@@ -294,6 +294,7 @@ def main(analysis_type,
         model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
     else:
         Exception('analysis type feil = '+analysis_type)
+    
     #  --------- SAVE OUTPUT ---------    #
     scenario_tree2 = scenario_tree
     if single_time_period is not None:
@@ -351,12 +352,7 @@ if __name__ == "__main__":
     #print(os.getcwd())
     
     if analysis == "only_generate_data":
-        base_data = generate_base_data()
-
-        sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
-
-        base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=1) 
-        base_data = interpolate(base_data, time_periods, num_first_stage_periods)
+        base_data = generate_base_data(co2_factor=1,READ_FROM_FILE=READ_DATA_FROM_FILE)    
         
         risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
         base_data.risk_information = risk_info

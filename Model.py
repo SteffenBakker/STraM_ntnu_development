@@ -68,7 +68,7 @@ class TranspModel:
         self.model.upsilon_upg = Var(self.data.UT_UPG_S, within = Binary) #bin.variable for investments upgrade/new infrastructure u at link l, time period t
         def contin01(model, i,m,t,s): #()
             return (0, 1)
-        self.model.nu_node = Var(self.data.NMT_S, within = NonNegativeReals, bounds=contin01) #investment in terminals (continuous)
+        self.model.nu_node = Var(self.data.NM_CAP_INCR_T_S, within = NonNegativeReals, bounds=contin01) #investment in terminals (continuous)
         self.model.y_charge = Var(self.data.EFT_CHARGE_S, within=NonNegativeReals)
         
         self.model.q_transp_amount = Var(self.data.MFT_S, within=NonNegativeReals)
@@ -121,8 +121,8 @@ class TranspModel:
         
         self.model.NodeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def NodeCost(model, t,s):
-            return (self.model.NodeCost[t,s] >= sum(self.data.C_NODE_INV[(i,m)]*self.model.nu_node[(i,m,t,s)] for (i, m) in self.data.NM_LIST_CAP 
-                                                    if (i,m,t) in self.data.NMT)- FEAS_RELAX )  
+            return (self.model.NodeCost[t,s] >= sum(self.data.C_NODE_INV[(i,m)]*self.model.nu_node[(i,m,t,s)] for (i, m) in self.data.NM_CAP_INCR 
+                                                    if (i,m,t) in self.data.NM_CAP_INCR_T)- FEAS_RELAX )  
         self.model.NodeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=NodeCost)
         
         self.model.UpgCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
@@ -308,7 +308,7 @@ class TranspModel:
 
 
         
-        if False: #This currently leads to infeasibility
+        if True: #This currently leads to infeasibility
 
             #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
             def TerminalCapRule(model, i, m,t,s):
@@ -318,13 +318,15 @@ class TranspModel:
                         sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
                         self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
                                                                                     for tau in self.data.T_TIME_PERIODS 
-                                                                                    if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) )
-                                                                                    ) #and((i,m,tau) in self.data.NMT)
+                                                                                    if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) and
+                                                                                        ((i,m) in self.data.NM_CAP_INCR))
+                                                                                    ) #and((i,m,tau) in self.data.NM_CAP_INCR_T)
                         + FEAS_RELAX )
                 else:
-                    Constraint.Skip
-            self.model.TerminalCap = Constraint(self.data.NMT_CONSTR_S, rule = TerminalCapRule)
+                    return Constraint.Skip
+            self.model.TerminalCap = Constraint(self.data.NM_CAP_T_CONSTR_S, rule = TerminalCapRule)
             
+
             #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
             def TerminalCapExpRule(model, i, m,s):
                 expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
@@ -335,7 +337,7 @@ class TranspModel:
                 else:
                     return(expression) 
             if len(self.data.T_TIME_PERIODS)>1:
-                self.model.TerminalCapExp = Constraint(self.data.NM_S, rule = TerminalCapExpRule)
+                self.model.TerminalCapExp = Constraint(self.data.NM_CAP_INCR_S, rule = TerminalCapExpRule)
 
         
 
@@ -545,7 +547,7 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NMT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
+            self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NM_CAP_INCR_T,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
 
             def Nonanticipativity_y(model,i,j,m,r,f,t,s,ss):
                 e = (i,j,m,r)
@@ -679,7 +681,7 @@ class TranspModel:
                 self.model.epsilon_edge[i,j,m,r, tau,s].fix(0)
             for (e,f,t,s) in self.data.UT_UPG_S:
                 self.model.upsilon_upg[(e,f,t,s )].fix(0)
-            for (n,m,t,s ) in self.data.NMT_S:
+            for (n,m,t,s ) in self.data.NM_CAP_INCR_T_S:
                 self.model.nu_node[((n,m,t,s ))].fix(0)
 
         return self.model
@@ -756,7 +758,7 @@ class TranspModel:
                     else:
                         self.model.upsilon_upg[(e,f,t,s)].fix(0)
 
-        for (i,m,t,s) in self.data.NMT_S:
+        for (i,m,t,s) in self.data.NM_CAP_INCR_T_S:
             if t in self.data.T_TIME_FIRST_STAGE:
                 weight = model_ev.nu_node[(i,m,t,base_scenario)].value
                 if weight is not None:
@@ -807,7 +809,7 @@ class TranspModel:
         for (e,f,t,s) in self.data.UT_UPG_S:
             self.model.upsilon_upg[(e,f,t,s)].fixed = False
 
-        for (i,m,t,s) in self.data.NMT_S:
+        for (i,m,t,s) in self.data.NM_CAP_INCR_T_S:
             self.model.nu_node[(i,m,t,s)].fixed = False
 
         for (e,f,t,s) in self.data.EFT_CHARGE_S:
