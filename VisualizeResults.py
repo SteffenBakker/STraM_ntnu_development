@@ -324,10 +324,10 @@ def visualize_results(analyses_type,scenarios,
         #https://matplotlib.org/stable/gallery/color/named_colors.html
         color_dict = {'Diesel':                 'firebrick', 
                         'Battery':              'mediumseagreen',
-                        'Catenary':              'mediumseagreen',
+                        'Catenary':              'darkolivegreen',
                         'Ammonia':              'royalblue', 
                         'Hydrogen':             'deepskyblue',
-                        'Methanol':                  'firebrick'     
+                        'Methanol':              'firebrick'     
                         #'Battery electric':     'mediumseagreen',
                         #'Battery train':        'darkolivegreen', 
                         #'Electric train (CL)':  'mediumseagreen', 
