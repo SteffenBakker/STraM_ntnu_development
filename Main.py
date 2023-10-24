@@ -39,9 +39,9 @@ from Utils import Logger
 #################################################
 
 READ_DATA_FROM_FILE = False  #Setting this to true is currently not working. (it potentially can save a lot of time in debug mode)
-analysis = "only_generate_data"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
 scenario_tree = "4Scen"     # Options: 4Scen, 9Scen, AllScen
-analysis_type = "EEV" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
+analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
 # risk parameters

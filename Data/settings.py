@@ -16,6 +16,7 @@ SCALING_FACTOR_EMISSIONS = 10**8 #if smaller, then the CO2_FEE disappears, needs
 
 # Data settings (ConstructData.py)
 
+EXCHANGE_RATE_EURO_TO_NOK = 10
 RISK_FREE_RATE = 0.038 # social discount rate, ref Ruben (Old:  https://tradingeconomics.com/norway/government-bond-yield  -> 3.2%)
 CO2_PRICE_FACTOR = {2022:1,
                     2026:1,
@@ -23,7 +24,7 @@ CO2_PRICE_FACTOR = {2022:1,
                     2040:1,  #1.5,
                     2050:1}
 NO_DRY_BULK = False
-NO_WET_BULK = True
+NO_LIQUID_BULK = True
 
 #path generation
 NUM_MODE_PATHS = 2  #hvor mange modes kan bli brukt på en path? 
