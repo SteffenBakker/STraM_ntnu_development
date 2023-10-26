@@ -359,6 +359,7 @@ class TransportSets():
             j = self.zone_nr_to_centroid[row["To"]]
             distances_dict[(i,j,row["Mode"],int(row["Route"]))] = row["DistanceKM"]   
 
+        self.DISTANCE = {}
         self.AVG_DISTANCE = {}
         for (i,j,m,r),value in distances_dict.items():
             a1 = (i,j,m,r)
@@ -366,6 +367,8 @@ class TransportSets():
             self.E_EDGES.append(a1)
             self.A_ARCS.append(a1)
             self.A_ARCS.append(a2)
+            self.DISTANCE[a1] = value
+            self.DISTANCE[a2] = value
             self.AVG_DISTANCE[a1] = value
             self.AVG_DISTANCE[a2] = value
             if (i in self.N_ABROAD) or (j in self.N_ABROAD):
@@ -646,7 +649,7 @@ class TransportSets():
         # translate to time values per arc
         for (i,j,m,r) in self.A_ARCS:
             for p in self.P_PRODUCTS:
-                self.C_TIME_VALUE[(i,j,m,r,p)] = (distances_dict[(i,j,m,r)] / self.SPEED[m]) * self.TIME_VALUE_PER_TH[p] # dist / speed * cost per hour
+                self.C_TIME_VALUE[(i,j,m,r,p)] = (self.DISTANCE[(i,j,m,r)] / self.SPEED[m]) * self.TIME_VALUE_PER_TH[p] # dist / speed * cost per hour
                
         #################
         #  INVESTMENTS  #
