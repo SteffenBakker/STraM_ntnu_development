@@ -510,8 +510,9 @@ class TransportSets():
         #-----------------------      
 
         cost_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output costs')        
-              
         emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
+        time_value_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Output')
+        speed_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Speeds')
 
         self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes    # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
@@ -560,6 +561,11 @@ class TransportSets():
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
         self.C_CO2 = {(i,j,m,r,f,p,t): COST_BIG_M for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
+        # new: time value
+        self.TIME_VALUE_PER_TH = {p: COST_BIG_M for p in self.P_PRODUCTS}   #UNIT: NOK/Th (NOK per tonne-hour)
+        self.SPEED = {m: 0.0 for m in self.M_MODES}     # UNIT: KM/H
+        self.C_TIME_VALUE = {(i,j,m,r,p): COST_BIG_M for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS}   #UNIT: NOK/T
+
 
         # read CO2 cost
 
@@ -629,7 +635,18 @@ class TransportSets():
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)],self.precision_digits) 
 
+        # read time values
+        for index, row in time_value_data.iterrows():
+            self.TIME_VALUE_PER_TH[row["Product group"]] = row["Time value (EUR/th)"] * EXCHANGE_RATE_EURO_TO_NOK
 
+        # read mode speeds
+        for index, row in speed_data.iterrows():
+            self.SPEED[row["Mode"]] = row["Speed (km/h)"]
+
+        # translate to time values per arc
+        for (i,j,m,r) in self.A_ARCS:
+            for p in self.P_PRODUCTS:
+                self.C_TIME_VALUE[(i,j,m,r,p)] = (distances_dict[(i,j,m,r)] / self.SPEED[m]) * self.TIME_VALUE_PER_TH[p] # dist / speed * cost per hour
                
         #################
         #  INVESTMENTS  #
