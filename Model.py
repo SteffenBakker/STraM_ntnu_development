@@ -108,7 +108,13 @@ class TranspModel:
             return (self.model.TranspCO2CostB[t,s] >= sum( EMPTY_VEHICLE_FACTOR*(self.data.C_CO2[(i,j,m,r,f,self.data.cheapest_product_per_vehicle[(m,f,t,v)],t)]) * self.model.b_flow[(i,j,m,r,f,v,t,s)] 
                                     for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m] ) -FEAS_RELAX)  
         self.model.TranspCO2CostBConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspCO2CostB)
-        
+
+        self.model.TranspTimeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+        def TranspTimeCost(model, t, s):
+            return (self.model.TranspTimeCost[t,s] >= sum( self.data.C_TIME_VALUE[(i,j,m,r,p)] * self.model.x_flow[(i,j,m,r,f,p,t,s)] 
+                                                          for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for p in self.data.P_PRODUCTS)  - FEAS_RELAX)
+        self.model.TranspTimeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule = TranspTimeCost)
+
         self.model.TransfCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TransfCost(model, t,s):
             return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)-FEAS_RELAX )  
@@ -151,7 +157,7 @@ class TranspModel:
         def StageCostsVar(model, t,s):  
 
             # Pyomo SUM_PRODUCT is slower than the following
-            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + self.model.TranspCO2Cost[t,s] + self.model.TranspOpexCostB[t,s] + self.model.TranspCO2CostB[t,s]) 
+            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + self.model.TranspCO2Cost[t,s] + self.model.TranspOpexCostB[t,s] + self.model.TranspCO2CostB[t,s] + self.model.TranspTimeCost[t,s]) 
             
             if t == self.data.T_TIME_PERIODS[-1]:
                 factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9

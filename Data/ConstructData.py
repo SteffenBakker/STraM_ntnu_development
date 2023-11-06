@@ -359,6 +359,7 @@ class TransportSets():
             j = self.zone_nr_to_centroid[row["To"]]
             distances_dict[(i,j,row["Mode"],int(row["Route"]))] = row["DistanceKM"]   
 
+        self.DISTANCE = {}
         self.AVG_DISTANCE = {}
         for (i,j,m,r),value in distances_dict.items():
             a1 = (i,j,m,r)
@@ -366,6 +367,8 @@ class TransportSets():
             self.E_EDGES.append(a1)
             self.A_ARCS.append(a1)
             self.A_ARCS.append(a2)
+            self.DISTANCE[a1] = value
+            self.DISTANCE[a2] = value
             self.AVG_DISTANCE[a1] = value
             self.AVG_DISTANCE[a2] = value
             if (i in self.N_ABROAD) or (j in self.N_ABROAD):
@@ -398,7 +401,7 @@ class TransportSets():
 
         if NO_DRY_BULK:
             self.P_PRODUCTS.remove("Dry bulk") #Dry bulk   HARDCODING
-        if NO_WET_BULK:
+        if NO_LIQUID_BULK:
             self.P_PRODUCTS.remove("Liquid bulk") #Wet bulk
 
 
@@ -479,7 +482,7 @@ class TransportSets():
             self.D_DEMAND_AGGR[t] += value
 
 
-        if True:
+        if True:  #Q: is this still necessary? Or can we remove this
         
             #####################
             ## VEHICLE TYPES ####
@@ -510,8 +513,9 @@ class TransportSets():
         #-----------------------      
 
         cost_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output costs')        
-              
         emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
+        time_value_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Output')
+        speed_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Speeds')
 
         self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes    # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
@@ -523,8 +527,8 @@ class TransportSets():
 
         # extract transfer costs from table
         for index, row in transfer_data.iterrows():
-            self.TRANSFER_COST_PER_MODE_PAIR[(row["From"], row["To"], row["Product class"])] = round(row["Transfer cost"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
-            self.TRANSFER_COST_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = round(row["Transfer cost"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
+            self.TRANSFER_COST_PER_MODE_PAIR[(row["From"], row["To"], row["Product class"])] = round(row["Transfer cost (NOK/Tonne)"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
+            self.TRANSFER_COST_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = round(row["Transfer cost (NOK/Tonne)"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
             #No immediate need for scaling, as already in NOK/Tonnes
 
 
@@ -532,15 +536,17 @@ class TransportSets():
             # read CO2 fee
             CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx')["Parameter Input"]
             
-            self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}   #UNIT: nok/gCO2
+            self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}     
             for y in self.T_TIME_PERIODS:
-                self.CO2_fee[y] = sigmoid(y, CO2_fee_data['L47'].value, 
+                CO2_fee = sigmoid(y, CO2_fee_data['L47'].value, 
                                         CO2_fee_data['M47'].value, 
                                         CO2_fee_data['L46'].value, 
                                         CO2_fee_data['M46'].value, 
                                         CO2_fee_data['O47'].value, 
                                         CO2_fee_data['P47'].value, 
-                                        CO2_fee_data['Q47'].value)
+                                        CO2_fee_data['Q47'].value)  # #UNIT: EURO/TonneCO2 =    EURO/(1000*1000 gCO2)
+                CO2_fee_adj = CO2_fee*EXCHANGE_RATE_EURO_TO_NOK/(1000*1000)   #NOK/gCO2
+                self.CO2_fee[y] = CO2_fee_adj/self.scaling_factor_monetary*self.scaling_factor_emissions
 
 
         COST_BIG_M = 10**8
@@ -558,6 +564,11 @@ class TransportSets():
                             for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}      #UNIT:  gCO2/T
         self.C_CO2 = {(i,j,m,r,f,p,t): COST_BIG_M for (i,j,m,r) in self.A_ARCS for f in self.FM_FUEL[m] 
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
+        # new: time value
+        self.TIME_VALUE_PER_TH = {p: COST_BIG_M for p in self.P_PRODUCTS}   #UNIT: NOK/Th (NOK per tonne-hour)
+        self.SPEED = {m: 0.0 for m in self.M_MODES}     # UNIT: KM/H
+        self.C_TIME_VALUE = {(i,j,m,r,p): COST_BIG_M for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS}   #UNIT: NOK/T
+
 
         # read CO2 cost
 
@@ -604,7 +615,9 @@ class TransportSets():
                         pc = row['Product class']
                         for p in self.PC_TO_P[pc]:
                             for y in self.T_TIME_PERIODS:    
-                                self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)] = round(row[y]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)
+                                cost_euro = row[y] #euro/tkm
+                                cost = cost_euro*EXCHANGE_RATE_EURO_TO_NOK
+                                self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)] = round(cost/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)
                                 #compute base cost
                                 self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] = round((self.AVG_DISTANCE[a] * self.C_TRANSP_COST_NORMALIZED[(m,f,p,y)]), self.precision_digits) 
                                 #^: MINIMUM 6.7, , median = 114.8, 90%quantile = 2562.9,  max 9.6*10^7!!!
@@ -625,7 +638,18 @@ class TransportSets():
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)],self.precision_digits) 
 
+        # read time values
+        for index, row in time_value_data.iterrows():
+            self.TIME_VALUE_PER_TH[row["Product group"]] = row["Time value (EUR/th)"] * EXCHANGE_RATE_EURO_TO_NOK
 
+        # read mode speeds
+        for index, row in speed_data.iterrows():
+            self.SPEED[row["Mode"]] = row["Speed (km/h)"]
+
+        # translate to time values per arc
+        for (i,j,m,r) in self.A_ARCS:
+            for p in self.P_PRODUCTS:
+                self.C_TIME_VALUE[(i,j,m,r,p)] = (self.DISTANCE[(i,j,m,r)] / self.SPEED[m]) * self.TIME_VALUE_PER_TH[p] # dist / speed * cost per hour
                
         #################
         #  INVESTMENTS  #
@@ -646,8 +670,8 @@ class TransportSets():
             if (i,j,m,r) not in self.E_EDGES:
                 edge = (j,i,m,r)    # flip edge if necessary
             # add to E_EDGES_INV if possible to invest
-            if row["Capacity"] != -1:
-                if row["Capacity increase"] > 0:
+            if row["Capacity (tonnes)"] != -1:
+                if row["Capacity increase (tonnes)"] > 0:
                     self.E_EDGES_INV.append(edge)
             # add to E_EDGES_UPG if possible to upgrade              
             if row["Upgradeable"] == 1:
@@ -685,18 +709,18 @@ class TransportSets():
                 edge = (j,i,m,r)    # flip edge if necessary
             
             # initial capacities
-            self.Q_EDGE_BASE[edge] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
+            self.Q_EDGE_BASE[edge] = round(row["Capacity (tonnes)"]/self.scaling_factor_weight, self.precision_digits)
 
             # investments
-            if row["Capacity"] != -1:
-                self.Q_EDGE_INV[edge] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
-                self.C_EDGE_INV[edge] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
-                self.LEAD_TIME_EDGE_INV[edge] = row["Lead time"]
+            if row["Capacity (tonnes)"] != -1:
+                self.Q_EDGE_INV[edge] = round(row["Capacity increase (tonnes)"]/self.scaling_factor_weight, self.precision_digits)
+                self.C_EDGE_INV[edge] = round(row["Investment cost (NOK)"]/self.scaling_factor_monetary, self.precision_digits)
+                self.LEAD_TIME_EDGE_INV[edge] = row["Lead time (years)"]
 
             # upgrades
             if row["Upgradeable"] == 1:
-                self.C_EDGE_UPG[(edge, 'Catenary')] = round(row["Upgrade cost"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
-                self.LEAD_TIME_EDGE_UPG[(edge, 'Catenary')] = row["Upgrade lead time"]  # HARDCODED
+                self.C_EDGE_UPG[(edge, 'Catenary')] = round(row["Upgrade cost (NOK)"]/self.scaling_factor_monetary,self.precision_digits)                 # HARDCODED
+                self.LEAD_TIME_EDGE_UPG[(edge, 'Catenary')] = row["Upgrade lead time (years)"]  # HARDCODED
         
         self.NM_CAP = []
         self.NM_CAP_INCR = []
@@ -708,15 +732,15 @@ class TransportSets():
             
             
             # investments
-            if row["Capacity"] != -1:
+            if row["Capacity (tonnes)"] != -1:
                 
                 # initial capacities
-                self.Q_NODE_BASE[(i,m)] = round(row["Capacity"]/self.scaling_factor_weight, self.precision_digits)
-                self.Q_NODE_INV[(i,m)] = round(row["Capacity increase"]/self.scaling_factor_weight, self.precision_digits)
-                self.C_NODE_INV[(i,m)] = round(row["Investment cost"]/self.scaling_factor_monetary, self.precision_digits)
-                self.LEAD_TIME_NODE_INV[(i,m)] = row["Lead time"]
+                self.Q_NODE_BASE[(i,m)] = round(row["Capacity (tonnes)"]/self.scaling_factor_weight, self.precision_digits)
+                self.Q_NODE_INV[(i,m)] = round(row["Capacity increase (tonnes)"]/self.scaling_factor_weight, self.precision_digits)
+                self.C_NODE_INV[(i,m)] = round(row["Investment cost (NOK)"]/self.scaling_factor_monetary, self.precision_digits)
+                self.LEAD_TIME_NODE_INV[(i,m)] = row["Lead time (years)"]
                 self.NM_CAP.append((i,m))
-                if row["Capacity increase"] > 0.01:
+                if row["Capacity increase (tonnes)"] > 0.01:
                     self.NM_CAP_INCR.append((i,m))
         
 
@@ -766,13 +790,13 @@ class TransportSets():
             e = (i, j, m, r) 
             data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
             self.C_CHARGE[(e,f)] = round((self.AVG_DISTANCE[e]
-                                                / data_index.iloc[0]["Max_station_dist"]
-                                                * data_index.iloc[0]["Station_cost"]
+                                                / data_index.iloc[0]["Max_station_dist_km"]
+                                                * data_index.iloc[0]["Station_cost_NOK"]
                                                 / (data_index.iloc[0]["Trucks_filled_daily"] * max_truck_cap * 365)
                                                 /self.scaling_factor_monetary
                                                 *self.scaling_factor_weight),
                                         self.precision_digits)  # 0.7 or not??? MKR/TONNES, 
-            self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid"]
+            self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid_year"]
 
 
         ##################################

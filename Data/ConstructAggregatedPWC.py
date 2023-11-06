@@ -36,6 +36,11 @@ for i in commodities_list:
         else:
             pwc = pd.concat([pwc,pwc_temp])
 
+if True:  #Input to Jonas, time value of transport
+    pwc_aggregated = pwc.groupby('commodity')['amount_tons'].sum().reset_index()
+    print(pwc_aggregated)
+    pwc_aggregated.to_csv(r'Data/SPATIAL/demand_per_commodity.csv')
+
 #then, calculate the aggregated data
 for j in ['from', 'to']:
     pwc[j+'_aggr_zone'] = pwc[j].map(zone_mapping)    #pd.to_numeric(..., downcast='float')
@@ -57,3 +62,5 @@ pwc_filtered = pwc_filtered.astype({'from_aggr_zone':'string','to_aggr_zone':'st
 if True:
     pwc_filtered.to_csv(r'Data/SPATIAL/demand.csv')
 #pwc_aggr ----------------   pwc data (demand for transport)
+
+
