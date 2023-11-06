@@ -13,11 +13,7 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-run_all_analyses = False
-analysis = "eev" 
 scenarios = "4Scen"   # AllScen, 4Scen, 9Scen
-
-#------------------------------------------------------#
 
 analyses_info = {
 #     name    type,    scen,    balancing,  single_tp   risk    carbon,     factor
@@ -30,6 +26,15 @@ analyses_info = {
     "carbon1": ["SP",  scenarios,    False,      None,       None,   True,      0],
     "carbon2": ["SP",  scenarios,    False,      None,       None,   True,      2],
 }
+
+run_all_analyses = False
+analysis = "base"    # "base", "eev","risk1"....
+
+
+
+#------------------------------------------------------#
+
+
 
 def visualize_results(analyses_type,scenarios,
                         noBalancingTrips=False,
@@ -75,11 +80,12 @@ def visualize_results(analyses_type,scenarios,
     #create the all_cost_table
     def cost_and_investment_table(base_data,output):
         
-        cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost"]
+        cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TranspTimeCost","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost"]
         legend_names = {"TranspOpexCost":"General",
             "TranspOpexCostB":"General (Empty Trips)",
             "TranspCO2Cost":"Carbon",
             "TranspCO2CostB":"Carbon (Empty Trips)",
+            "TranspTimeCost":"Time value",
             "TransfCost":"Transfer",
             "EdgeCost":"Edge",
             "NodeCost":"Node",
@@ -90,6 +96,7 @@ def visualize_results(analyses_type,scenarios,
             "General (Empty Trips)":"cornflowerblue",
             "Carbon":"dimgrey",
             "Carbon (Empty Trips)":"silver",
+            "Time value":"forestgreen",
             "Transfer":"brown",
             "Edge":"indianred",
             "Node":"darkred",
@@ -216,7 +223,7 @@ def visualize_results(analyses_type,scenarios,
     pd.set_option('display.float_format', '{:.2g}'.format)
     print(round(output.all_costs_table,2))
 
-    opex_variables = ['General', 'General (Empty Trips)', 'Carbon','Carbon (Empty Trips)', 'Transfer']
+    opex_variables = ['General', 'General (Empty Trips)', 'Carbon','Carbon (Empty Trips)','Time value', 'Transfer']
     investment_variables = ['Edge', 'Node', 'Upgrade','Charge']
     plot_costs(output,which_costs=opex_variables,ylabel='Annual costs (GNOK)',filename="opex")
     plot_costs(output,investment_variables,'Investment costs (GNOK)',"investment")
@@ -327,16 +334,16 @@ def visualize_results(analyses_type,scenarios,
                         'Catenary':              'darkolivegreen',
                         'Ammonia':              'royalblue', 
                         'Hydrogen':             'deepskyblue',
-                        'Methanol':              'firebrick'     
+                        'Methanol':              'firebrick',     
                         #'Battery electric':     'mediumseagreen',
                         #'Battery train':        'darkolivegreen', 
                         #'Electric train (CL)':  'mediumseagreen', 
                         #'LNG':                  'blue', 
-                        #'MGO':                  'darkviolet', 
+                        'MGO':                  'darkviolet', 
                         #'Biogas':               'teal', 
                         #'Biodiesel':            'darkorange', 
                         #'Biodiesel (HVO)':      'darkorange', 
-                        #'HFO':                  'firebrick'           
+                        'HFO':                  'firebrick'           
                         }
 
 
