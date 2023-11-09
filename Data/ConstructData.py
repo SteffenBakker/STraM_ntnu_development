@@ -346,6 +346,8 @@ class TransportSets():
         self.N_LONGITUDE = dict(zip(zone_data.centroid_name, zone_data.longitude))
         self.N_LATITUDE_PLOT = dict(zip(zone_data.centroid_name, zone_data.lat_plot))
         self.N_LONGITUDE_PLOT = dict(zip(zone_data.centroid_name, zone_data.long_plot))
+        self.N_COORD_PLOT = {zone_data.centroid_name[i]: (zone_data.long_plot[i], zone_data.lat_plot[i]) for i in range(len(zone_data.centroid_name))}
+        self.N_COORD_OFFSETS = {zone_data.centroid_name[i]: (zone_data.offset_x[i], zone_data.offset_y[i]) for i in range(len(zone_data.centroid_name))}
 
         #EDGES and DISTANCES
         
@@ -649,7 +651,7 @@ class TransportSets():
         # translate to time values per arc
         for (i,j,m,r) in self.A_ARCS:
             for p in self.P_PRODUCTS:
-                self.C_TIME_VALUE[(i,j,m,r,p)] = (self.DISTANCE[(i,j,m,r)] / self.SPEED[m]) * self.TIME_VALUE_PER_TH[p] # dist / speed * cost per hour
+                self.C_TIME_VALUE[(i,j,m,r,p)] = round(((self.DISTANCE[(i,j,m,r)] / self.SPEED[m]) * self.TIME_VALUE_PER_TH[p] )/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)  # dist / speed * cost per hour
                
         #################
         #  INVESTMENTS  #

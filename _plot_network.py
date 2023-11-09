@@ -17,7 +17,7 @@ import copy
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "9Scen" # 4Scen
+scenario_type = "4Scen" # 4Scen
 with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
 
@@ -31,29 +31,11 @@ save_fig = True
 
 #extract nodes from base_data
 N_NODES = base_data.N_NODES
+lats = base_data.N_LATITUDE_PLOT
+longs = base_data.N_LONGITUDE_PLOT
+node_xy_offset = base_data.N_COORD_OFFSETS
 
-#import norwegian city coordinates
-NO_coordinates = pd.read_csv("Data/NO_cities_coordinates.csv")
-#extract latitudes and longitudes
-lats = [0.0] * len(N_NODES)
-lons = [0.0] * len(N_NODES)
-for index, row in NO_coordinates.iterrows():
-    if row["city"] in N_NODES:
-        n_ind = N_NODES.index(row["city"]) #index of this city in list N_NODES
-        lats[n_ind] = row["lat"]
-        lons[n_ind] = row["lng"]
 
-#Manually define foreign city coordinates (HARDCODED)
-foreign_cities = pd.DataFrame()
-foreign_cities["city"] = ["Sør-Sverige", "Nord-Sverige", "Kontinentalsokkelen", "Europa", "Verden"] 
-foreign_cities["lat"] = [59.33, 63.82, 60, 56.2, 56.5] 
-foreign_cities["lon"] = [18.06, 20.26, 2,  9, 3]
-#add to vectors lats and lons
-for index, row in foreign_cities.iterrows():
-    if row["city"] in N_NODES:
-        n_ind = N_NODES.index(row["city"]) #index of this city in list N_NODES
-        lats[n_ind] = row["lat"]
-        lons[n_ind] = row["lon"]
 #add colors (for checking and perhaps plotting)
 node_colors = ["black"]*len(N_NODES)     
 
@@ -74,54 +56,23 @@ map.drawcoastlines(linewidth=0.2)
 map.drawcountries(linewidth=0.2)
 
 #draw nodes on the map
-node_x, node_y = map(lons, lats)
+node_x, node_y = map(list(longs.values()), list(lats.values()))
+coordinate_mapping={N_NODES[i]:(node_x[i],node_y[i]) for i in range(len(N_NODES))}
 map.scatter(node_x, node_y, color=node_colors, zorder=100)
 
 # draw labels on the map
 
-
-
-
-node_labels = copy.deepcopy(N_NODES)
-
+node_labels = {i:i for i in N_NODES}
 # translate labels
-translate_dict = {"Nord-Sverige":"Umeå",
-                "Sør-Sverige":" Stockholm", 
-                "Europa":"Europe", 
-                "Verden":"World", 
-                "Kontinentalsokkelen":"Continental\n   shelf", 
+translate_dict = {"JohanSverdrupPlatform":"Cont. Shelf",   #use \n for new line
+                "Hamburg":" Hamburg/Europe", 
                 }
-for i in range(len(N_NODES)):
-    if node_labels[i] in translate_dict:
-        node_labels[i] = translate_dict[node_labels[i]]
-
-
-node_labels = copy.deepcopy(N_NODES)
-
 for key,value in translate_dict.items():
-    node_labels[node_labels.index(key)] = value
+    node_labels[key] = value
 
-
-node_xy_offset = {
-                "Ålesund": (-18, 3),
-                "Bodø": (-14, 1),
-                "Trondheim": (-25, 5),
-                "Tromsø": (-19, 2),
-                "Bergen": (2, 3),
-                "Hamar": (3, 2),
-                "Sør-Sverige": (1, -6),
-                "Kristiansand": (-27, -6),
-                "Skien": (-15, -2),
-                "Oslo": (-13, -2),
-                "Europa": (-20, 0),
-                "Verden": (-12, 3),
-                "Stavanger": (-24, -6),
-                "Kontinentalsokkelen": (-13, 3),
-                "Nord-Sverige": (2, 2)
-                }
-
-for i in range(len(N_NODES)):
-    plt.annotate(node_labels[i], (node_x[i] + 10000*node_xy_offset[N_NODES[i]][0], node_y[i] + 10000*node_xy_offset[N_NODES[i]][1]), zorder = 1000)
+for i in N_NODES:
+    plt.annotate(node_labels[i], (coordinate_mapping[i][0] + 10000*node_xy_offset[i][0], 
+                     coordinate_mapping[i][1] + 10000*node_xy_offset[i][1]), zorder = 1000)  #10000*offset
 
 for e in base_data.E_EDGES:
     print(e)
@@ -139,8 +90,9 @@ mode_linestyle_dict = {"Road":"-", "Sea":"-", "Rail":"-", "Total":"-"}
 curvature_fact_dict = {"Road":0, "Sea":-2, "Rail":+1, "Total":0}
 zorder_dict = {"Road":20, "Sea":30, "Rail":40, "Total":20}
 
-nodes_sea_order = ["Nord-Sverige", "Sør-Sverige", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
-                        "Bergen", "Ålesund", "Trondheim", "Bodø", "Tromsø", "Europa", "Verden", "Kontinentalsokkelen"] #HARDCODED
+nodes_sea_order = ["Umeå", "Stockholm", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
+                        "Bergen", "Førde","Ålesund", "Trondheim", "Bodø", "Tromsø","Narvik", "Alta",
+                        "Hamburg", "World", "JohanSverdrupPlatform"] #HARDCODED
 
 
 unique_edges = []
@@ -216,11 +168,9 @@ plot_height = scale * plot_width
 plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGHT SIZE
 #save figure
 if save_fig:
-    filename = f"Plots/edge_plot.png"
+    filename = f"Data/Plots/edge_plot.png"
     plt.savefig(filename,bbox_inches='tight')
 #show figure
 if show_fig:
-    for i in range(len(node_labels)):
-        print(i, ": ", node_labels[i]) 
     plt.show()
 

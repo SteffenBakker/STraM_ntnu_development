@@ -32,7 +32,7 @@ NUM_MODE_PATHS = 2  #hvor mange modes kan bli brukt på en path?
 
 NUM_DIGITS_PRECISION = 5 #for the rounding in data generation
 
-MAX_TRUCK_CAP = 30 #to do: check this value
+MAX_TRUCK_CAP = 30 #tonnes
 EMPTY_VEHICLE_FACTOR = 0.6
 
 
