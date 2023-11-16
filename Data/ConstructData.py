@@ -769,9 +769,13 @@ class TransportSets():
         charging_data = pd.read_excel(r'Data/capacities_and_investments.xlsx', sheet_name='charging_data')
         
         self.CHARGING_TECH = []
+        T_TIME_PERIODS_CHARGING = set()
         for index,row in charging_data.iterrows():
             #print((row["Mode"],row["Fuel"]))
             self.CHARGING_TECH.append((row["Mode"],row["Fuel"]))
+            T_TIME_PERIODS_CHARGING.add(row["Year"])
+        self.CHARGING_TECH = list(set(self.CHARGING_TECH))
+
         # all arcs (one per arc pair ij/ji) with mode Road and fuels Battery or Hydrogen
         self.EF_CHARGING = []
         for (i,j,m,r) in self.E_EDGES:
@@ -784,21 +788,22 @@ class TransportSets():
         
 
         # base capacity on a pair of arcs (ij/ji - mfr), fix to 0 since no charging infrastructure exists now
-        self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING}
-        self.C_CHARGE = {(e,f): 100000 for (e,f) in self.EF_CHARGING}  # for p in self.P_PRODUCTS}  
-        self.LEAD_TIME_CHARGING = {(e,f): 50 for (e,f) in self.EF_CHARGING}
-        max_truck_cap = MAX_TRUCK_CAP  # HARDCODE random average in tonnes, should be product based? or fuel based??
+        self.Q_CHARGE_BASE = {(e,f): 0 for (e,f) in self.EF_CHARGING }
+        self.C_CHARGE = {(e,f,t): 100000 for (e,f) in self.EF_CHARGING for t in T_TIME_PERIODS_CHARGING}  # for p in self.P_PRODUCTS}  
+        #self.LEAD_TIME_CHARGING = {(e,f,t): 50 for (e,f) in self.EF_CHARGING for t in self.charging_years}
+        avg_payload = AVG_TRUCK_PAYLOAD  # HARDCODE random average in tonnes, should be product based? or fuel based??
+        
         for ((i, j, m, r),f) in self.EF_CHARGING:
-            e = (i, j, m, r) 
-            data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f)]
-            self.C_CHARGE[(e,f)] = round((self.AVG_DISTANCE[e]
-                                                / data_index.iloc[0]["Max_station_dist_km"]
-                                                * data_index.iloc[0]["Station_cost_NOK"]
-                                                / (data_index.iloc[0]["Trucks_filled_daily"] * max_truck_cap * 365)
-                                                /self.scaling_factor_monetary
-                                                *self.scaling_factor_weight),
-                                        self.precision_digits)  # 0.7 or not??? MKR/TONNES, 
-            self.LEAD_TIME_CHARGING[(e,f)] = data_index.iloc[0]["Ledetid_year"]
+            e = (i, j, m, r)
+            for  t in T_TIME_PERIODS_CHARGING:
+                data_index = charging_data.loc[(charging_data['Mode'] == m) & (charging_data['Fuel'] == f) & (charging_data['Year'] == t)]  #pick the right row index
+                num_stations_on_arc = self.AVG_DISTANCE[e]/ data_index.iloc[0]["Max_station_dist_km"]
+                self.C_CHARGE[(e,f,t)] = round((num_stations_on_arc* data_index.iloc[0]["Station_cost_NOK"]  #annualized
+                                                    / (data_index.iloc[0]["Trucks_filled_daily"] * avg_payload * 365) #do scaling of necessary number of stations to get the cost per tonne per year.
+                                                    /self.scaling_factor_monetary
+                                                    *self.scaling_factor_weight),
+                                            self.precision_digits)  # 0.7 or not??? MKR/TONNES, 
+                #self.LEAD_TIME_CHARGING[(e,f,t)] = data_index.iloc[0]["Ledetid_year"]
 
 
         ##################################
@@ -1113,7 +1118,7 @@ class TransportSets():
         self.ET_INV = [l+(t,) for l in self.E_EDGES_INV for t in self.T_TIME_PERIODS                                   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_INV[l]) and (t in self.T_TIME_FIRST_STAGE)]
         self.EAT_INV = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS   if (t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_EDGE_INV[e]) and (t in self.T_TIME_FIRST_STAGE)]
         self.EAT_INV_CONSTR = [e+(a,)+(t,) for e in self.E_EDGES_INV for a in self.AE_ARCS[e] for t in self.T_TIME_PERIODS_OPERATIONAL]        
-        self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_CHARGING[(e,f)]]
+        self.EFT_CHARGE = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS ] # if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_CHARGING[(e,f)]]
         self.EFT_CHARGE_CONSTR = [(e,f,t) for (e,f) in self.EF_CHARGING for t in self.T_TIME_PERIODS_OPERATIONAL]
         self.NM_CAP_INCR_T = [(i,m,t) for (i,m) in self.NM_CAP_INCR for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_NODE_INV[i,m]]
         self.NM_CAP_T = [(i,m,t) for (i,m) in self.NM_CAP for t in self.T_TIME_PERIODS if t <= self.T_TIME_PERIODS[-1] - self.LEAD_TIME_NODE_INV[i,m]]

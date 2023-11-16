@@ -138,7 +138,7 @@ class TranspModel:
         
         self.model.ChargeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def ChargeCost(model, t,s):
-            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING if (e,f,t) in self.data.EFT_CHARGE)- FEAS_RELAX )
+            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f,t)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING if (e,f,t) in self.data.EFT_CHARGE)- FEAS_RELAX )
         self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=ChargeCost)
     
 
@@ -157,7 +157,7 @@ class TranspModel:
         def StageCostsVar(model, t,s):  
 
             # Pyomo SUM_PRODUCT is slower than the following
-            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + self.model.TranspCO2Cost[t,s] + self.model.TranspOpexCostB[t,s] + self.model.TranspCO2CostB[t,s] + self.model.TranspTimeCost[t,s]) 
+            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + self.model.TranspCO2Cost[t,s] + self.model.TranspOpexCostB[t,s] + self.model.TranspCO2CostB[t,s] + self.model.TranspTimeCost[t,s] + self.model.ChargeCost[t,s]) #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
             
             if t == self.data.T_TIME_PERIODS[-1]:
                 factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9
@@ -166,7 +166,7 @@ class TranspModel:
             opex_costs = factor*(yearly_transp_cost+self.model.TransfCost[t,s]) 
             
             delta = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0],self.data.precision_digits)
-            investment_costs = self.model.EdgeCost[t,s] + self.model.NodeCost[t,s] + self.model.UpgCost[t,s] + self.model.ChargeCost[t,s] 
+            investment_costs = self.model.EdgeCost[t,s] + self.model.NodeCost[t,s] + self.model.UpgCost[t,s]  
             
             return (self.model.StageCosts[t,s] >= (opex_costs + delta*investment_costs ) - FEAS_RELAX ) 
         
@@ -352,12 +352,8 @@ class TranspModel:
             e = (i, j, m, r)
             return (sum(self.model.x_flow[a,f,p, t,s] for p in self.data.P_PRODUCTS
                     for a in self.data.AE_ARCS[e]) + sum(self.model.b_flow[a,f,v, t,s] for a in self.data.AE_ARCS[e] 
-                        for v in self.data.VEHICLE_TYPES_M[m]) <= self.data.Q_CHARGE_BASE[(e,f)] +
-                sum(self.model.y_charge[(e,f,tau,s)] 
-                    for tau in self.data.T_TIME_PERIODS 
-                    if ( (tau <= (t-self.data.LEAD_TIME_CHARGING[(e,f)]))  )   
-                    ) 
-                + FEAS_RELAX )
+                        for v in self.data.VEHICLE_TYPES_M[m]) <= (self.data.Q_CHARGE_BASE[(e,f)] + self.model.y_charge[(e,f,t,s)] )  
+                                                                    + FEAS_RELAX )
         self.model.ChargingCapArc = Constraint(self.data.EFT_CHARGE_CONSTR_S, rule=ChargingCapArcRule)
         #AIM also looked into charging infrastructure in NODES
 

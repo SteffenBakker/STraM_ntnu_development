@@ -147,6 +147,8 @@ class OutputData():
             for t in base_data.T_TIME_PERIODS:
                 for var in vars:
                     weight = getattr(modell,str(var))[(t,scen_name)].value
+                    if var == "ChargeCost":
+                        weight = sum(base_data.D_DISCOUNT_RATE**n for n in base_data.Y_YEARS[t])
                     costs[var][(t,scen_name)] = weight
 
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,
