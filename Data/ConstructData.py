@@ -540,13 +540,13 @@ class TransportSets():
             
             self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}     
             for y in self.T_TIME_PERIODS:
-                CO2_fee = sigmoid(y, CO2_fee_data['L47'].value, 
-                                        CO2_fee_data['M47'].value, 
-                                        CO2_fee_data['L46'].value, 
-                                        CO2_fee_data['M46'].value, 
-                                        CO2_fee_data['O47'].value, 
-                                        CO2_fee_data['P47'].value, 
-                                        CO2_fee_data['Q47'].value)  # #UNIT: EURO/TonneCO2 =    EURO/(1000*1000 gCO2)
+                CO2_fee = sigmoid(y, CO2_fee_data['L50'].value, 
+                                        CO2_fee_data['M50'].value, 
+                                        CO2_fee_data['L49'].value, 
+                                        CO2_fee_data['M49'].value, 
+                                        CO2_fee_data['O50'].value, 
+                                        CO2_fee_data['P50'].value, 
+                                        CO2_fee_data['Q50'].value)  # #UNIT: EURO/TonneCO2 =    EURO/(1000*1000 gCO2)
                 CO2_fee_adj = CO2_fee*EXCHANGE_RATE_EURO_TO_NOK/(1000*1000)   #NOK/gCO2
                 self.CO2_fee[y] = CO2_fee_adj/self.scaling_factor_monetary*self.scaling_factor_emissions
 
