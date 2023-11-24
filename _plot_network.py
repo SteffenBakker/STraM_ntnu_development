@@ -12,6 +12,8 @@ import pickle
 from mpl_toolkits.basemap import Basemap #for creating the background map
 import matplotlib.pyplot as plt #for plotting on top of the background map
 import matplotlib.patches as patches #import library for fancy arrows/edges
+import matplotlib.lines as mlines
+from matplotlib.collections import PatchCollection
 import copy
 
 
@@ -81,7 +83,7 @@ for e in base_data.E_EDGES:
 # c. Plot edges in the map
 
 #arrow settings
-line_width = 1.2
+line_width = 2.5
 base_curvature = 0.2
 #arrow settings for the different modes
 mode_color_dict = {"Road":"violet", "Sea":"blue", "Rail":"saddlebrown", "total":"black"}
@@ -96,6 +98,8 @@ nodes_sea_order = ["Umeå", "Stockholm", "Hamar", "Oslo", "Skien", "Kristiansand
 
 
 unique_edges = []
+
+
 
 # loop over all edges to plot them
 for (i,j,m,r) in base_data.E_EDGES:
@@ -125,12 +129,17 @@ for (i,j,m,r) in base_data.E_EDGES:
         cur_color = mode_color_dict[cur_mode]
 
         # construct new edge
+        line_stl = mode_linestyle_dict[cur_mode]
+        if (cur_mode == "Rail") and (cur_orig, cur_dest) in [("Bodø","Narvik"),("Narvik","Bodø"),("Narvik","Tromsø"),("Tromsø","Narvik")]:
+            line_stl = "dotted"#":"
+
         new_edge = patches.FancyArrowPatch(
                         (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
                         (node_x[cur_dest_index], node_y[cur_dest_index]),  #destination coordinates
                         connectionstyle=f"arc3,rad={base_curvature * curvature_factor}", #curvature of the edge
                         linewidth = line_width,
-                        linestyle=mode_linestyle_dict[cur_mode],
+                        arrowstyle='-',
+                        linestyle=line_stl, #requires arrowstyle to be defined in order to work
                         color=cur_color,
                         zorder = zorder_dict[cur_mode]
                         )    
