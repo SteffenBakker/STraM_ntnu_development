@@ -105,19 +105,32 @@ class ScenarioInformation():
 
     
         # read and process scenario data
-        scenario_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name=sh_name)
+        scenario_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name=sh_name) #sh_name in [scenarios_base, nine_scenarios]
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
         
         variability_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name="variability")
+        cost_factor_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name="cost_factor")
+
+
         self.variability = None
         for index, row in variability_data.iterrows():
-            if index == 0:
-                self.variability = row["Variability"]
+           if index == 0:
+               self.variability = row["Variability"]
+        
+        self.cost_factor = {}
+        for index, row in cost_factor_data.iterrows():
+            fg = row['Fuel Group']
+            s = row['Scenario']
+            t = row['Time Period']
+            m = row['Mode']
+            p = row['Product Group']
+            f = row['Fuel']
+            self.cost_factor[(fg,s,t,m,p,f)]= row['Cost Factor']
 
-        self.fg_maturity_path_name = [{}] * self.num_scenarios
-        self.fg_cost_factor = [{}] * self.num_scenarios
+        self.fg_maturity_path_name = [{}] * self.num_scenarios  
+        #self.fg_cost_factor = [{}] * self.num_scenarios #this is already explicitly done in the cost_factor sheet
         for index, row in scenario_data.iterrows():
             if "Name" in scenario_data:
                 self.scenario_names[index] = row["Name"] #update scenario names if available
@@ -126,15 +139,16 @@ class ScenarioInformation():
             for fg in self.fuel_group_names:
                 new_maturity_entry = {fg : row[fg]}
                 self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry) #add new entry to existing dict (trick from internet)
-                new_cost_factor = None
-                if row[fg] == "base":
-                    new_cost_factor = 1.0
-                elif row[fg] ==  "fast":
-                    new_cost_factor = 1.0 - self.variability
-                elif row[fg] == "slow":
-                    new_cost_factor = 1.0 + self.variability
-                new_cost_entry = {fg : new_cost_factor} #new entry for the dictionary fg_cost_factor[index]
-                self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_cost_entry) #add new entry to existing dict (trick from internet)
+                
+                # new_cost_factor = None
+                # if row[fg] == "B":
+                #     new_cost_factor = 1.0
+                # elif row[fg] ==  "O":
+                #     new_cost_factor = 1.0 - self.variability
+                # elif row[fg] == "P":
+                #     new_cost_factor = 1.0 + self.variability
+                # new_cost_entry = {fg : new_cost_factor} #new entry for the dictionary fg_cost_factor[index]
+                # self.fg_cost_factor[index] = dict(self.fg_cost_factor[index], **new_cost_entry) #add new entry to existing dict (trick from internet)
         
         
 
@@ -145,12 +159,13 @@ class ScenarioInformation():
             self.scen_name_to_nr[self.scenario_names[i]] = i
             self.scen_nr_to_name[i] = self.scenario_names[i]
         
-        self.mode_fuel_cost_factor = [] #list of dictionaries (per scenario) from (m,f) pair to transport cost factor (relative to base cost)
-        for s in range(self.num_scenarios):
-            self.mode_fuel_cost_factor.append({})
-            for fg in self.fuel_group_names:
-                for mf in self.fuel_groups[fg]:
-                    self.mode_fuel_cost_factor[s][mf] = self.fg_cost_factor[s][fg]
+        # NB: the following is now depreciated as we directly read this from excel
+        # self.mode_fuel_cost_factor = [] #list of dictionaries (per scenario) from (m,f) pair to transport cost factor (relative to base cost)
+        # for s in range(self.num_scenarios):
+        #     self.mode_fuel_cost_factor.append({})
+        #     for fg in self.fuel_group_names:
+        #         for mf in self.fuel_groups[fg]:
+        #             self.mode_fuel_cost_factor[s][mf] = self.fg_cost_factor[s][fg]
 
 
 
@@ -631,6 +646,7 @@ class TransportSets():
         # define transport cost for each scenario
         for (i, j, m, r) in self.A_ARCS:
                 for f in self.FM_FUEL[m]:
+                    fg = self.F_TO_FG[f]
                     for p in self.P_PRODUCTS:
                         for y in self.T_TIME_PERIODS:
                             for s in self.S_SCENARIOS:
@@ -638,7 +654,11 @@ class TransportSets():
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 1,self.precision_digits)
                                 elif y in self.T_TIME_SECOND_STAGE_BASE:
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
-                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)],self.precision_digits) 
+                                    fg_scen =self.scenario_information.fg_maturity_path_name[s][fg] #  "B", "P" or "O"
+                                    self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 
+                                                                                        self.scenario_information.cost_factor[(fg,fg_scen,t,m,p,f)],
+                                                                                        #self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)],
+                                                                                        self.precision_digits) 
 
         # read time values
         for index, row in time_value_data.iterrows():
@@ -875,13 +895,13 @@ class TransportSets():
                         # find current scenario's level of variation for q and p and delay for t_0 from base case
                         cur_scen_p_q_variation = 0.0 
                         cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "base":
+                        if cur_path_name == "B":
                             cur_scen_p_q_variation = 0.0
                             cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "fast":
+                        if cur_path_name == "O":
                             cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
                             cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
-                        elif cur_path_name == "slow":
+                        elif cur_path_name == "P":
                             cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
                             cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
 
