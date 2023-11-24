@@ -654,9 +654,11 @@ class TransportSets():
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 1,self.precision_digits)
                                 elif y in self.T_TIME_SECOND_STAGE_BASE:
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
-                                    fg_scen =self.scenario_information.fg_maturity_path_name[s][fg] #  "B", "P" or "O"
+                                    scen_nr = self.scenario_information.scen_name_to_nr[s]
+                                    fg_scen =self.scenario_information.fg_maturity_path_name[scen_nr][fg] #  "B", "P" or "O"
+                                    pc = self.P_TO_PC[p]
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 
-                                                                                        self.scenario_information.cost_factor[(fg,fg_scen,t,m,p,f)],
+                                                                                        self.scenario_information.cost_factor[(fg,fg_scen,t,m,pc,f)],
                                                                                         #self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)],
                                                                                         self.precision_digits) 
 
