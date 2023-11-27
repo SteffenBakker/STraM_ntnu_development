@@ -1220,6 +1220,7 @@ class TransportSets():
         self.NMFVT_CONSTR_S = combinations(self.NMFVT_CONSTR,self.S_SCENARIOS)
         self.ODPTS_CONSTR_S = combinations(self.ODPTS_CONSTR,self.S_SCENARIOS)
         self.TS_S = combinations(self.TS,self.S_SCENARIOS)
+        self.TS_NO_BASE_YEAR_S = combinations(self.TS_NO_BASE_YEAR,self.S_SCENARIOS)
         self.TS_CONSTR_S = combinations(self.TS_CONSTR,self.S_SCENARIOS)
         self.TS_NO_BASE_YEAR_CONSTR_S = combinations(self.TS_NO_BASE_YEAR_CONSTR,self.S_SCENARIOS)
         self.T_TIME_PERIODS_S = combinations([(t,) for t in self.T_TIME_PERIODS],self.S_SCENARIOS)

@@ -419,10 +419,17 @@ class TranspModel:
                         return (self.model.q_mode_total_transp_amount[m,t,s] == sum( self.model.q_transp_amount[m,f,t,s] for f in self.data.FM_FUEL[m] ))
                     self.model.ModeTotalTransportAmount = Constraint(self.data.MT_S, rule = ModeTotalTransportAmountRule) 
 
-                    #Restriction on modal transport amount decrease
+                    #Restriction on modal transport amount decrease (mode shift cannot happen too fast)
                     def DecreaseInModeTotalTransportAmountRule(model,m,t,s):
                         return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
-                    self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule) 
+                    self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule)
+
+                    #HFO is toxic and will be phased out -> put a cap
+                    def HFOCapRule(model,t,s):
+                        m = "Sea"
+                        f="HFO"
+                        return (self.model.q_transp_amount[m,f,t,s] <= self.model.q_transp_amount[m,f,self.data.T_MIN1[t],s])
+                    self.model.HFOCap = Constraint(self.data.TS_NO_BASE_YEAR_S, rule = HFOCapRule)  
 
                 if True:        
                     #Fleet Renewal
