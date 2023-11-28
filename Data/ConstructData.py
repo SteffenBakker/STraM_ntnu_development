@@ -985,8 +985,6 @@ class TransportSets():
                 if od[0] == path[0][0] and od[-1] == path[-1][1]:
                     self.OD_PATHS[od].append(k)
 
-        
-
         #multi-mode paths and unimodal paths
         self.MULTI_MODE_PATHS = []
         for kk in self.K_PATHS:
@@ -996,6 +994,14 @@ class TransportSets():
                     if k[i][2] != k[i+1][2]:
                         self.MULTI_MODE_PATHS.append(kk)
         self.UNI_MODAL_PATHS = list(set(self.K_PATHS)-set(self.MULTI_MODE_PATHS))
+
+        self.UNI_MODAL_PATHS_PER_MODE = {m:[] for m in self.M_MODES}
+        for kk in self.UNI_MODAL_PATHS:
+            (i,j,m,r) = self.K_PATH_DICT[kk][0]
+            self.UNI_MODAL_PATHS_PER_MODE[m] = kk
+
+        self.PATHS_NO_UNIMODAL_ROAD = list(set(self.K_PATHS)-set(self.UNI_MODAL_PATHS_PER_MODE["Road"]))
+
 
         #Paths with transfer in node i to/from mode m
         #self.TRANSFER_PATHS = {(i,m) : [] for m in self.M_MODES_CAP for i in self.N_NODES_CAP_NORWAY[m]}
@@ -1040,19 +1046,27 @@ class TransportSets():
         #      Parameters part 2
         #-----------------------------------------
 
+    
+
         self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
-        for kk in self.MULTI_MODE_PATHS:
+        for kk in self.PATHS_NO_UNIMODAL_ROAD:
             k = self.K_PATH_DICT[kk]
             for p in self.P_PRODUCTS:
                 cost = 0
-                num_transfers = len(k)-1
-                for n in range(num_transfers):
-                    mode_from = k[n][2]
-                    mode_to = k[n+1][2]
-                    if mode_from != mode_to: 
-                        cost += self.TRANSFER_COST_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]
+                num_arcs = len(k)
+                initial_mode = k[0][2]
+                final_mode = k[num_arcs-1][2]
+                if initial_mode in ["Rail", "Sea"]: #first mile with Road and hence a transfer cost
+                    cost += self.TRANSFER_COST_PER_MODE_PAIR["Road", initial_mode, self.P_TO_PC[p]]
+                if final_mode in ["Rail", "Sea"]: #last mile with Road and hence a transfer cost 
+                    cost += self.TRANSFER_COST_PER_MODE_PAIR[final_mode,"Road", self.P_TO_PC[p]]
+                if num_arcs>1:
+                    for n in range(num_arcs-1):
+                        mode_from = k[n][2]
+                        mode_to = k[n+1][2]
+                        if mode_from != mode_to: 
+                            cost += self.TRANSFER_COST_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
-
 
         
             
