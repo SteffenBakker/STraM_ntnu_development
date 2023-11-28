@@ -3,6 +3,8 @@ import pickle
 import pandas as pd
 import networkx as nx
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+
 
 scenario_tree = "9Scen"     # Options: 4Scen, 9Scen, AllScen
 
@@ -138,7 +140,7 @@ def plot_mode(df):
     pos = nx.get_node_attributes(G, 'pos')
 
     # Draw the graph with node positions based on geographical coordinates
-    nx.draw_networkx_nodes(G, pos, node_size=700, node_color='skyblue')
+    nx.draw_networkx_nodes(G, pos, node_size=300, node_color='skyblue')
     
     for edge in G.edges(data=True):
         source, target, data = edge
@@ -146,22 +148,28 @@ def plot_mode(df):
         if mode == 'Sea':
             nx.draw_networkx_edges(G, pos, edgelist=[(source, target)],
                                    edge_color=mode_colors[mode],
-                                   width=data['weight'],
-                                   connectionstyle="arc3,rad=0.1")  # Adjust the 'rad' value for curvature
+                                   width=direction,
+                                   connectionstyle="arc3,rad=0.15")  # Adjust the 'rad' value for curvature
+            
+        elif mode == 'Rail':
+            nx.draw_networkx_edges(G, pos, edgelist=[(source, target)],
+                                   edge_color=mode_colors[mode],
+                                   width=direction,
+                                   connectionstyle="arc3,rad=0.05")  # Adjust the 'rad' value for curvature
 
         else:
             nx.draw_networkx_edges(G, pos, edgelist=[(source, target)],
                                    edge_color=mode_colors[mode],
-                                   width=data['weight'],
+                                   width=direction,
                                    style=mode_styles[mode])
 
     nx.draw_networkx_labels(G, pos, font_size=8, font_color='black', font_weight='bold')
     
     # Add a legend
     legend_handles = [
-        plt.Line2D([0], [0], linestyle='-', color='w', markerfacecolor=color, markersize=10) for color in mode_colors.values()
+        Line2D([0], [0], linestyle='-', color=color, markerfacecolor=color, markersize=10) for color in mode_colors.values()
     ]
-    plt.legend(handles=legend_handles, labels=mode_colors.keys(), title='Mode of Travel', loc='upper right')
+    plt.legend(handles=legend_handles, labels=mode_colors.keys(), title='Mode of Travel', loc='upper left')
 
     # Show the plot
     plt.show()
