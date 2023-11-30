@@ -117,7 +117,7 @@ class TranspModel:
 
         self.model.TransfCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TransfCost(model, t,s):
-            return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)-FEAS_RELAX )  
+            return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.PATHS_NO_UNIMODAL_ROAD)-FEAS_RELAX )  
         self.model.TransfCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TransfCost)
         
         self.model.EdgeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
