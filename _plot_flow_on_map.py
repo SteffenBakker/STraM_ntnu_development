@@ -52,8 +52,9 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
     all_scenarios = []
 
     #list all nodes clockwise, to make sure sea edges curve in the right direction (HARDCODED)
-    nodes_sea_order = ["Nord-Sverige", "Sør-Sverige", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
-                        "Bergen", "Ålesund", "Trondheim", "Bodø", "Tromsø", "Europa", "Verden", "Kontinentalsokkelen"]
+    nodes_sea_order = ["Umeå", "Stockholm", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
+                        "Bergen", "Førde","Ålesund", "Trondheim", "Bodø", "Tromsø","Narvik", "Alta",
+                        "Hamburg", "World", "JohanSverdrupPlatform"] #HARDCODED
 
     #add arcs and corresponding flow to the right lists
     #Note: I use the word arc, but we treat them as edges. That is, we look at undirectional flow by aggregating over both directions
@@ -218,32 +219,15 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
 
     #extract nodes from base_data
     N_NODES = base_data.N_NODES
+    lats = base_data.N_LATITUDE_PLOT
+    longs = base_data.N_LONGITUDE_PLOT
+    node_xy_offset = base_data.N_COORD_OFFSETS
 
-    #import norwegian city coordinates
-    NO_coordinates = pd.read_csv("Data/NO_cities_coordinates.csv")
-    #extract latitudes and longitudes
-    lats = [0.0] * len(N_NODES)
-    lons = [0.0] * len(N_NODES)
-    for index, row in NO_coordinates.iterrows():
-        if row["city"] in N_NODES:
-            n_ind = N_NODES.index(row["city"]) #index of this city in list N_NODES
-            lats[n_ind] = row["lat"]
-            lons[n_ind] = row["lng"]
-
-    #Manually define foreign city coordinates (HARDCODED)
-    foreign_cities = pd.DataFrame()
-    foreign_cities["city"] = ["Sør-Sverige", "Nord-Sverige", "Kontinentalsokkelen", "Europa", "Verden"] 
-    foreign_cities["lat"] = [59.33, 63.82, 60, 56.2, 56.5] 
-    foreign_cities["lon"] = [18.06, 20.26, 2,  9, 3]
-    #add to vectors lats and lons
-    for index, row in foreign_cities.iterrows():
-        if row["city"] in N_NODES:
-            n_ind = N_NODES.index(row["city"]) #index of this city in list N_NODES
-            lats[n_ind] = row["lat"]
-            lons[n_ind] = row["lon"]
-    #add colors (for checking and perhaps plotting)
     node_colors = ["black"]*len(N_NODES)     
 
+    nodes_sea_order = ["Umeå", "Stockholm", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
+                        "Bergen", "Førde","Ålesund", "Trondheim", "Bodø", "Tromsø","Narvik", "Alta",
+                        "Hamburg", "World", "JohanSverdrupPlatform"] #HARDCODED
 
     ####################
     # b. Build a map
@@ -261,7 +245,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     map.drawcountries(linewidth=0.2)
 
     #draw nodes on the map
-    node_x, node_y = map(lons, lats)
+    node_x, node_y = map(list(longs.values()), list(lats.values()))
+    coordinate_mapping={N_NODES[i]:(node_x[i],node_y[i]) for i in range(len(N_NODES))}
     map.scatter(node_x, node_y, color=node_colors, zorder=100)
 
 
@@ -315,9 +300,9 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
         #check if it is a long distance (temporarily don't plot those to avoid cluttering)
         overseas = False
         up_north = False
-        if cur_orig in ["Kontinentalsokkelen", "Europa", "Verden"] or cur_dest in ["Kontinentalsokkelen", "Europa", "Verden"]:
+        if cur_orig in ["JohanSverdrupPlatform", "Hamburg", "World"] or cur_dest in ["JohanSverdrupPlatform", "Hamburg", "World"]:
             overseas = True
-        if cur_orig in ["Bodø", "Tromsø"] or cur_dest in ["Bodø", "Tromsø"]:
+        if cur_orig in ["Bodø", "Tromsø","Narvik","Alta"] or cur_dest in ["Bodø", "Tromsø","Narvik","Alta"]:
             up_north = True
         #check mode variant
         if mode_variant == "all": #we will plot all modes in one figure
@@ -413,7 +398,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        filename = f"Plots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
+        filename = f"Data/Plots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
         plt.savefig(filename, bbox_inches="tight")
     #show figure
     if show_fig:
@@ -449,7 +434,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "9Scen" # 4Scen
+scenario_type = "4Scen" # 4Scen
 with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
 with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
@@ -462,15 +447,17 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "BBB"
-sel_time_period = 2050
-sel_product = "Timber" # "Timber" # any product group or "all"
+sel_time_period = 2023 #
+sel_product = "all" # "Dry bulk" # any product group or "all"
+#Dry bulk, Liquid bulk, Container (fast), Container (slow), Break bulk (fast), Break bulk (slow), Neo bulk
+
 plot_overseas = True
 plot_up_north = True
 show_fig = True
 save_fig = True
 
 # Make plot
-if False:
+if True:
     process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
@@ -488,7 +475,7 @@ show_fig = True
 save_fig = True
 
 # Make plot
-if True:
+if False:
     process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
