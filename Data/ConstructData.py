@@ -543,6 +543,7 @@ class TransportSets():
         cost_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output costs')        
         emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
         time_value_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Output')
+        time_in_terminals = pd.read_excel(r'Data/time_value.xlsx', sheet_name='TimeInTerminals')
         speed_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Speeds')
 
         self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes    # HARDCODED
@@ -552,13 +553,15 @@ class TransportSets():
         transfer_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Transfer costs')
 
         self.TRANSFER_COST_PER_MODE_PAIR = {}   # transfer cost per origin mode, dest mode, product class
+        self.TRANSFER_TIME_PER_MODE_PAIR = {}   # transfer cost per origin mode, dest mode, product class
 
         # extract transfer costs from table
         for index, row in transfer_data.iterrows():
             self.TRANSFER_COST_PER_MODE_PAIR[(row["From"], row["To"], row["Product class"])] = round(row["Transfer cost (NOK/Tonne)"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
             self.TRANSFER_COST_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = round(row["Transfer cost (NOK/Tonne)"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
             #No immediate need for scaling, as already in NOK/Tonnes
-
+            self.TRANSFER_TIME_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = row["Transfer time (hours)"]
+            self.TRANSFER_TIME_PER_MODE_PAIR[(row["From"],row["To"],  row["Product class"])] = row["Transfer time (hours)"]
 
         if True: #I assume this leads to an error (maybe because there was a .self)
             # read CO2 fee
@@ -594,6 +597,7 @@ class TransportSets():
                       for p in self.P_PRODUCTS for t in self.T_TIME_PERIODS}   #UNIT: nok/T
         # new: time value
         self.TIME_VALUE_PER_TH = {p: COST_BIG_M for p in self.P_PRODUCTS}   #UNIT: NOK/Th (NOK per tonne-hour)
+        self.TIME_IN_TERMINAL = {m: 0 for m in self.M_MODES}   #UNIT: NOK/Th (NOK per tonne-hour)
         self.SPEED = {m: 0.0 for m in self.M_MODES}     # UNIT: KM/H
         self.C_TIME_VALUE = {(i,j,m,r,p): COST_BIG_M for (i,j,m,r) in self.A_ARCS for p in self.P_PRODUCTS}   #UNIT: NOK/T
 
@@ -675,7 +679,13 @@ class TransportSets():
 
         # read time values
         for index, row in time_value_data.iterrows():
-            self.TIME_VALUE_PER_TH[row["Product group"]] = row["Time value (EUR/th)"] * EXCHANGE_RATE_EURO_TO_NOK
+            self.TIME_VALUE_PER_TH[row["Product group"]] = round(row["Time value (EUR/th)"]*EXCHANGE_RATE_EURO_TO_NOK/
+                                                                 self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)
+
+        # read time in terminals
+        for index, row in time_in_terminals.iterrows():
+            self.TIME_IN_TERMINAL[row["Mode"]] = row["Time (hours)"] 
+        
 
         # read mode speeds
         for index, row in speed_data.iterrows():
@@ -684,7 +694,9 @@ class TransportSets():
         # translate to time values per arc
         for (i,j,m,r) in self.A_ARCS:
             for p in self.P_PRODUCTS:
-                self.C_TIME_VALUE[(i,j,m,r,p)] = round(((self.DISTANCE[(i,j,m,r)] / self.SPEED[m]) * self.TIME_VALUE_PER_TH[p] )/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)  # dist / speed * cost per hour
+                travel_time = (self.DISTANCE[(i,j,m,r)] / self.SPEED[m]) 
+                terminal_time = self.TIME_IN_TERMINAL[m]
+                self.C_TIME_VALUE[(i,j,m,r,p)] = round((travel_time+terminal_time)*self.TIME_VALUE_PER_TH[p],self.precision_digits)  # dist / speed * cost per hour
                
         #################
         #  INVESTMENTS  #
@@ -1080,14 +1092,17 @@ class TransportSets():
                 final_mode = k[num_arcs-1][2]
                 if initial_mode in ["Rail", "Sea"]: #first mile with Road and hence a transfer cost
                     cost += self.TRANSFER_COST_PER_MODE_PAIR["Road", initial_mode, self.P_TO_PC[p]]
+                    cost += self.TRANSFER_TIME_PER_MODE_PAIR["Road", initial_mode, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
                 if final_mode in ["Rail", "Sea"]: #last mile with Road and hence a transfer cost 
                     cost += self.TRANSFER_COST_PER_MODE_PAIR[final_mode,"Road", self.P_TO_PC[p]]
+                    cost += self.TRANSFER_TIME_PER_MODE_PAIR["Road", final_mode, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
                 if num_arcs>1: #Calculate the transfer costs DURING the path (not first-/last-mile)
                     for n in range(num_arcs-1):
                         mode_from = k[n][2]
                         mode_to = k[n+1][2]
                         if mode_from != mode_to: 
                             cost += self.TRANSFER_COST_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]
+                            cost += self.TRANSFER_TIME_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
 
             
