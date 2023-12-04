@@ -14,6 +14,17 @@ with open(r'Data//base_data//'+scenarios+'.pickle', 'rb') as data_file:
     base_data = pickle.load(data_file)
 
 
+
+#------------------------------------------
+
+#Ingen veitransport fra Trondheim til Bodø (merkelig nok).
+output.x_flow[(output.x_flow['from']=='Trondheim')&
+              (output.x_flow['to']=='Bodø')&
+              (output.x_flow['time_period']==2023)&
+              (output.x_flow['scenario']=='BBB')]
+
+#-----------------------------------------
+
 #DICTIONARY_TO_PD_DATAFRAME!!
 
 def dict_to_pd_df(dict,col_names):
