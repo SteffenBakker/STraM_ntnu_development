@@ -445,7 +445,7 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 # 1. Make flow plots
 
 # Choose settings
-mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
+mode_variant = "rail" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "BBB"
 sel_time_period = 2023 #
 sel_product = "all" # "Dry bulk" # any product group or "all"

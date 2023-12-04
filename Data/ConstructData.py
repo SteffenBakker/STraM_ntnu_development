@@ -440,38 +440,45 @@ class TransportSets():
             product = row['product_group']
             if product in self.P_PRODUCTS:
                 D_DEMAND_ALL[(from_node, to_node,product ,int(row['year']))] = round(float(row['amount_tons']),0)
+            else:
+                if product != 'Liquid bulk':
+                    product
     
 
         demands = pd.Series(D_DEMAND_ALL.values())         
         
-        # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES? should not matter too much. distances are somewhat similar
-        print('describing original demand data')
-        #print(demands.describe())   #huge spread -> remove the very small stuff. Even demand of 5E-1
-        #demands.plot.hist(by=None, bins=1000)
-        #demands.hist(cumulative=True, density=1, bins=100)
+        if False: #Remove demand -> No, then we only end up with containers and dry bulk
+            # DO THIS ANALYSIS AS TON/KM?, opposed to as in TONNES? should not matter too much. distances are somewhat similar
+            print('describing original demand data')
+            #print(demands.describe())   #huge spread -> remove the very small stuff. Even demand of 5E-1
+            #demands.plot.hist(by=None, bins=1000)
+            #demands.hist(cumulative=True, density=1, bins=100)
+            
+            total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
+            cutoff = demands.quantile(0.12) #HARDCODED, requires some analyses. Do not remove too much. These are actual things that need to be transported. And not too much complexity because of it
+            print('cutoff (in Tonnes):', cutoff)
+            demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
+            reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
+            print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  
+            
+            # demands2.plot.hist(by=None, bins=1000)
+            # demands2.hist(cumulative=True, density=1, bins=100)
+            
+            # print("{:e}".format(round(cutoff,0)))    # '3.306000e+03'
+            # print("{:e}".format(round(demands.max(),0)))           # '2.739037e+07'
         
-        total_base_demand=round(demands.sum(),0)  #'1.339356e+09' TONNES
-        cutoff = demands.quantile(0.12) #HARDCODED, requires some analyses. Do not remove too much. These are actual things that need to be transported. And not too much complexity because of it
-        print('cutoff (in Tonnes):', cutoff)
-        demands2 = demands[demands > cutoff]  #and (demands < demands.quantile(0.9)
-        reduced_base_demand = round(demands2.sum(),0)  #'1.338888e+09' TONNES
-        print('percentage demand removed: ',(total_base_demand-reduced_base_demand)/total_base_demand*100,'%')  
-        
-        # demands2.plot.hist(by=None, bins=1000)
-        # demands2.hist(cumulative=True, density=1, bins=100)
-        
-        # print("{:e}".format(round(cutoff,0)))    # '3.306000e+03'
-        # print("{:e}".format(round(demands.max(),0)))           # '2.739037e+07'
-    
-        #D_DEMAND_CUT = D_DEMAND_ALL #
-        D_DEMAND_CUT = {key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
-        
-        #print('D_DEMAND_CUT:')
-        #print(pd.Series(list(D_DEMAND_CUT.values())).describe())
+            #D_DEMAND_CUT = D_DEMAND_ALL #
+            D_DEMAND_CUT = {key:value for key,value in D_DEMAND_ALL.items() if value > cutoff}  #(o,d,p,t)
+            
+            #print('D_DEMAND_CUT:')
+            #print(pd.Series(list(D_DEMAND_CUT.values())).describe())
+
+            print(len(D_DEMAND_ALL))  #9432
+            print(len(D_DEMAND_CUT))  #8299
 
         #ODP
         self.OD_PAIRS = {p: [] for p in self.P_PRODUCTS}
-        for (o,d,p,t), value in D_DEMAND_CUT.items():
+        for (o,d,p,t), value in D_DEMAND_ALL.items():
             if ((o,d) not in self.OD_PAIRS[p]):
                 self.OD_PAIRS[p].append((o,d))
         self.ODP = []
@@ -483,21 +490,25 @@ class TransportSets():
         self.OD_PAIRS_ALL = list(self.OD_PAIRS_ALL)
         
         self.D_DEMAND = {(o,d,p,t):0 for t in self.T_TIME_PERIODS_PWC for (o,d,p) in self.ODP}        
-        for (o,d,p,t), value in D_DEMAND_CUT.items():
+        for (o,d,p,t), value in D_DEMAND_ALL.items():
             self.D_DEMAND[(o,d,p,t)] = round(value / self.scaling_factor_weight,self.precision_digits)
         
         #print('D_DEMAND:')
         #print(pd.Series(list(self.D_DEMAND.values())).describe())
 
-        
         #self.D_DEMAND = {key:round(value,self.precision_digits) for (key,value) in self.D_DEMAND.items()}
         #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
 
 
         self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS_PWC}
+        D_DEMAND_AGGR_PROD = {p:0 for p in self.P_PRODUCTS}
         for (o,d,p,t),value in self.D_DEMAND.items():
             self.D_DEMAND_AGGR[t] += value
+            D_DEMAND_AGGR_PROD[p] += value
 
+        D_DEMAND_AGGR_PROD=pd.DataFrame([[key, value] for key, value in D_DEMAND_AGGR_PROD.items()],columns=['product','tot_weight'])
+        D_DEMAND_AGGR_PROD["tot_weight"] = round(D_DEMAND_AGGR_PROD["tot_weight"]/10**6*SCALING_FACTOR_WEIGHT,2) # in MTonnes 
+        print(D_DEMAND_AGGR_PROD)
 
         if True:  #Q: is this still necessary? Or can we remove this
         
