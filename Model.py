@@ -385,6 +385,15 @@ class TranspModel:
             + FEAS_RELAX )   #R_TECH is the A from the Bass diffusion model
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY_CONSTR_S, rule = TechMaturityLimitRule)
 
+        #HFO is toxic and will be phased out -> put a cap
+        def PhaseOutRule(model, m, f, t,s):
+            if ((m,f,t) not in self.data.PHASE_OUT.keys()):
+                return Constraint.Skip  
+            else:
+                return (self.model.q_transp_amount[(m,f,t,s)] <= (self.data.PHASE_OUT[(m,f,t)]*self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)]))
+        self.model.PhaseOut = Constraint(self.data.MFT_MIN0_S, rule = PhaseOutRule)
+
+
         if True:
 
 
@@ -424,12 +433,7 @@ class TranspModel:
                         return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
                     self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule)
 
-                    #HFO is toxic and will be phased out -> put a cap
-                    def HFOCapRule(model,t,s):
-                        m = "Sea"
-                        f="HFO"
-                        return (self.model.q_transp_amount[m,f,t,s] <= self.model.q_transp_amount[m,f,self.data.T_MIN1[t],s])
-                    self.model.HFOCap = Constraint(self.data.TS_NO_BASE_YEAR_S, rule = HFOCapRule)  
+                    
 
                 if True:        
                     #Fleet Renewal

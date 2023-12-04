@@ -887,7 +887,19 @@ class TransportSets():
                     for year in self.T_TIME_PERIODS:
                         #we can remove this one!
                         self.R_TECH_READINESS_MATURITY[(m, f, year,s)] = round(self.tech_base_bass_model[(m,f)].A(year),self.precision_digits) # compute maturity level based on base Bass diffusion model 
+        
+        #Phase out technologies
+        phase_out_data = pd.read_excel(r'Data/technological_maturity_readiness.xlsx',sheet_name="phase_out_fuels") 
+        self.PHASE_OUT = {}
+        for index, row in phase_out_data.iterrows():
+            m=row["Mode"]
+            f=row["Fuel"]
+            t=row["Time period"]
+            self.PHASE_OUT[(m,f,t)] = row["Restriction"]
             
+            
+
+
 
         #Initializing transport work share in base year
         init_transport_share = pd.read_excel(r'Data/init_mode_fuel_mix.xlsx',sheet_name="init_fuel_mix")
