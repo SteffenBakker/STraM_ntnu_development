@@ -510,30 +510,7 @@ class TransportSets():
         D_DEMAND_AGGR_PROD["tot_weight"] = round(D_DEMAND_AGGR_PROD["tot_weight"]/10**6*SCALING_FACTOR_WEIGHT,2) # in MTonnes 
         print(D_DEMAND_AGGR_PROD)
 
-        if True:  #Q: is this still necessary? Or can we remove this
         
-            #####################
-            ## VEHICLE TYPES ####
-            #####################
-            
-            #Vehicle types
-            prod_to_vehicle_type = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
-            self.VEHICLE_TYPE_MP = {}
-            self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
-            for (m,p,v) in zip(prod_to_vehicle_type['Mode'], prod_to_vehicle_type['Product group'], prod_to_vehicle_type['Vehicle type']):
-                if p in self.P_PRODUCTS:
-                    self.VEHICLE_TYPE_MP[(m,p)] = v
-                    self.VEHICLE_TYPES_M[m].append(v)
-            for m in self.M_MODES:
-                self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
-            self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
-            
-            self.PV_PRODUCTS = {v:[] for v in self.V_VEHICLE_TYPES}
-            for (m,p),v in self.VEHICLE_TYPE_MP.items():
-                self.PV_PRODUCTS[v].append(p)
-
-        
-
 
 
         #------------------------
@@ -1121,6 +1098,32 @@ class TransportSets():
 
 
     def combined_sets(self):
+
+
+        if True:  #Q: is this still necessary? Or can we remove this
+        
+            #####################
+            ## VEHICLE TYPES ####
+            #####################
+            
+            #Vehicle types
+            prod_to_vehicle_type = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='prod_to_vehicle')
+            self.VEHICLE_TYPE_MP = {}
+            self.VEHICLE_TYPES_M = {m:[] for m in self.M_MODES}
+            prod_veh_data = zip(prod_to_vehicle_type['Mode'], prod_to_vehicle_type['Product class'], prod_to_vehicle_type['Vehicle type'])
+            for (m,pc,v) in prod_veh_data:
+                for p in self.PC_TO_P[pc]:
+                    if p in self.P_PRODUCTS:
+                        self.VEHICLE_TYPE_MP[(m,p)] = v
+                        self.VEHICLE_TYPES_M[m].append(v)
+            for m in self.M_MODES:
+                self.VEHICLE_TYPES_M[m] = list(set(self.VEHICLE_TYPES_M[m]))
+            self.V_VEHICLE_TYPES = list(set(self.VEHICLE_TYPE_MP.values()))
+            
+            self.PV_PRODUCTS = {v:[] for v in self.V_VEHICLE_TYPES}
+            for (m,p),v in self.VEHICLE_TYPE_MP.items():
+                self.PV_PRODUCTS[v].append(p)
+
 
         self.SS_SCENARIOS_NONANT = []
         for s in self.S_SCENARIOS:
