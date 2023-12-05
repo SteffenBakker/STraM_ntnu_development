@@ -500,15 +500,17 @@ class TransportSets():
         #self.D_DEMAND = {key:value for key,value in self.D_DEMAND.items() if value > 0}
 
 
-        self.D_DEMAND_AGGR = {t:0 for t in self.T_TIME_PERIODS_PWC}
-        D_DEMAND_AGGR_PROD = {p:0 for p in self.P_PRODUCTS}
+        D_DEMAND_AGGR = {(p,t):0 for t in self.T_TIME_PERIODS_PWC for p in self.P_PRODUCTS}
+        D_DEMAND_AGGR_BASE_YEAR = {p:0 for p in self.P_PRODUCTS}
         for (o,d,p,t),value in self.D_DEMAND.items():
-            self.D_DEMAND_AGGR[t] += value
-            D_DEMAND_AGGR_PROD[p] += value
+            D_DEMAND_AGGR[(p,t)] += value
+            if t == self.T_TIME_PERIODS_PWC[0]:
+                D_DEMAND_AGGR_BASE_YEAR[p] += value
 
-        D_DEMAND_AGGR_PROD=pd.DataFrame([[key, value] for key, value in D_DEMAND_AGGR_PROD.items()],columns=['product','tot_weight'])
-        D_DEMAND_AGGR_PROD["tot_weight"] = round(D_DEMAND_AGGR_PROD["tot_weight"]/10**6*SCALING_FACTOR_WEIGHT,2) # in MTonnes 
-        print(D_DEMAND_AGGR_PROD)
+        DEMAND_PRODUCT_BASE_YEAR=pd.DataFrame([[key, value] for key, value in D_DEMAND_AGGR_BASE_YEAR.items()],columns=['product','tot_weight'])
+        DEMAND_PRODUCT_BASE_YEAR["tot_weight"] = round(DEMAND_PRODUCT_BASE_YEAR["tot_weight"]/10**6*SCALING_FACTOR_WEIGHT,2) # in MTonnes 
+        print(f"Transport demand in the base year {self.T_TIME_PERIODS_PWC[0]} (in MTonnes):")
+        print(DEMAND_PRODUCT_BASE_YEAR)
 
         
 

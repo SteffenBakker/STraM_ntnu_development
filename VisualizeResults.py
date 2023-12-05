@@ -5,6 +5,7 @@ from matplotlib.pyplot import cm
 from matplotlib.transforms import Affine2D
 import numpy as np
 import pandas as pd
+import copy
 
 import pickle
 import json
@@ -257,27 +258,26 @@ def plot_emission_results(output,base_data,run_identifier):
 
 def mode_mix_calculations(output,base_data):
     
-    x_flow = output.x_flow 
+    x_flow = copy.deepcopy(output.x_flow)
 
     time_period = 2023
     if True:
         x_flow = x_flow[x_flow['time_period']==time_period] 
 
-    print(sum(x_flow['weight']))
-
-    x_flow['Distance'] = 0 # in Tonnes KM
+    x_flow.loc[:, 'Distance'] = 0 # in Tonnes KM
     for index, row in x_flow.iterrows():
         x_flow.at[index,'Distance'] = base_data.AVG_DISTANCE[(row['from'],row['to'],row['mode'],row['route'])]
 
-    x_flow['TransportArbeid'] = x_flow['Distance']*x_flow['weight'] /10**6*SCALING_FACTOR_WEIGHT # in MTonnes KM
+    x_flow['TransportArbeid'] = x_flow['Distance']*x_flow['weight'] /10**9*SCALING_FACTOR_WEIGHT # in MTonnes KM
     
-    include_col_in_aggr = ['mode','product','time_period','scenario']
+    include_col_in_aggr_no_scen = ['mode','product','time_period']
+    include_col_in_aggr = include_col_in_aggr_no_scen +['scenario']
     sum_over = 'TransportArbeid'
     TranspArb = x_flow[include_col_in_aggr+[sum_over]].groupby(include_col_in_aggr, as_index=False).agg({sum_over:'sum'})
-    TranspArb = x_flow[include_col_in_aggr+[sum_over]].groupby(['mode','product','time_period'], as_index=False).agg({sum_over:'mean'})
-
+    TranspArb = TranspArb[include_col_in_aggr_no_scen+[sum_over]].groupby(include_col_in_aggr_no_scen, as_index=False).agg({sum_over:'mean'})
     TranspArb = TranspArb.sort_values(by=['mode','product'])
 
+    print('Average transport work in GTONNES*km:')
     print(TranspArb)    
     print('')
 
