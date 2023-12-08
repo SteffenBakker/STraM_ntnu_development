@@ -388,10 +388,6 @@ class TransportSets():
             self.DISTANCE[a2] = value
             self.AVG_DISTANCE[a1] = value
             self.AVG_DISTANCE[a2] = value
-            if (i in self.N_ABROAD) or (j in self.N_ABROAD):
-                self.AVG_DISTANCE[a1] = value/2
-                self.AVG_DISTANCE[a2] = value/2
-                # half the distance for international transport -> split the emissions and costs
 
         self.AE_ARCS = {e:[] for e in self.E_EDGES}
         self.AM_ARCS = {m:[] for m in self.M_MODES}
