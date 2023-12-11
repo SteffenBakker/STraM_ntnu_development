@@ -571,7 +571,7 @@ class TransportSets():
             #     self.CO2_fee[y] = CO2_fee_adj/self.scaling_factor_monetary*self.scaling_factor_emissions
 
             row_years = 52
-            row_tax = 53
+            row_tax = 53 #53 is base, 54 is low, 55 is high
             column_start = "J"
             index_start = column_index_from_string(column_start)
             column_end = "AK"
