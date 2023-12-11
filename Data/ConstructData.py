@@ -23,6 +23,7 @@ if standalone_testing:
 from Data.settings import *
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.utils import column_index_from_string, get_column_letter
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
@@ -518,7 +519,6 @@ class TransportSets():
         cost_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output costs')        
         emission_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Output emissions')
         time_value_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Output')
-        time_in_terminals = pd.read_excel(r'Data/time_value.xlsx', sheet_name='TimeInTerminals')
         speed_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Speeds')
 
         self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes    # HARDCODED
@@ -528,32 +528,59 @@ class TransportSets():
         transfer_data = pd.read_excel(r'Data/cost_calculator.xlsx', sheet_name='Transfer costs')
 
         self.TRANSFER_COST_PER_MODE_PAIR = {}   # transfer cost per origin mode, dest mode, product class
-        self.TRANSFER_TIME_PER_MODE_PAIR = {}   # transfer cost per origin mode, dest mode, product class
+        self.VEHICLE_TRANSFER_TIME_IN_HARBOR = {}   # average time a ship/train (and thus the cargo) spends in a harbour/terminal for loading/unloading purposes
+        self.CARGO_WAITING_TIME_TERMINAL = {}   # the average time that cargo waits at the terminal when in transit
+        self.TOTAL_TRANSFER_TIME = {}
 
         # extract transfer costs from table
         for index, row in transfer_data.iterrows():
-            self.TRANSFER_COST_PER_MODE_PAIR[(row["From"], row["To"], row["Product class"])] = round(row["Transfer cost (NOK/Tonne)"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
-            self.TRANSFER_COST_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = round(row["Transfer cost (NOK/Tonne)"]/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
-            #No immediate need for scaling, as already in NOK/Tonnes
-            self.TRANSFER_TIME_PER_MODE_PAIR[(row["To"], row["From"], row["Product class"])] = row["Transfer time (hours)"]
-            self.TRANSFER_TIME_PER_MODE_PAIR[(row["From"],row["To"],  row["Product class"])] = row["Transfer time (hours)"]
+            index = row["Index"]
+            if str(index).isnumeric():
+                orig = row["From"]
+                dest = row["To"]
+                prod_class = row["Product class"]
+                transf_cost = row["Total cost (NOK/Tonne)"]
+                transf_time = row["Transfer loading/unloading total [h]"]
+                waiting_time = row["Waiting time cargo in port [h]"]
+                self.TRANSFER_COST_PER_MODE_PAIR[(orig, dest, prod_class)] = round(transf_cost/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
+                self.TRANSFER_COST_PER_MODE_PAIR[(dest, orig, prod_class)] = round(transf_cost/self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)    # 10E6NOK/10E6TONNES
+                #No immediate need for scaling, as already in NOK/Tonnes
+                self.VEHICLE_TRANSFER_TIME_IN_HARBOR[(orig, dest, prod_class)] = transf_time
+                self.VEHICLE_TRANSFER_TIME_IN_HARBOR[(dest, orig, prod_class)] = transf_time
+                self.CARGO_WAITING_TIME_TERMINAL[(orig, dest, prod_class)] = waiting_time
+                self.CARGO_WAITING_TIME_TERMINAL[(dest, orig, prod_class)] = waiting_time
+                self.TOTAL_TRANSFER_TIME[(orig, dest, prod_class)] = transf_time+waiting_time
+                self.TOTAL_TRANSFER_TIME[(dest, orig, prod_class)] = transf_time+waiting_time
+        
 
-        if True: #I assume this leads to an error (maybe because there was a .self)
+
+        if True: 
             # read CO2 fee
             CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx')["Parameter Input"]
             
-            self.CO2_fee = {t: 1000000 for t in self.T_TIME_PERIODS}     
-            for y in self.T_TIME_PERIODS:
-                CO2_fee = sigmoid(y, CO2_fee_data['B4'].value, 
-                                        CO2_fee_data['C4'].value, 
-                                        CO2_fee_data['B3'].value, 
-                                        CO2_fee_data['C3'].value, 
-                                        CO2_fee_data['E4'].value, 
-                                        CO2_fee_data['F4'].value, 
-                                        CO2_fee_data['G4'].value)  # #UNIT: EURO/TonneCO2 =    EURO/(1000*1000 gCO2)
-                CO2_fee_adj = CO2_fee*EXCHANGE_RATE_EURO_TO_NOK/(1000*1000)   #NOK/gCO2
-                self.CO2_fee[y] = CO2_fee_adj/self.scaling_factor_monetary*self.scaling_factor_emissions
+            self.CO2_fee = {}     
+            # for y in self.T_TIME_PERIODS:
+            #     CO2_fee = sigmoid(y, CO2_fee_data['B4'].value, 
+            #                             CO2_fee_data['C4'].value, 
+            #                             CO2_fee_data['B3'].value, 
+            #                             CO2_fee_data['C3'].value, 
+            #                             CO2_fee_data['E4'].value, 
+            #                             CO2_fee_data['F4'].value, 
+            #                             CO2_fee_data['G4'].value)  # #UNIT: EURO/TonneCO2 =    EURO/(1000*1000 gCO2)
+            #     CO2_fee_adj = CO2_fee*EXCHANGE_RATE_EURO_TO_NOK/(1000*1000)   #NOK/gCO2
+            #     self.CO2_fee[y] = CO2_fee_adj/self.scaling_factor_monetary*self.scaling_factor_emissions
 
+            row_years = 52
+            row_tax = 53
+            column_start = "J"
+            index_start = column_index_from_string(column_start)
+            column_end = "AK"
+            index_end = column_index_from_string(column_end)
+            for col in range(index_start, index_end + 1):
+                t = CO2_fee_data[get_column_letter(col) + str(row_years)].value
+                fee = CO2_fee_data[get_column_letter(col) + str(row_tax)].value #EURO/TonneCO2
+                fee_adj = fee*EXCHANGE_RATE_EURO_TO_NOK/(1000*1000)   #NOK/gCO2
+                self.CO2_fee[t] = fee_adj/self.scaling_factor_monetary*self.scaling_factor_emissions
 
         COST_BIG_M = 10**8
         #base level transport costs (in average scenario)
@@ -656,10 +683,6 @@ class TransportSets():
         for index, row in time_value_data.iterrows():
             self.TIME_VALUE_PER_TH[row["Product group"]] = round(row["Time value (EUR/th)"]*EXCHANGE_RATE_EURO_TO_NOK/
                                                                  self.scaling_factor_monetary*self.scaling_factor_weight,self.precision_digits)
-
-        # read time in terminals
-        for index, row in time_in_terminals.iterrows():
-            self.TIME_IN_TERMINAL[row["Mode"]] = row["Time (hours)"] 
         
 
         # read mode speeds
@@ -670,8 +693,8 @@ class TransportSets():
         for (i,j,m,r) in self.A_ARCS:
             for p in self.P_PRODUCTS:
                 travel_time = (self.DISTANCE[(i,j,m,r)] / self.SPEED[m]) 
-                terminal_time = self.TIME_IN_TERMINAL[m]
-                self.C_TIME_VALUE[(i,j,m,r,p)] = round((travel_time+terminal_time)*self.TIME_VALUE_PER_TH[p],self.precision_digits)  # dist / speed * cost per hour
+                #terminal_time = self.TIME_IN_TERMINAL[m]   
+                self.C_TIME_VALUE[(i,j,m,r,p)] = round((travel_time)*self.TIME_VALUE_PER_TH[p],self.precision_digits)  # dist / speed * cost per hour
                
         #################
         #  INVESTMENTS  #
@@ -1070,31 +1093,32 @@ class TransportSets():
         #         self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
 
         self.C_TRANSFER = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}   #UNIT: NOK/T     MANY ELEMENTS WILL BE ZERO!! (NO TRANSFERS)
+        self.C_TRANSFER_TIME = {(k,p):0 for k in self.K_PATHS for p in self.P_PRODUCTS}
         for kk in self.PATHS_NO_UNIMODAL_ROAD:
             k = self.K_PATH_DICT[kk]
             for p in self.P_PRODUCTS:
                 cost = 0
+                time_cost = 0
                 num_arcs = len(k)
                 initial_mode = k[0][2]
                 final_mode = k[num_arcs-1][2]
                 if initial_mode in ["Rail", "Sea"]: #first mile with Road and hence a transfer cost
                     cost += self.TRANSFER_COST_PER_MODE_PAIR["Road", initial_mode, self.P_TO_PC[p]]
-                    cost += self.TRANSFER_TIME_PER_MODE_PAIR["Road", initial_mode, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
+                    time_cost += self.TOTAL_TRANSFER_TIME["Road", initial_mode, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
                 if final_mode in ["Rail", "Sea"]: #last mile with Road and hence a transfer cost 
                     cost += self.TRANSFER_COST_PER_MODE_PAIR[final_mode,"Road", self.P_TO_PC[p]]
-                    cost += self.TRANSFER_TIME_PER_MODE_PAIR["Road", final_mode, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
+                    time_cost += self.TOTAL_TRANSFER_TIME["Road", final_mode, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
                 if num_arcs>1: #Calculate the transfer costs DURING the path (not first-/last-mile)
                     for n in range(num_arcs-1):
                         mode_from = k[n][2]
                         mode_to = k[n+1][2]
                         if mode_from != mode_to: 
                             cost += self.TRANSFER_COST_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]
-                            cost += self.TRANSFER_TIME_PER_MODE_PAIR[mode_from, mode_to, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
+                            time_cost += self.TOTAL_TRANSFER_TIME[mode_from, mode_to, self.P_TO_PC[p]]*self.TIME_VALUE_PER_TH[p]
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
-
+                self.C_TRANSFER_TIME[(kk,p)] = round(time_cost,self.precision_digits)
+        
             
-
-
     def combined_sets(self):
 
 
