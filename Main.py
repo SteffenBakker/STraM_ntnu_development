@@ -220,6 +220,7 @@ def generate_base_data(co2_factor=1,READ_FROM_FILE=False):
 
         sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
         
+        print('test')
         print("Reading data...", flush=True)
         start = time.time()
         base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=co2_factor)                                # how many of the periods above are in first stage
@@ -266,7 +267,7 @@ def main(analysis_type,
     if wrm_strt:
         print('Using EEV warm start')
     print('----------------------------')
-    sys.stdout.flush()
+    #sys.stdout.flush()
     
     #     --------- DATA  ---------   #
     

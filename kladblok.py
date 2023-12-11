@@ -21,22 +21,24 @@ def dict_to_pd_df(dict,col_names):
 
 #------------------------------------------
 
+edge1 = ["Bodø","Trondheim"]
+edge2 = ["Umeå","Trondheim"]
 
-#Ingen veitransport fra Trondheim til Bodø (merkelig nok).
-output.x_flow[(output.x_flow['from']=='Trondheim')&
-              (output.x_flow['to']=='Bodø')&
-              (output.x_flow['time_period']==2023)&
-              (output.x_flow['scenario']=='BBB')]
+for edge in [edge1,edge2]:
+
+    #Ingen veitransport fra Trondheim til Bodø (merkelig nok).
+    output.x_flow[(output.x_flow['from']=='Tromsø')&
+                (output.x_flow['to']==edge1[0])&
+                (output.x_flow['time_period']==2023)&
+                (output.x_flow['scenario']=='BBB')]
 
 #Now check if there is Demand
 
 DEMAND = dict_to_pd_df(base_data.D_DEMAND, ["from","to","product","time_period","demand"])  
 DEMAND = DEMAND[(DEMAND["time_period"] ==2023)]
 
-edge1 = ["Bodø","Trondheim"]
 DEMAND[(DEMAND["from"].isin(edge1)) & (DEMAND["to"].isin(edge1))]
 
-edge2 = ["Umeå","Trondheim"]
 DEMAND[(DEMAND["from"].isin(edge2)) & (DEMAND["to"].isin(edge2))]
 
 # YESS, for both cases

@@ -17,7 +17,7 @@ import matplotlib.patches as patches #import library for fancy arrows/edges
 # DEFINE FUNCTIONS 
 
 # function that processes and aggregates flows
-def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, sel_product):
+def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, sel_product,all_products):
     """
     Process model output (x_flow and b_flow), aggregate the flow per edge, and output a dataframe.
     All for a selected scenario and time period
@@ -35,11 +35,16 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
 
     #copy all flows into one dataframe: product flow and balancing flow
     all_flow = x_flow[["from", "to", "mode", "fuel", "product", "scenario", "time_period", "weight"]]
-    if sel_product == "all":
-        # add empty vehicle flow
-        all_flow = pd.concat([all_flow,
-                             b_flow[["from", "to", "mode", "fuel", "scenario", "time_period", "weight"]] ])
-         
+    # add empty vehicle flow
+    all_flow = pd.concat([all_flow,
+                            b_flow[["from", "to", "mode", "fuel", "scenario", "time_period", "weight"]] ])
+    
+    prods= all_products
+    if sel_product != "all":
+        if sel_product == "all_no_dry_bulk":
+            prods = prods - ["Dry bulk"]
+        else:
+            prods = sel_product
 
     #create lists that will store aggregate flows (these will be the columns of df_flow)
     arcs = []
@@ -61,7 +66,7 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
     for index, row in all_flow.iterrows():
         if row["time_period"] == sel_time_period:
             if sel_scenario == "average" or row["scenario"] == sel_scenario: #if "average", we add everything and divide by number of scenarios at the end
-                if row["product"] == sel_product or sel_product == "all": # check if we have a right product category
+                if row["product"] in prods: # check if we have a right product category
                     #add scenario to list if not observed yet (for taking average)
                     if row["scenario"] not in all_scenarios:
                         all_scenarios.append(row["scenario"])
@@ -124,13 +129,13 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
     return df_flow
 
 # function that computes difference in flows between two years
-def compute_flow_differences(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product):   
+def compute_flow_differences(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product,all_products):   
     """
     Compute the difference in flows between two selected years. Outputs a dataframe with these differences
     """
     #create dataframes for before and after year
-    df_flow_before = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_product)
-    df_flow_after = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_after, sel_product)
+    df_flow_before = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_product, all_products)
+    df_flow_after = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_after, sel_product, all_products)
 
     #initialize lists that will be columns of df_flow_diff
     arcs_diff = []
@@ -408,7 +413,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
 def process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product="all", plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):
     # compute flow 
     print("Computing flow...")
-    df_flow = process_and_aggregate_flows(output.x_flow, output.b_flow, sel_scenario, sel_time_period, sel_product)
+    df_flow = process_and_aggregate_flows(output.x_flow, output.b_flow, sel_scenario, sel_time_period, sel_product, all_products=base_data.P_PRODUCTS)
 
     # make plot
     print("Making plot...")
@@ -419,7 +424,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
     
     # compute flow differences
     print("Computing flow differences...")
-    df_flow_diff = compute_flow_differences(output.x_flow, output.b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product)
+    df_flow_diff = compute_flow_differences(output.x_flow, output.b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, all_products=base_data.P_PRODUCTS)
 
     # make plot
     print("Making plot...")
@@ -448,7 +453,7 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
 sel_scenario = "BBB"
 sel_time_period = 2023 #
-sel_product = "Container (slow)" # "Dry bulk" # any product group or "all"
+sel_product = "all" # "Dry bulk" # any product group or "all"
 #Dry bulk, Liquid bulk, Container (fast), Container (slow), Break bulk (fast), Break bulk (slow), Neo bulk
 
 plot_overseas = True
