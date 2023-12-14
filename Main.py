@@ -40,7 +40,7 @@ from Utils import Logger
 
 READ_DATA_FROM_FILE = False  #This can save some time in debug mode
 analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-scenario_tree = "4Scen"     # Options: 4Scen, 9Scen, AllScen
+scenario_tree = "FuelScen"     # Options: FuelScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
 wrm_strt = False  #use EEV as warm start for SP
 
@@ -100,7 +100,8 @@ def construct_and_solve_EEV(base_data,risk_info):
         ###  #2: solve EV        ###
         ############################
     
-    base_data.S_SCENARIOS = ['BBB']
+    #base_data.S_SCENARIOS = ['BBB']
+    base_data.S_SCENARIOS = ['BB']
     base_data.combined_sets()
 
     # ------ CONSTRUCT MODEL ----------#

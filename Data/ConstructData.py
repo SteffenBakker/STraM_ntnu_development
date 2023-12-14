@@ -133,6 +133,7 @@ class ScenarioInformation():
             self.cost_factor[(s,t,m,p,f)]= row['Cost Factor']
 
         self.fg_maturity_path_name = [{}] * self.num_scenarios  
+        self.fg_fuel_cost_path_name = [{}] * self.num_scenarios  
         #self.fg_cost_factor = [{}] * self.num_scenarios #this is already explicitly done in the cost_factor sheet
         for index, row in scenario_data.iterrows():
             if "Name" in scenario_data:
@@ -140,8 +141,10 @@ class ScenarioInformation():
             if "Probability" in scenario_data:
                 self.probabilities[index] = row["Probability"] #update probabilities if available
             for fg in self.fuel_group_names:
-                new_maturity_entry = {fg : row[fg]}
-                self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry) #add new entry to existing dict (trick from internet)
+                #new_maturity_entry = {fg : row[fg]}
+                #self.fg_maturity_path_name[index] = dict(self.fg_maturity_path_name[index], **new_maturity_entry) #add new entry to existing dict (trick from internet)
+                new_cost_path_entry = {fg: row[fg]}
+                self.fg_fuel_cost_path_name[index] = dict(self.fg_fuel_cost_path_name[index], **new_cost_path_entry) #add new entry to existing dict (trick from internet)
                 
                 # new_cost_factor = None
                 # if row[fg] == "B":
@@ -674,7 +677,7 @@ class TransportSets():
                                 elif y in self.T_TIME_SECOND_STAGE_BASE:
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
                                     scen_nr = self.scenario_information.scen_name_to_nr[s]
-                                    fg_scen = self.scenario_information.fg_maturity_path_name[scen_nr][fg] #  "B", "P" or "O"
+                                    fg_scen = self.scenario_information.fg_fuel_cost_path_name[scen_nr][fg] #  "B", "P" or "O"
                                     pc = self.P_TO_PC[p]
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 
                                                                                         self.scenario_information.cost_factor[(fg_scen,t,m,pc,f)],
@@ -917,56 +920,65 @@ class TransportSets():
             self.INIT_MODE_SPLIT[mm] = round(share,self.precision_digits)
 
         #update R_TECH_READINESS_MATURITY based on scenario information
-        for s in self.S_SCENARIOS:
-            active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
-            for m in self.M_MODES:
-                for f in self.FM_FUEL[m]:
-                    if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
-                        cur_fg = self.scenario_information.mf_to_fg[(m,f)]
-                        cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
-                        # extract info from current base Bass model
-                        cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
-                        cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
-                        cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
-                                    
-                        # find current scenario's level of variation for q and p and delay for t_0 from base case
-                        cur_scen_p_q_variation = 0.0 
-                        cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "B":
-                            cur_scen_p_q_variation = 0.0
+        # TURNED OFF FOR NOW
+        if False:
+            for s in self.S_SCENARIOS:
+                active_scenario_nr = self.scenario_information.scen_name_to_nr[s]
+                for m in self.M_MODES:
+                    for f in self.FM_FUEL[m]:
+                        if not self.tech_is_mature[(m,f)]: # only vary maturity information by scenario for non-mature technologies
+                            cur_fg = self.scenario_information.mf_to_fg[(m,f)]
+                            cur_path_name = self.scenario_information.fg_maturity_path_name[active_scenario_nr][cur_fg] # find name of current maturity path [base, fast, slow]
+                            # extract info from current base Bass model
+                            cur_base_bass_model = self.tech_base_bass_model[(m,f)] # current base Bass diffusion model
+                            cur_base_p_q_variation = self.tech_scen_p_q_variation[(m,f)] # level of variation for this m,f 
+                            cur_base_t_0_delay = self.tech_scen_t_0_delay[(m,f)] # time delay for t_0 for this m,f
+                                        
+                            # find current scenario's level of variation for q and p and delay for t_0 from base case
+                            cur_scen_p_q_variation = 0.0 
                             cur_scen_t_0_delay = 0.0
-                        if cur_path_name == "O":
-                            cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
-                            cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
-                        elif cur_path_name == "P":
-                            cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
-                            cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
+                            if cur_path_name == "B":
+                                cur_scen_p_q_variation = 0.0
+                                cur_scen_t_0_delay = 0.0
+                            if cur_path_name == "O":
+                                cur_scen_p_q_variation = cur_base_p_q_variation # increase p and q by cur_base_p_q_variation (e.g., 50%)
+                                cur_scen_t_0_delay = - cur_base_t_0_delay # negative delay (faster development)
+                            elif cur_path_name == "P":
+                                cur_scen_p_q_variation = - cur_base_p_q_variation # decrease p and q by cur_base_p_q_variation (e.g., 50%)
+                                cur_scen_t_0_delay = cur_base_t_0_delay # positive delay (slower development)
 
-                        # construct scenario bass model
-                        cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
-                                                            cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
-                                                            cur_base_bass_model.m, 
-                                                            cur_base_bass_model.t_0 + cur_scen_t_0_delay)
-                        
-                        # set as active bass model
-                        self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
+                            # construct scenario bass model
+                            cur_scen_bass_model = BassDiffusion(cur_base_bass_model.p * (1 + cur_scen_p_q_variation), # adjust p with cur_scen_variations
+                                                                cur_base_bass_model.q * (1 + cur_scen_p_q_variation),     # adjust q with cur_scen_variations
+                                                                cur_base_bass_model.m, 
+                                                                cur_base_bass_model.t_0 + cur_scen_t_0_delay)
+                            
+                            # set as active bass model
+                            self.tech_active_bass_model[(m,f,s)] = cur_scen_bass_model
 
-                        # find start of second stage
-                        for t in self.T_TIME_PERIODS:
-                            if t not in self.T_TIME_FIRST_STAGE_BASE:
-                                start_of_second_stage = t
-                                break
+                            # find start of second stage
+                            for t in self.T_TIME_PERIODS:
+                                if t not in self.T_TIME_FIRST_STAGE_BASE:
+                                    start_of_second_stage = t
+                                    break
 
-                        # fill R_TECH_READINESS_MATURITY based on current scenario bass model
-                        for t in self.T_TIME_PERIODS:
-                            if t in self.T_TIME_FIRST_STAGE_BASE:
-                                # first stage: follow base bass model
-                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
-                            else:
-                                # second stage: use scenario bass model, with starting point A(2030) from base bass model
-                                t_init = start_of_second_stage #initialize diffusion at start of second stage
-                                A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
-                                self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
+                            # fill R_TECH_READINESS_MATURITY based on current scenario bass model
+                            for t in self.T_TIME_PERIODS:
+                                if t in self.T_TIME_FIRST_STAGE_BASE:
+                                    # first stage: follow base bass model
+                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_base_bass_model.A(t),self.precision_digits)
+                                else:
+                                    # second stage: use scenario bass model, with starting point A(2030) from base bass model
+                                    t_init = start_of_second_stage #initialize diffusion at start of second stage
+                                    A_init = cur_base_bass_model.A(t_init) # diffusion value at start of second stage 
+                                    self.R_TECH_READINESS_MATURITY[(m,f,t,s)] = round(cur_scen_bass_model.A_from_starting_point(t,A_init,t_init),self.precision_digits)
+        else:
+            # we need to set the active bass model to the base bass model
+            for s in self.S_SCENARIOS:
+                for m in self.M_MODES:
+                    for f in self.FM_FUEL[m]:
+                        if self.tech_is_mature[(m,f)] == False:
+                            self.tech_active_bass_model[(m,f,s)] = self.tech_base_bass_model[(m,f)]
 
 
         #----------------------------------------
