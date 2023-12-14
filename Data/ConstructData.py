@@ -48,12 +48,14 @@ def get_scen_sheet_name(scenario_tree):
         sheet_name_scenarios = 'four_scenarios' 
     elif scenario_tree == '9Scen':
         sheet_name_scenarios = 'nine_scenarios' 
+    elif scenario_tree == "FuelScen":
+        sheet_name_scenarios = 'fuel_scenarios'
     return sheet_name_scenarios
 
 #Class containing information about all scenarios
 #Information in this class can be used to activate a scenario in a TransportSets object, meaning that the corresponding parameter values are changed
 class ScenarioInformation():
-    def __init__(self, sh_name='scenarios_base'): 
+    def __init__(self, sh_name='fuel_scenarios'): 
 
         #TODO: REVAMP HOW WE DO SCENARIOS. PROBABLY DELETE A BUNCH OF CODE BELOW
               
@@ -106,7 +108,7 @@ class ScenarioInformation():
 
     
         # read and process scenario data
-        scenario_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name=sh_name) #sh_name in [scenarios_base, nine_scenarios]
+        scenario_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name=sh_name) 
         self.num_scenarios = len(scenario_data)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
@@ -122,13 +124,13 @@ class ScenarioInformation():
         
         self.cost_factor = {}
         for index, row in cost_factor_data.iterrows():
-            fg = row['Fuel Group']
+            #fg = row['Fuel Group']
             s = row['Scenario']
             t = row['Time Period']
             m = row['Mode']
             p = row['Product Group']
             f = row['Fuel']
-            self.cost_factor[(fg,s,t,m,p,f)]= row['Cost Factor']
+            self.cost_factor[(s,t,m,p,f)]= row['Cost Factor']
 
         self.fg_maturity_path_name = [{}] * self.num_scenarios  
         #self.fg_cost_factor = [{}] * self.num_scenarios #this is already explicitly done in the cost_factor sheet
@@ -176,7 +178,7 @@ class ScenarioInformation():
 #Activating a scenario means that all relevant parameters are changed to their scenario values
 class TransportSets():
 
-    def __init__(self,sheet_name_scenarios='scenarios_base',co2_factor=1):# or (self) 
+    def __init__(self,sheet_name_scenarios='fuel_scenarios',co2_factor=1):# or (self) 
         
         self.single_time_period = None #only solve last time period -> remove all operational constraints for the other periods
 
@@ -672,10 +674,10 @@ class TransportSets():
                                 elif y in self.T_TIME_SECOND_STAGE_BASE:
                                 #transport cost = base transport cost * cost factor for fuel group associated with (m,f) for current active scenario:
                                     scen_nr = self.scenario_information.scen_name_to_nr[s]
-                                    fg_scen =self.scenario_information.fg_maturity_path_name[scen_nr][fg] #  "B", "P" or "O"
+                                    fg_scen = self.scenario_information.fg_maturity_path_name[scen_nr][fg] #  "B", "P" or "O"
                                     pc = self.P_TO_PC[p]
                                     self.C_TRANSP_COST[(i, j, m, r, f, p, y,s)] = round(self.C_TRANSP_COST_BASE[(i, j, m, r, f, p, y)] * 
-                                                                                        self.scenario_information.cost_factor[(fg,fg_scen,t,m,pc,f)],
+                                                                                        self.scenario_information.cost_factor[(fg_scen,t,m,pc,f)],
                                                                                         #self.scenario_information.mode_fuel_cost_factor[self.scenario_information.scen_name_to_nr[s]][(m,f)],
                                                                                         self.precision_digits) 
 
