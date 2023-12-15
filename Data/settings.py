@@ -26,6 +26,8 @@ CO2_PRICE_FACTOR = {2022:1,
 NO_DRY_BULK = False
 NO_LIQUID_BULK = True
 
+EMISSION_CONSTRAINT = True
+
 #path generation
 NUM_MODE_PATHS = 2  #hvor mange modes kan bli brukt på en path? 
 # single mode paths can lead to infeasibilities in the model (the flow/demand constraint). Some demand requests are then not feasible.

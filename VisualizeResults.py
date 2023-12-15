@@ -179,7 +179,7 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
 
 #EMISSION FUNCTIONS
 
-def calculate_emissions(output,base_data,domestic=True):
+def calculate_emissions(output,base_data,domestic=False):
     output.total_yearly_emissions = {(t,s):0 for t in base_data.T_TIME_PERIODS for s in base_data.S_SCENARIOS} # in MTonnes CO2 equivalents
 
     x_flow = output.x_flow 
@@ -452,11 +452,12 @@ def visualize_results(analyses_type,scenarios,
     if single_time_period is None:
         
         output = calculate_emissions(output,base_data,domestic=False)
-        output_domestic = calculate_emissions(output,base_data,domestic=True)
-        print('----------------')
-        print('domestic emissions:')
-        print(output_domestic.emission_stats)
+        print('emissions (MTonnes CO2 eq.):')
         print(output.emission_stats)
+        print('----------------')
+        #output_domestic = calculate_emissions(output,base_data,domestic=True)
+        #print(output_domestic.emission_stats)
+        
 
         #I 2021 var de samlede utslippene fra transport 16,2 millioner tonn CO2-ekvivalenter, 8M tonnes er freight transport
         # https://miljostatus.miljodirektoratet.no/tema/klima/norske-utslipp-av-klimagasser/klimagassutslipp-fra-transport/

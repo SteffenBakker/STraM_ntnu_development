@@ -50,6 +50,8 @@ def get_scen_sheet_name(scenario_tree):
         sheet_name_scenarios = 'nine_scenarios' 
     elif scenario_tree == "FuelScen":
         sheet_name_scenarios = 'fuel_scenarios'
+    elif scenario_tree == "FuelDetScen":
+        sheet_name_scenarios = 'fuel_scenario_det'
     return sheet_name_scenarios
 
 #Class containing information about all scenarios
@@ -526,7 +528,13 @@ class TransportSets():
         time_value_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Output')
         speed_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Speeds')
 
-        self.EMISSION_CAP_RELATIVE = {2023: 100, 2026: 72.5, 2030: 45, 2040: 27.5, 2050: 10} # For plotting purposes    # HARDCODED
+        self.EMISSION_CAP_RELATIVE = {2023: 100, 
+                                      2026: 72.5, 
+                                      2028: 60, 
+                                      2030: 45, 
+                                      2034:40, 
+                                      2040: 25, 
+                                      2050: 10} # For plotting purposes    # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
 
@@ -1132,6 +1140,10 @@ class TransportSets():
                 self.C_TRANSFER[(kk,p)] = round(cost,self.precision_digits)
                 self.C_TRANSFER_TIME[(kk,p)] = round(time_cost,self.precision_digits)
         
+        #EMISSIONS
+        if EMISSION_CONSTRAINT:
+            emission_cap_data = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='emission_cap')
+
             
     def combined_sets(self):
 

@@ -4,7 +4,7 @@ import pandas as pd
 import pickle
 
 analyses_type="SP"
-scenarios="4Scen"
+scenarios="FuelScen"  #4Scen
 
 run_identifier = analyses_type+'_'+scenarios
 

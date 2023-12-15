@@ -79,11 +79,15 @@ class TranspModel:
         # total transport amount per mode
         self.model.q_mode_total_transp_amount = Var(self.data.MT_S, within = NonNegativeReals) #note: only measured in decision years
         
+        #if EMISSION_CONSTRAINT:
+        self.model.total_emissions = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+
         #self.model.feas_relax = Var(within=NonNegativeReals)  
         #self.model.feas_relax.setlb(0)
         #self.model.feas_relax.setub(0)
 
         #COST_VARIABLES
+
 
         self.model.TranspOpexCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCost(model, t,s):
@@ -276,16 +280,23 @@ class TranspModel:
         #-----------------------------------------------#
 
         # EMISSIONS
-        # def emissions_rule(model, t,s):
-        #     return (
-        #         self.model.total_emissions[t,s] >= sum(
-        #         self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t,s] for p in self.data.P_PRODUCTS
-        #         for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
-        #         sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t,s] 
-        #             for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
-        #         - FEAS_RELAX )
         
-        # self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
+
+        def emissions_rule(model, t,s):
+            emissions = (
+                sum(self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t,s] for p in self.data.P_PRODUCTS
+                for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
+                sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t,s] 
+                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
+                - FEAS_RELAX )
+            #if t == self.data.T_TIME_PERIODS[0]:
+            return (self.model.total_emissions[t,s] == emissions)   # EQUALITY IS NEEDED!
+        self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
+
+        if EMISSION_CONSTRAINT:
+            def emission_constr_rule(model,t,s):
+                return self.model.total_emissions[t,s] <= self.data.EMISSION_CAP_RELATIVE[t]/100*self.model.total_emissions[self.data.T_TIME_PERIODS[0],s] + FEAS_RELAX
+            self.model.EmissionCap = Constraint(self.data.TS_CONSTR_S, rule=emission_constr_rule) #removed self.data.T_TIME_PERIODS
 
         
 
@@ -433,6 +444,10 @@ class TranspModel:
                     def DecreaseInModeTotalTransportAmountRule(model,m,t,s):
                         return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
                     self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule)
+                    #Restriction on modal transport amount increase (mode shift cannot happen too fast)
+                    def IncreaseInModeTotalTransportAmountRule(model,m,t,s):
+                        return (self.model.q_mode_total_transp_amount[m,t,s] <= (2-RHO_STAR)**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
+                    self.model.IncreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = IncreaseInModeTotalTransportAmountRule)
 
                     
 
@@ -528,6 +543,15 @@ class TranspModel:
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_h_bal_Constr = Constraint(combinations(self.data.KVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h_bal)
+
+            def Nonanticipativity_total_emissions(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    diff = (self.model.total_emissions[(t,s)]- self.model.total_emissions[(t,ss)])
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_total_emissions_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_total_emissions)
+
 
             def Nonanticipativity_stage(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -718,7 +742,7 @@ class TranspModel:
         #     if t in self.data.T_TIME_FIRST_STAGE:
         #         self.model.x_flow[(a,f,p,t)].fix(0)
         
-        base_scenario = 'BBB'
+        base_scenario = 'BB'  # "BBB" OR "BB", update to pick the right one automatically
 
         for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
             a = (i,j,m,r)
@@ -870,6 +894,7 @@ class TranspModel:
 
             print('Solution time: ' + str(results.solver.time))
         
-
+        #self.model.EmissionCap.pprint()
+        self.model.total_emissions.display()
 
         
