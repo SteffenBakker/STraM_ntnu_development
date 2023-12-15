@@ -44,7 +44,7 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
         if sel_product == "all_no_dry_bulk":
             prods = prods - ["Dry bulk"]
         else:
-            prods = sel_product
+            prods = [sel_product]
 
     #create lists that will store aggregate flows (these will be the columns of df_flow)
     arcs = []
@@ -439,7 +439,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 
 # Read model output
 analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "4Scen" # 4Scen
+scenario_type = "FuelScen" # 4Scen
 with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
     base_data = pickle.load(data_file)
 with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
@@ -447,13 +447,37 @@ with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb')
 
 
 
+# MULTIPLE PLOTS
+
+#"SETTINGS"
+
+mode_variants = ["all"] # ["road", "sea", "rail", "all", "total"]
+sel_scenarios = ["PP","BB","OO"]   # Now it is only a combination of two scenarios. So, choose "BB" or "PB"
+sel_time_periods = base_data.T_TIME_PERIODS #2023
+sel_products = base_data.P_PRODUCTS + ['all','all_no_dry_bulk']  #"Container (slow)" # "Dry bulk" # any product group or "all"
+
+plot_overseas = True
+plot_up_north = True
+show_fig = False
+save_fig = True
+
+for mode_variant in mode_variants:
+    for sel_scenario in sel_scenarios:
+        for sel_time_period in sel_time_periods:
+            for sel_product in sel_products:
+                process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
+
+
+
+#SINGLE PLOTS
+
 # 1. Make flow plots
 
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
-sel_scenario = "BBB"
+sel_scenario = "BB"   # Now it is only a combination of two scenarios. So, choose "BB" or "PB"
 sel_time_period = 2023 #
-sel_product = "all" # "Dry bulk" # any product group or "all"
+sel_product = "Container (slow)" # "Dry bulk" # any product group or "all"  OR " all_no_dry_bulk"
 #Dry bulk, Liquid bulk, Container (fast), Container (slow), Break bulk (fast), Break bulk (slow), Neo bulk
 
 plot_overseas = True
@@ -462,7 +486,7 @@ show_fig = True
 save_fig = True
 
 # Make plot
-if True:
+if False:
     process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 
@@ -470,7 +494,7 @@ if True:
 
 # Choose settings
 mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
-sel_scenario = "BBB"
+sel_scenario = "BB"  # Now it is only a combination of two scenarios. So, choose "BB" or "PB"
 sel_time_period_before = 2023
 sel_time_period_after = 2050
 sel_product = "all" # any product group or "all"
