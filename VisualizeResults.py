@@ -14,22 +14,22 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenarios = "4Scen"   # AllScen, 4Scen, 9Scen
+scenarios = "FuelScen"   # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen
 
 analyses_info = {
-#     name    type,    scen,    balancing,  single_tp   risk    carbon,     factor
-    "base": ["SP",  scenarios,    False,      None,       None,   False,      1],
-    "eev":  ["EEV", scenarios,    False,      None,       None,   False,      1],
-    "risk1":["SP",  scenarios,    False,      None,     'averse',   False,      1],
-    "risk2":["SP",  scenarios,    False,      None,     "neutral",   False,      1],
-    #"stp1": ["SP",  scenarios,    False,      2034,       None,   False,      1],
-    #"stp2": ["SP",  scenarios,    False,      2050,       None,   False,      1],
-    "carbon1": ["SP",  scenarios,    False,      None,       None,   True,      0],
-    "carbon2": ["SP",  scenarios,    False,      None,       None,   True,      2],
+#     name    type,    scen,    balancing,  single_tp   risk    carbon,     fee
+    "base": ["SP",  scenarios,    False,      None,       None,   False,      "base"],
+    "eev":  ["EEV", scenarios,    False,      None,       None,   False,      "base"],
+    "risk1":["SP",  scenarios,    False,      None,     'averse',   False,      "base"],
+    "risk2":["SP",  scenarios,    False,      None,     "neutral",   False,      "base"],
+    #"stp1": ["SP",  scenarios,    False,      2034,       None,   False,      "base"],
+    #"stp2": ["SP",  scenarios,    False,      2050,       None,   False,      "base"],
+    "carbonhigh": ["SP",  scenarios,    False,      None,       None,   True,      "high"],
+    "carbonlow": ["SP",  scenarios,    False,      None,       None,   True,      "low"],
 }
 
 run_all_analyses = False
-analysis = "base"    # "base", "eev","risk1"....
+analysis = "base"    # "base", "carbon1","eev","risk1"....
 
 
 
@@ -401,7 +401,7 @@ def visualize_results(analyses_type,scenarios,
                         single_time_period=None,
                         risk_aversion = None,  #None, "averse", "neutral"
                         scen_analysis_carbon = False,
-                        carbon_factor = 1
+                        carbon_fee = "base"
                       ):
 
     #---------------------------------------------------------#
@@ -418,13 +418,13 @@ def visualize_results(analyses_type,scenarios,
     if risk_aversion is not None:
         run_identifier = run_identifier + '_' + risk_aversion
     if scen_analysis_carbon:
-        add_string = "_co2_factor_"+str(carbon_factor)
+        add_string = "_co2_fee_"+str(carbon_fee)
         run_identifier = run_identifier + add_string
         data_file = data_file + add_string
 
-    with open(r'Data//output//'+run_identifier+'.pickle', 'rb') as output_file:
+    with open(r'Data//Output//'+run_identifier+'.pickle', 'rb') as output_file:
         output = pickle.load(output_file)
-    with open(r'Data//base_data//'+scenarios+'.pickle', 'rb') as data_file:
+    with open(r'Data//Output//'+scenarios+'.pickle', 'rb') as data_file:
         base_data = pickle.load(data_file)
 
     print('objective function value: ', output.ob_function_value)
@@ -491,5 +491,5 @@ if __name__ == "__main__":
                             single_time_period=     analyses_info[analysis][3],
                             risk_aversion =         analyses_info[analysis][4],
                             scen_analysis_carbon =  analyses_info[analysis][5],
-                            carbon_factor =         analyses_info[analysis][6],
+                            carbon_fee =         analyses_info[analysis][6],
                             )

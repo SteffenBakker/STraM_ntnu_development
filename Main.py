@@ -40,9 +40,12 @@ from Utils import Logger
 
 READ_DATA_FROM_FILE = False  #This can save some time in debug mode
 analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-scenario_tree = "FuelScen"     # Options: FuelScen, 4Scen, 9Scen, AllScen
+scenario_tree = "FuelDetScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
+co2_fee = "high" #"high, low", "base"
+emission_cap_constraint = False   #False or True
 wrm_strt = False  #use EEV as warm start for SP
+
 
 # risk parameters
 cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
@@ -62,7 +65,8 @@ num_first_stage_periods = 2         # how many of the periods above are in first
 def construct_and_solve_SP(base_data,
                             risk_info, 
                             single_time_period=None,   #If not None, add year for which the analysis will be performed ("static" case)
-                            NoBalancingTrips = None):
+                            NoBalancingTrips = None,
+                            emission_cap_constraint = False):
 
     # ------ CONSTRUCT MODEL ----------#
 
@@ -72,6 +76,7 @@ def construct_and_solve_SP(base_data,
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
     model_instance.NoBalancingTrips = NoBalancingTrips
     model_instance.single_time_period = single_time_period
+    model_instance.emission_cap_constraint = emission_cap_constraint
     model_instance.construct_model()
 
     print("Done constructing model.")
@@ -211,10 +216,12 @@ def construct_and_solve_SP_warm_start(base_data,
 
     return model_instance,base_data
 
-def generate_base_data(co2_factor=1,READ_FROM_FILE=False):
+def generate_base_data(scenario_tree,co2_fee="base",READ_FROM_FILE=False):
+    
+    identifier = scenario_tree+"_carbontax"+co2_fee+"_basedata"
     
     if READ_FROM_FILE:
-        with open(r'Data//base_data//'+scenario_tree+'.pickle', 'rb') as data_file: 
+        with open(r'Data//Output//'+identifier+'.pickle', 'rb') as data_file: 
             base_data = pickle.load(data_file)
     
     else:    
@@ -224,13 +231,13 @@ def generate_base_data(co2_factor=1,READ_FROM_FILE=False):
         print('test')
         print("Reading data...", flush=True)
         start = time.time()
-        base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_factor=co2_factor)                                # how many of the periods above are in first stage
+        base_data = TransportSets(sheet_name_scenarios=sheet_name_scenarios,co2_fee=co2_fee)                                # how many of the periods above are in first stage
         base_data = interpolate(base_data, time_periods, num_first_stage_periods)
         print("Done reading data.", flush=True)
         print("Time used reading the base data:", time.time() - start,flush=True)
         sys.stdout.flush()
 
-        with open(r'Data//base_data//'+scenario_tree+'.pickle', 'wb') as data_file:   
+        with open(r'Data//Output//'+identifier+'.pickle', 'wb') as data_file:   
             pickle.dump(base_data, data_file)
     
     return base_data
@@ -241,38 +248,33 @@ def main(analysis_type,
          cvar_alpha=cvar_alpha,
          single_time_period=None,
          NoBalancingTrips=False,
-         co2_factor = 1,
+         co2_fee = "base",
+         emission_cap=False
          ):
     
     #     --------- Setup  ---------   #
 
     sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
-        
-    run_identifier = analysis_type + '_' + scenario_tree
 
-    run_identifier2 = run_identifier
-    if wrm_strt:
-        run_identifier2 = run_identifier2 +'_WrmStrt'
+    run_identifier = scenario_tree+"_carbontax"+co2_fee
+    if emission_cap:
+        run_identifier = run_identifier + "_emissioncap"
+    run_identifier2 = run_identifier+"_"+analysis_type
 
     sys.stdout = Logger(run_identifier2,log_to_file)
 
 
     print('----------------------------')
     print('Doing the following analysis: ')
-    print(analysis_type)
-    print(scenario_tree)
+    print(run_identifier)
     if risk_aversion is not None:
         print(risk_aversion)
-    if co2_factor!=1:
-        print("CO2 factor: ", co2_factor )
-    if wrm_strt:
-        print('Using EEV warm start')
     print('----------------------------')
     #sys.stdout.flush()
     
     #     --------- DATA  ---------   #
     
-    base_data = generate_base_data(co2_factor=co2_factor,READ_FROM_FILE=READ_DATA_FROM_FILE)        
+    base_data = generate_base_data(co2_fee=co2_fee,READ_FROM_FILE=READ_DATA_FROM_FILE)        
 
     if risk_aversion=="averse":
         cvar_alpha = 1-1/len(base_data.S_SCENARIOS)
@@ -291,38 +293,27 @@ def main(analysis_type,
         if wrm_strt:
             model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info)
         else:
-            model_instance,base_data = construct_and_solve_SP(base_data,risk_info)
+            model_instance,base_data = construct_and_solve_SP(base_data,risk_info,emission_cap_constraint=emission_cap)
     elif analysis_type == "EEV":
         model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
     else:
         Exception('analysis type feil = '+analysis_type)
     
-    #  --------- SAVE OUTPUT ---------    #
-    scenario_tree2 = scenario_tree
+    #  --------- SAVE BASE DATA OUTPUT ---------    #
+    run_identifier
     if single_time_period is not None:
-        scenario_tree2 = scenario_tree2 + "_single_time_period_"+str(single_time_period)
-    if co2_factor!=1:
-        scenario_tree2 = scenario_tree2 + "_co2_factor_" + str(co2_factor)
+        run_identifier = run_identifier + "_single_time_period_"+str(single_time_period)
     print("Dumping data in pickle file...", end="")
-    with open(r'Data//base_data//'+scenario_tree2+'.pickle', 'wb') as data_file: 
+    with open(r'Data//Output//'+run_identifier+'_basedata.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
     print("done.")
 
     #-----------------------------------
     
     output = OutputData(model_instance.model,base_data)
-
-    run_identifier2 = run_identifier
-    if NoBalancingTrips:
-        run_identifier2 = run_identifier2 +'_NoBalancingTrips'
-    if risk_aversion is not None:
-        run_identifier2 = run_identifier2 + '_' + risk_aversion
-    if single_time_period is not None:
-        run_identifier2 = run_identifier2 + "_single_time_period_"+str(single_time_period)
-    if co2_factor!=1:
-        run_identifier2 = run_identifier2 + "_co2_factor_" + str(co2_factor)
-    with open(r"Data//output//" + run_identifier2+'.pickle', 'wb') as output_file: 
-        print("Dumping output in pickle file.....", end="")
+    
+    with open(r"Data//output//" + run_identifier2+'_results.pickle', 'wb') as output_file: 
+        print("Dumping results in pickle file.....", end="")
         pickle.dump(output, output_file)
         print("done.")
     
@@ -336,7 +327,8 @@ def main(analysis_type,
                             single_time_period=single_time_period,
                             risk_aversion=risk_aversion,
                             scen_analysis_carbon = False,
-                            carbon_factor = co2_factor
+                            carbon_fee = co2_fee,
+                            emission_cap=emission_cap
                         )
 
 def risk_analysis():
@@ -354,7 +346,7 @@ if __name__ == "__main__":
     #print(os.getcwd())
     
     if analysis == "only_generate_data":
-        base_data = generate_base_data(co2_factor=1,READ_FROM_FILE=READ_DATA_FROM_FILE)    
+        base_data = generate_base_data(co2_fee=co2_fee,READ_FROM_FILE=READ_DATA_FROM_FILE)    
         
         risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
         base_data.risk_information = risk_info
@@ -366,23 +358,21 @@ if __name__ == "__main__":
     elif analysis == "risk":
         risk_analysis()
     elif analysis == "standard":
-        main(analysis_type=analysis_type)
+        main(analysis_type=analysis_type,co2_fee=co2_fee,emission_cap=emission_cap_constraint)
     elif analysis == "single_time_period":
         main(analysis_type=analysis_type,single_time_period=2034)
         main(analysis_type=analysis_type,single_time_period=2050)
-    elif analysis == "no_balancing_trips":
-        main(analysis_type=analysis_type,NoBalancingTrips=True)
     elif analysis == "carbon_price_sensitivity":
-        for carbon_factor in [0,2]:
-            main(analysis_type="SP",co2_factor=carbon_factor)
+        for carbon_fee in ["low","high"]:
+            main(analysis_type="SP",co2_fee=carbon_fee)
     elif analysis=="run_all":
-        main(analysis_type="EEV")
-        main(analysis_type="SP")
+        main(analysis_type="EEV",co2_fee=co2_fee)
+        main(analysis_type="SP",co2_fee=co2_fee)
         main(analysis_type=analysis_type,single_time_period=2034)
         main(analysis_type=analysis_type,single_time_period=2050)
         risk_analysis()
-        for carbon_factor in [0,2]:
-            main(analysis_type="SP",co2_factor=carbon_factor)
+        for carbon_fee in ["low","high"]:
+            main(analysis_type="SP",co2_fee=carbon_fee)
 
     # if profiling:
         #     profiler = cProfile.Profile()

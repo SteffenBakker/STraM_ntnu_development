@@ -183,7 +183,7 @@ class ScenarioInformation():
 #Activating a scenario means that all relevant parameters are changed to their scenario values
 class TransportSets():
 
-    def __init__(self,sheet_name_scenarios='fuel_scenarios',co2_factor=1):# or (self) 
+    def __init__(self,sheet_name_scenarios='fuel_scenarios',co2_fee="base"):# or (self) 
         
         self.single_time_period = None #only solve last time period -> remove all operational constraints for the other periods
 
@@ -195,10 +195,10 @@ class TransportSets():
         self.risk_information = None
 
         #read/construct data                
-        self.construct_pyomo_data(co2_factor)
+        self.construct_pyomo_data(co2_fee)
         self.combined_sets()
 
-    def construct_pyomo_data(self,co2_factor):
+    def construct_pyomo_data(self,co2_fee):
 
         print("Reading and constructing data")
 
@@ -584,7 +584,12 @@ class TransportSets():
             #     self.CO2_fee[y] = CO2_fee_adj/self.scaling_factor_monetary*self.scaling_factor_emissions
 
             row_years = 52
-            row_tax = 53 #53 is base, 54 is low, 55 is high
+            if co2_fee == "base":
+                row_tax = 53 
+            elif co2_fee == "low":
+                row_tax = 54 
+            elif co2_fee == "high":
+                row_tax = 55 
             column_start = "J"
             index_start = column_index_from_string(column_start)
             column_end = "AK"

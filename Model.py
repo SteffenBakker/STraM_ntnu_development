@@ -43,6 +43,7 @@ class TranspModel:
 
         self.solve_base_year = False
         self.single_time_period = None
+        self.emission_cap_constraint = False
 
         self.NoBalancingTrips = False
 
@@ -293,7 +294,7 @@ class TranspModel:
             return (self.model.total_emissions[t,s] == emissions)   # EQUALITY IS NEEDED!
         self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
 
-        if EMISSION_CONSTRAINT:
+        if self.emission_cap_constraint:
             def emission_constr_rule(model,t,s):
                 return self.model.total_emissions[t,s] <= self.data.EMISSION_CAP_RELATIVE[t]/100*self.model.total_emissions[self.data.T_TIME_PERIODS[0],s] + FEAS_RELAX
             self.model.EmissionCap = Constraint(self.data.TS_CONSTR_S, rule=emission_constr_rule) #removed self.data.T_TIME_PERIODS
@@ -895,6 +896,6 @@ class TranspModel:
             print('Solution time: ' + str(results.solver.time))
         
         #self.model.EmissionCap.pprint()
-        self.model.total_emissions.display()
+        #self.model.total_emissions.display() #print()
 
         

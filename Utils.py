@@ -6,9 +6,9 @@ class Logger(object):
         self.terminal = sys.stdout
         self.log_to_file = log_to_file
         if log_to_file:
-            if not os.path.exists("Data/logs"):
-                os.makedirs("Data/logs")
-            self.log = open(r"Data/logs/logfile_"+filename+".log", "a")
+            if not os.path.exists("Data/Output"):
+                os.makedirs("Data/Output")
+            self.log = open(r"Data/output/"+filename+"_logfile.log", "w")
    
     def write(self, message):
         self.terminal.write(message)
