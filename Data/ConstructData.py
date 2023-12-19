@@ -1146,8 +1146,8 @@ class TransportSets():
                 self.C_TRANSFER_TIME[(kk,p)] = round(time_cost,self.precision_digits)
         
         #EMISSIONS
-        if EMISSION_CONSTRAINT:
-            emission_cap_data = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='emission_cap')
+        #if EMISSION_CONSTRAINT:
+        #    emission_cap_data = pd.read_excel(r'Data/transport_costs_emissions_raw.xlsx', sheet_name='emission_cap')
 
             
     def combined_sets(self):

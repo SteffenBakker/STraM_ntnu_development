@@ -1,0 +1,17 @@
+----------------------------
+Doing the following analysis: 
+FuelDetScen_carbontaxhigh
+----------------------------
+test
+Reading data...
+Reading and constructing data
+Transport demand in the base year 2018 (in MTonnes):
+             product  tot_weight
+0           Dry bulk       94.86
+1   Container (fast)        4.07
+2   Container (slow)        9.23
+3  Break bulk (fast)       11.61
+4  Break bulk (slow)       15.37
+5           Neo bulk       19.28
+Done reading data.
+Time used reading the base data: 28.077418327331543

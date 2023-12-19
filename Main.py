@@ -274,7 +274,7 @@ def main(analysis_type,
     
     #     --------- DATA  ---------   #
     
-    base_data = generate_base_data(co2_fee=co2_fee,READ_FROM_FILE=READ_DATA_FROM_FILE)        
+    base_data = generate_base_data(scenario_tree, co2_fee=co2_fee,READ_FROM_FILE=READ_DATA_FROM_FILE)        
 
     if risk_aversion=="averse":
         cvar_alpha = 1-1/len(base_data.S_SCENARIOS)
@@ -346,7 +346,7 @@ if __name__ == "__main__":
     #print(os.getcwd())
     
     if analysis == "only_generate_data":
-        base_data = generate_base_data(co2_fee=co2_fee,READ_FROM_FILE=READ_DATA_FROM_FILE)    
+        base_data = generate_base_data(scenario_tree, co2_fee=co2_fee,READ_FROM_FILE=READ_DATA_FROM_FILE)    
         
         risk_info = RiskInformation(cvar_coeff, cvar_alpha) # collects information about the risk measure
         base_data.risk_information = risk_info

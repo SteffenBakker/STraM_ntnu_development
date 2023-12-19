@@ -14,18 +14,18 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenarios = "FuelScen"   # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen
+scenario_tree = "FuelScen"   # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen
 
 analyses_info = {
 #     name    type,    scen,    balancing,  single_tp   risk    carbon,     fee
-    "base": ["SP",  scenarios,    False,      None,       None,   False,      "base"],
-    "eev":  ["EEV", scenarios,    False,      None,       None,   False,      "base"],
-    "risk1":["SP",  scenarios,    False,      None,     'averse',   False,      "base"],
-    "risk2":["SP",  scenarios,    False,      None,     "neutral",   False,      "base"],
-    #"stp1": ["SP",  scenarios,    False,      2034,       None,   False,      "base"],
-    #"stp2": ["SP",  scenarios,    False,      2050,       None,   False,      "base"],
-    "carbonhigh": ["SP",  scenarios,    False,      None,       None,   True,      "high"],
-    "carbonlow": ["SP",  scenarios,    False,      None,       None,   True,      "low"],
+    "base": ["SP",  scenario_tree,    False,      None,       None,   False,      "base"],
+    "eev":  ["EEV", scenario_tree,    False,      None,       None,   False,      "base"],
+    "risk1":["SP",  scenario_tree,    False,      None,     'averse',   False,      "base"],
+    "risk2":["SP",  scenario_tree,    False,      None,     "neutral",   False,      "base"],
+    #"stp1": ["SP",  scenario_tree,    False,      2034,       None,   False,      "base"],
+    #"stp2": ["SP",  scenario_tree,    False,      2050,       None,   False,      "base"],
+    "carbonhigh": ["SP",  scenario_tree,    False,      None,       None,   True,      "high"],
+    "carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,      "low"],
 }
 
 run_all_analyses = False
@@ -396,35 +396,35 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,run_identifier,absolute_transp_w
 
 
 # ALL TOGETHER
-def visualize_results(analyses_type,scenarios,
+def visualize_results(analyses_type,scenario_tree,
                         noBalancingTrips=False,
                         single_time_period=None,
                         risk_aversion = None,  #None, "averse", "neutral"
                         scen_analysis_carbon = False,
-                        carbon_fee = "base"
+                        carbon_fee = "base",
+                        emission_cap = "False"
                       ):
 
     #---------------------------------------------------------#
     #       Output data
     #---------------------------------------------------------#
 
-    data_file = scenarios
-    run_identifier = analyses_type+'_'+scenarios
-    if noBalancingTrips:
-        run_identifier = run_identifier + '_NoBalancingTrips'
-    if single_time_period is not None:
-        run_identifier = run_identifier + '_single_time_period_'+str(single_time_period)
-        data_file = data_file + '_single_time_period_'+str(single_time_period)
-    if risk_aversion is not None:
-        run_identifier = run_identifier + '_' + risk_aversion
-    if scen_analysis_carbon:
-        add_string = "_co2_fee_"+str(carbon_fee)
-        run_identifier = run_identifier + add_string
-        data_file = data_file + add_string
+    
+    run_identifier = scenario_tree+"_carbontax"+carbon_fee
+    if emission_cap:
+        run_identifier = run_identifier + "_emissioncap"
+    run_identifier2 = run_identifier+analyses_type
 
-    with open(r'Data//Output//'+run_identifier+'.pickle', 'rb') as output_file:
+    # if single_time_period is not None:
+    #     run_identifier = run_identifier + '_single_time_period_'+str(single_time_period)
+    #     data_file = data_file + '_single_time_period_'+str(single_time_period)
+    # if risk_aversion is not None:
+    #     run_identifier = run_identifier + '_' + risk_aversion
+
+
+    with open(r'Data//Output//'+run_identifier+'_basedata.pickle', 'rb') as output_file:
         output = pickle.load(output_file)
-    with open(r'Data//Output//'+scenarios+'.pickle', 'rb') as data_file:
+    with open(r'Data//Output//'+run_identifier2+'_results.pickle', 'rb') as data_file:
         base_data = pickle.load(data_file)
 
     print('objective function value: ', output.ob_function_value)
@@ -486,7 +486,7 @@ if __name__ == "__main__":
     
     for analysis in analyses:
         visualize_results(analyses_type=            analyses_info[analysis][0],
-                            scenarios =             analyses_info[analysis][1],
+                            scenario_tree =             analyses_info[analysis][1],
                             noBalancingTrips=       analyses_info[analysis][2],
                             single_time_period=     analyses_info[analysis][3],
                             risk_aversion =         analyses_info[analysis][4],
