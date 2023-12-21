@@ -123,6 +123,7 @@ def construct_and_solve_SP(base_data,
                                 model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
                                 model_instance.model.x_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
         for (i,j,m,r,f,p,t,scen_name) in base_data.AFVT_S:
+            a = (i,j,m,r)
             if t== base_data.T_TIME_PERIODS[0]:     
                 weight = model_instance_init.model.b_flow[(a,f,p,t,scen_name)].value
                 if weight is not None: 
