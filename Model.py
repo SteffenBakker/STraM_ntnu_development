@@ -573,7 +573,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_INV,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
+            if len(self.data.ET_INV)>0:
+                self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_INV,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
 
             def Nonanticipativity_upg(model,i,j,m,r,f,t,s,ss):
                 e = (i,j,m,r)
@@ -582,7 +583,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_upg_Constr = Constraint(combinations(self.data.UT_UPG,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upg)
+            if len(self.data.UT_UPG)>0:
+                self.model.Nonanticipativity_upg_Constr = Constraint(combinations(self.data.UT_UPG,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upg)
 
             def Nonanticipativity_nu(model,n,m,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -590,7 +592,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NM_CAP_INCR_T,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
+            if len(self.data.NM_CAP_INCR_T)>0:    
+                self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NM_CAP_INCR_T,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
 
             def Nonanticipativity_y(model,i,j,m,r,f,t,s,ss):
                 e = (i,j,m,r)
@@ -599,7 +602,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
+            if len(self.data.EFT_CHARGE)>0: 
+                self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
 
             def Nonanticipativity_q(model,m,f,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -607,7 +611,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
+            if len(self.data.MFT)>0: 
+                self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
 
             def Nonanticipativity_q_delta(model,m,f,t,s,ss): 
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -615,7 +620,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip    
-            self.model.Nonanticipativity_qdelta_Constr = Constraint(combinations(self.data.MFT_MIN0,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_delta)
+            if len(self.data.MFT_MIN0)>0:
+                self.model.Nonanticipativity_qdelta_Constr = Constraint(combinations(self.data.MFT_MIN0,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_delta)
 
             def Nonanticipativity_q_aux(model,m,f,t,s,ss):
                 if (t in self.data.T_YEARLY_TIME_FIRST_STAGE) and (s is not ss): 
