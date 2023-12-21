@@ -27,6 +27,7 @@ from VisualizeResults import visualize_results
 from pyomo.environ import *
 import time
 import sys
+original_stdout = sys.stdout
 import pickle
 
 import cProfile
@@ -39,10 +40,11 @@ from Utils import Logger
 #################################################
 
 READ_DATA_FROM_FILE = False  #This can save some time in debug mode
-analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+#analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
+analysis = "standard"  # ["standard","only_generate_data", "run_all2"]
 scenario_tree = "FuelDetScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
-co2_fee = "high" #"high, low", "base"
+co2_fee = "base" #"high, low", "base"
 emission_cap_constraint = False   #False or True
 wrm_strt = False  #use EEV as warm start for SP
 
@@ -68,9 +70,33 @@ def construct_and_solve_SP(base_data,
                             NoBalancingTrips = None,
                             emission_cap_constraint = False):
 
-    # ------ CONSTRUCT MODEL ----------#
+    # ------ CONSTRUCT and SOLVE INIT MODEL ----------#
 
-    print("Constructing SP model...")
+    if True:   #We start with solving only the first time period. The output will be used to initialize the real problem.
+        print("Solving the first time period for initialization purposes...")
+        
+        #update data
+        time_periods = base_data.T_TIME_PERIODS
+        base_data.T_TIME_PERIODS = [time_periods[0]]
+        base_data.combined_sets()
+        
+        #
+        model_instance_init = TranspModel(data=base_data, risk_info=risk_info)
+        model_instance_init.emission_cap_constraint = emission_cap_constraint #does not really matter if the first year is 100%
+        model_instance_init.construct_model()
+        model_instance_init.solve_model(FeasTol=10**(-4),  #typically 10**(-6)
+                               num_focus=0, # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+                               #Method=-1,  
+                               )
+
+        #data back to normal        
+        base_data.T_TIME_PERIODS = time_periods
+        base_data.combined_sets()
+
+
+    # ------ CONSTRUCT MAIN MODEL ----------#
+    print("-----")
+    print("Constructing full SP model...")
 
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
@@ -78,6 +104,24 @@ def construct_and_solve_SP(base_data,
     model_instance.single_time_period = single_time_period
     model_instance.emission_cap_constraint = emission_cap_constraint
     model_instance.construct_model()
+    
+    if True: #FIX the first_stage flow
+        t = base_data.T_TIME_PERIODS[0]
+        for scen_name in base_data.S_SCENARIOS:
+            for (i,j,m,r) in base_data.A_ARCS:
+                a = (i,j,m,r)
+                for f in base_data.FM_FUEL[m]:
+                    for p in base_data.P_PRODUCTS:
+                        weight = model_instance_init.model.x_flow[(a,f,p,t,scen_name)].value
+                        if weight is not None: 
+                            if weight != 0: 
+                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
+                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
+                                #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+                            else:
+                                #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
+                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
 
     print("Done constructing model.")
     print("Time used constructing the model:", time.time() - start)
@@ -242,7 +286,8 @@ def generate_base_data(scenario_tree,co2_fee="base",READ_FROM_FILE=False):
     
     return base_data
 
-def main(analysis_type,
+def main(scenario_tree,
+         analysis_type,
          risk_aversion=None,
          cvar_coeff=cvar_coeff,
          cvar_alpha=cvar_alpha,
@@ -261,7 +306,8 @@ def main(analysis_type,
         run_identifier = run_identifier + "_emissioncap"
     run_identifier2 = run_identifier+"_"+analysis_type
 
-    sys.stdout = Logger(run_identifier2,log_to_file)
+    current_logger = Logger(run_identifier2,log_to_file)
+    sys.stdout = current_logger
 
 
     print('----------------------------')
@@ -316,8 +362,6 @@ def main(analysis_type,
         print("Dumping results in pickle file.....", end="")
         pickle.dump(output, output_file)
         print("done.")
-    
-    sys.stdout.flush()
 
     #  --------- VISUALIZE RESULTS ---------    #
 
@@ -330,6 +374,10 @@ def main(analysis_type,
                             carbon_fee = co2_fee,
                             emission_cap=emission_cap
                         )
+        
+    sys.stdout.flush()
+    sys.stdout = original_stdout
+    current_logger.log.close()
 
 def risk_analysis():
     for risk_avers in ["neutral","averse"]:
@@ -338,7 +386,7 @@ def risk_analysis():
             elif risk_avers == "averse":
                 cvar_coeff=0.99
                 #cvar_alpha = 1/N
-            main(analysis_type="SP",cvar_coeff=cvar_coeff, risk_aversion=risk_avers)
+            main(scenario_tree,analysis_type="SP",cvar_coeff=cvar_coeff, risk_aversion=risk_avers)
 
 if __name__ == "__main__":
     
@@ -358,21 +406,26 @@ if __name__ == "__main__":
     elif analysis == "risk":
         risk_analysis()
     elif analysis == "standard":
-        main(analysis_type=analysis_type,co2_fee=co2_fee,emission_cap=emission_cap_constraint)
+        main(scenario_tree,analysis_type=analysis_type,co2_fee=co2_fee,emission_cap=emission_cap_constraint)
     elif analysis == "single_time_period":
-        main(analysis_type=analysis_type,single_time_period=2034)
-        main(analysis_type=analysis_type,single_time_period=2050)
+        main(scenario_tree,analysis_type=analysis_type,single_time_period=2034)
+        main(scenario_tree,analysis_type=analysis_type,single_time_period=2050)
     elif analysis == "carbon_price_sensitivity":
         for carbon_fee in ["low","high"]:
-            main(analysis_type="SP",co2_fee=carbon_fee)
+            main(scenario_tree,analysis_type="SP",co2_fee=carbon_fee)
     elif analysis=="run_all":
-        main(analysis_type="EEV",co2_fee=co2_fee)
-        main(analysis_type="SP",co2_fee=co2_fee)
-        main(analysis_type=analysis_type,single_time_period=2034)
-        main(analysis_type=analysis_type,single_time_period=2050)
+        main(scenario_tree,analysis_type="EEV",co2_fee=co2_fee)
+        main(scenario_tree,analysis_type="SP",co2_fee=co2_fee)
+        main(scenario_tree,analysis_type=analysis_type,single_time_period=2034)
+        main(scenario_tree,analysis_type=analysis_type,single_time_period=2050)
         risk_analysis()
         for carbon_fee in ["low","high"]:
-            main(analysis_type="SP",co2_fee=carbon_fee)
+            main(scenario_tree,analysis_type="SP",co2_fee=carbon_fee)
+    elif analysis=="run_all2":
+        main("FuelScen",analysis_type=analysis_type,co2_fee="base",emission_cap=False)
+        main("FuelScen",analysis_type=analysis_type,co2_fee="base",emission_cap=True)
+        #main("FuelScen",analysis_type=analysis_type,co2_fee="high",emission_cap=False)
+        #main("FuelScen",analysis_type=analysis_type,co2_fee="high",emission_cap=True)    
 
     # if profiling:
         #     profiler = cProfile.Profile()

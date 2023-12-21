@@ -16,11 +16,6 @@ import logging
 import logging
 from Data.settings import *
 
-############# Parameters ################
-
-ABSOLUTE_DEVIATION = 0.0001
-RELATIVE_DEVIATION = 0.0001
-FEAS_RELAX = 0
 
 ############# Class ################
 
@@ -163,10 +158,19 @@ class TranspModel:
         def StageCostsVar(model, t,s):  
 
             # Pyomo SUM_PRODUCT is slower than the following
-            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + self.model.TranspCO2Cost[t,s] + self.model.TranspOpexCostB[t,s] + self.model.TranspCO2CostB[t,s] + self.model.TranspTimeCost[t,s] + self.model.ChargeCost[t,s]) #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
+            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + 
+                                  self.model.TranspCO2Cost[t,s] + 
+                                  self.model.TranspOpexCostB[t,s] + 
+                                  self.model.TranspCO2CostB[t,s] + 
+                                  self.model.TranspTimeCost[t,s] + 
+                                  self.model.ChargeCost[t,s] + #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
+                                  0) 
             
             if t == self.data.T_TIME_PERIODS[-1]:
-                factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9
+                #factor = discount back from the last time period * infinite cash flow stream
+                #factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9
+                #alternatively, use simply 10 years
+                factor = round(sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t]),self.data.precision_digits)
             else:
                 factor = round(sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t]),self.data.precision_digits)
             opex_costs = factor*(yearly_transp_cost+self.model.TransfCost[t,s]) 
@@ -861,7 +865,7 @@ class TranspModel:
                     FeasTol=(10**(-2)), 
                     MIP_gap=MIPGAP,
                     # 'TimeLimit':600, # (seconds)
-                    num_focus= 1,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+                    num_focus= 0,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
                     Crossover=-1, #default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
                     Method=-1, #root node relaxation, def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
                     NodeMethod=-1):  # all other nodes, https://www.gurobi.com/documentation/9.1/refman/nodemethod.html

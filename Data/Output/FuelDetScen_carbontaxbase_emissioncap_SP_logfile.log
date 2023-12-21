@@ -1,0 +1,135 @@
+----------------------------
+Doing the following analysis: 
+FuelDetScen_carbontaxbase_emissioncap
+----------------------------
+test
+Reading data...
+Reading and constructing data
+Transport demand in the base year 2018 (in MTonnes):
+             product  tot_weight
+0           Dry bulk       94.86
+1   Container (fast)        4.07
+2   Container (slow)        9.23
+3  Break bulk (fast)       11.61
+4  Break bulk (slow)       15.37
+5           Neo bulk       19.28
+Done reading data.
+Time used reading the base data: 20.690276622772217
+Solving the first time period for initialization purposes...
+Using license file C:\Users\steffejb\gurobi.lic
+Academic license - for non-commercial use only
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\STraM_ntnu_development\temp\pyomo\tmps09o0nsq.pyomo.lp
+Reading time = 1.91 seconds
+x300750: 24749 rows, 139170 columns, 1920583 nonzeros
+Changed value of parameter FeasibilityTol to 0.01
+   Prev: 1e-06  Min: 1e-09  Max: 0.01  Default: 1e-06
+Changed value of parameter MIPGap to 0.002
+   Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
+Changed value of parameter NumericFocus to 1
+   Prev: 0  Min: 0  Max: 3  Default: 0
+Parameter BarConvTol unchanged
+   Value: 1e-08  Min: 0.0  Max: 1.0  Default: 1e-08
+Parameter Crossover unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter Method unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter NodeMethod unchanged
+   Value: -1  Min: -1  Max: 2  Default: -1
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 24749 rows, 139170 columns and 1920583 nonzeros
+Model fingerprint: 0xa0f9c866
+Variable types: 139136 continuous, 34 integer (34 binary)
+Coefficient statistics:
+  Matrix range     [6e-06, 1e+03]
+  Objective range  [3e-01, 2e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e-03, 9e+01]
+Presolve removed 8607 rows and 20466 columns (presolve time = 5s) ...
+Presolve removed 9117 rows and 20786 columns
+Presolve time: 6.61s
+Presolved: 15632 rows, 118384 columns, 1422726 nonzeros
+Variable types: 118286 continuous, 98 integer (34 binary)
+
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing first log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    7.2266859e+00   1.145646e+02   3.984902e+09      9s
+   11150   -5.6049723e+03   1.575792e+01   3.954729e+10     10s
+   13140    1.8879269e+06   2.233120e+00   5.197981e+10     10s
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+
+Root relaxation: objective 3.577025e+03, 13872 iterations, 6.68 seconds
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 3577.02462    0    4          - 3577.02462      -     -   14s
+H    0     0                    3577.0628003 3577.02462  0.00%     -   14s
+
+Explored 1 nodes (13872 simplex iterations) in 14.59 seconds
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 3577.06 
+
+Optimal solution found (tolerance 2.00e-03)
+Warning: max constraint violation (7.9740e-02) exceeds tolerance
+Warning: max bound violation (7.9009e-02) exceeds tolerance
+Best objective 3.577062800347e+03, best bound 3.577062800347e+03, gap 0.0000%
+the solution is feasible and optimal
+Solution time: 17.527791738510132
+Constructing SP model...
+Done constructing model.
+Time used constructing the model: 12.65204906463623
+----------
+Solving model...
+Using license file C:\Users\steffejb\gurobi.lic
+Academic license - for non-commercial use only
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\STraM_ntnu_development\temp\pyomo\tmpqnnc6885.pyomo.lp
+Reading time = 2.37 seconds
+x300750: 24749 rows, 139170 columns, 1920583 nonzeros
+Changed value of parameter FeasibilityTol to 0.01
+   Prev: 1e-06  Min: 1e-09  Max: 0.01  Default: 1e-06
+Changed value of parameter MIPGap to 0.002
+   Prev: 0.0001  Min: 0.0  Max: inf  Default: 0.0001
+Changed value of parameter NumericFocus to 1
+   Prev: 0  Min: 0  Max: 3  Default: 0
+Parameter BarConvTol unchanged
+   Value: 1e-08  Min: 0.0  Max: 1.0  Default: 1e-08
+Parameter Crossover unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter Method unchanged
+   Value: -1  Min: -1  Max: 5  Default: -1
+Parameter NodeMethod unchanged
+   Value: -1  Min: -1  Max: 2  Default: -1
+Gurobi Optimizer version 9.0.0 build v9.0.0rc2 (win64)
+Optimize a model with 24749 rows, 139170 columns and 1920583 nonzeros
+Model fingerprint: 0x2251b1c8
+Variable types: 139136 continuous, 34 integer (34 binary)
+Coefficient statistics:
+  Matrix range     [6e-06, 1e+03]
+  Objective range  [3e-01, 2e+00]
+  Bounds range     [1e-03, 3e+01]
+  RHS range        [1e-03, 9e+01]
+Presolve removed 8934 rows and 28159 columns (presolve time = 5s) ...
+Presolve removed 9138 rows and 28287 columns
+Presolve time: 6.27s
+Presolved: 15611 rows, 110883 columns, 1291938 nonzeros
+Variable types: 110785 continuous, 98 integer (34 binary)
+
+Explored 0 nodes (0 simplex iterations) in 6.90 seconds
+Thread count was 8 (of 8 available processors)
+
+Solution count 0
+
+Model is infeasible or unbounded
+Best objective -, best bound -, gap -
+WARNING: Loading a SolverResults object with a warning status into
+    model.name="unknown";
+      - termination condition: infeasibleOrUnbounded
+      - message from solver: Problem proven to be infeasible or unbounded.

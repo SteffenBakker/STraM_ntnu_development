@@ -529,12 +529,19 @@ class TransportSets():
         speed_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Speeds')
 
         self.EMISSION_CAP_RELATIVE = {2023: 100, 
-                                      2026: 72.5, 
-                                      2028: 60, 
-                                      2030: 45, 
-                                      2034:40, 
-                                      2040: 25, 
-                                      2050: 10} # For plotting purposes    # HARDCODED
+                                      2026: 40, 
+                                      2028: 20, 
+                                      2030: 15, 
+                                      2034:10, 
+                                      2040: 5, 
+                                      2050: 5} # For plotting purposes    # HARDCODED
+        # self.EMISSION_CAP_RELATIVE = {2023: 100, 
+        #                               2026: 72.5, 
+        #                               2028: 60, 
+        #                               2030: 45, 
+        #                               2034:40, 
+        #                               2040: 25, 
+        #                               2050: 10} # For plotting purposes    # HARDCODED
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
 

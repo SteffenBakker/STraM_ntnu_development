@@ -413,7 +413,7 @@ def visualize_results(analyses_type,scenario_tree,
     run_identifier = scenario_tree+"_carbontax"+carbon_fee
     if emission_cap:
         run_identifier = run_identifier + "_emissioncap"
-    run_identifier2 = run_identifier+analyses_type
+    run_identifier2 = run_identifier+"_"+analyses_type
 
     # if single_time_period is not None:
     #     run_identifier = run_identifier + '_single_time_period_'+str(single_time_period)
@@ -423,9 +423,9 @@ def visualize_results(analyses_type,scenario_tree,
 
 
     with open(r'Data//Output//'+run_identifier+'_basedata.pickle', 'rb') as output_file:
-        output = pickle.load(output_file)
+        base_data = pickle.load(output_file)
     with open(r'Data//Output//'+run_identifier2+'_results.pickle', 'rb') as data_file:
-        base_data = pickle.load(data_file)
+        output = pickle.load(data_file)
 
     print('objective function value: ', output.ob_function_value)
     print('objective function value normalized (BILLION NOK): ', round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY,2))  

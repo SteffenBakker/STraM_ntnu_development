@@ -41,7 +41,14 @@ EMPTY_VEHICLE_FACTOR = 0.6
 
 #Model settings
 NO_INVESTMENTS = False
-MIPGAP = 0.005 # fraction, multiply with 100 to get percentage (0.5%)
+MIPGAP = 0.002 # fraction, multiply with 100 to get percentage (0.5%)
 
 #discount rate
 RHO_STAR = 0.975  #implied rho of around 20% over 5 years
+
+
+############# Model formulation Parameters ################
+
+ABSOLUTE_DEVIATION = 0.001
+RELATIVE_DEVIATION = 0.001
+FEAS_RELAX = 0
