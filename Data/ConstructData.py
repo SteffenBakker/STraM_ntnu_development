@@ -528,20 +528,14 @@ class TransportSets():
         time_value_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Output')
         speed_data = pd.read_excel(r'Data/time_value.xlsx', sheet_name='Speeds')
 
+        #If this emission cap is too stringent, the problem becomes infeasible.
         self.EMISSION_CAP_RELATIVE = {2023: 100, 
-                                      2026: 40, 
-                                      2028: 20, 
-                                      2030: 15, 
-                                      2034:10, 
-                                      2040: 5, 
-                                      2050: 5} # For plotting purposes    # HARDCODED
-        # self.EMISSION_CAP_RELATIVE = {2023: 100, 
-        #                               2026: 72.5, 
-        #                               2028: 60, 
-        #                               2030: 45, 
-        #                               2034:40, 
-        #                               2040: 25, 
-        #                               2050: 10} # For plotting purposes    # HARDCODED
+                                      2026: 72.5, 
+                                      2028: 60, 
+                                      2030: 45, 
+                                      2034:40, 
+                                      2040: 25, 
+                                      2050: 10}  #note that the targets also are used for plotting purposes.
         self.EMISSION_CAP_ABSOLUTE_BASE_YEAR = None
         
 
@@ -576,7 +570,7 @@ class TransportSets():
 
         if True: 
             # read CO2 fee
-            CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx')["Parameter Input"]
+            CO2_fee_data = load_workbook(r'Data/cost_calculator.xlsx',data_only=True)["Parameter Input"]
             
             self.CO2_fee = {}     
             # for y in self.T_TIME_PERIODS:
@@ -596,7 +590,9 @@ class TransportSets():
             elif co2_fee == "low":
                 row_tax = 54 
             elif co2_fee == "high":
-                row_tax = 55 
+                row_tax = 55
+            elif co2_fee == "intermediate":
+                row_tax = 56 
             column_start = "J"
             index_start = column_index_from_string(column_start)
             column_end = "AK"

@@ -77,6 +77,7 @@ class TranspModel:
         
         #if EMISSION_CONSTRAINT:
         self.model.total_emissions = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+        self.model.emissions_penalty = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
 
         #self.model.feas_relax = Var(within=NonNegativeReals)  
         #self.model.feas_relax.setlb(0)
@@ -96,6 +97,14 @@ class TranspModel:
             return (self.model.TranspCO2Cost[t,s] >= sum((self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t,s)] 
                                       for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) -FEAS_RELAX )  
         self.model.TranspCO2CostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspCO2Cost)
+
+        self.model.CO2_PENALTY = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+        def CO2Pen(model, t,s):
+            co2_fee_penalty = 10000 #NOK/tonneCO2
+            co2_fee_penalty_adj = co2_fee_penalty/(1000*1000)   #NOK/gCO2
+            co2_fee_penalty_adj = co2_fee_penalty_adj/SCALING_FACTOR_MONETARY*SCALING_FACTOR_EMISSIONS
+            return (self.model.CO2_PENALTY[t,s] >= co2_fee_penalty_adj*self.model.emissions_penalty[(t,s)]-FEAS_RELAX )  
+        self.model.CO2PenaltyConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=CO2Pen)
         
         self.model.TranspOpexCostB = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCostB(model, t,s):
@@ -159,7 +168,8 @@ class TranspModel:
 
             # Pyomo SUM_PRODUCT is slower than the following
             yearly_transp_cost = (self.model.TranspOpexCost[t,s] + 
-                                  self.model.TranspCO2Cost[t,s] + 
+                                  self.model.TranspCO2Cost[t,s] +
+                                  self.model.CO2_PENALTY[t,s] +
                                   self.model.TranspOpexCostB[t,s] + 
                                   self.model.TranspCO2CostB[t,s] + 
                                   self.model.TranspTimeCost[t,s] + 
@@ -300,7 +310,11 @@ class TranspModel:
 
         if self.emission_cap_constraint:
             def emission_constr_rule(model,t,s):
-                return self.model.total_emissions[t,s] <= self.data.EMISSION_CAP_RELATIVE[t]/100*self.model.total_emissions[self.data.T_TIME_PERIODS[0],s] + FEAS_RELAX
+                if t > self.data.T_TIME_PERIODS[0]:
+                    return self.model.total_emissions[t,s] <= (self.data.EMISSION_CAP_RELATIVE[t]/100*self.model.total_emissions[self.data.T_TIME_PERIODS[0],s] + 
+                                                               self.model.emissions_penalty[t,s] + FEAS_RELAX)
+                else:
+                    return Constraint.Skip
             self.model.EmissionCap = Constraint(self.data.TS_CONSTR_S, rule=emission_constr_rule) #removed self.data.T_TIME_PERIODS
 
         
@@ -654,6 +668,14 @@ class TranspModel:
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_co2_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2)
+
+            def Nonanticipativity_co2_pen(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    diff = (self.model.CO2_PENALTY[(t,s)]- self.model.CO2_PENALTY[(t,ss)]) 
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_co2_pen_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2_pen)
 
             def Nonanticipativity_opexb(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 

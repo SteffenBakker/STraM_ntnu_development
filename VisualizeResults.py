@@ -14,31 +14,36 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenario_tree = "FuelScen"   # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen
-
+output_in_euro = True
+scenario_tree = "FuelScen"   # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen          
 analyses_info = {
-#     name    type,    scen,    balancing,  single_tp   risk    carbon,     fee
-    "base": ["SP",  scenario_tree,    False,      None,       None,   False,      "base"],
-    "eev":  ["EEV", scenario_tree,    False,      None,       None,   False,      "base"],
-    "risk1":["SP",  scenario_tree,    False,      None,     'averse',   False,      "base"],
-    "risk2":["SP",  scenario_tree,    False,      None,     "neutral",   False,      "base"],
-    #"stp1": ["SP",  scenario_tree,    False,      2034,       None,   False,      "base"],
-    #"stp2": ["SP",  scenario_tree,    False,      2050,       None,   False,      "base"],
-    "carbonhigh": ["SP",  scenario_tree,    False,      None,       None,   True,      "high"],
-    "carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,      "low"],
+#     name    type,    scen,        balancing,  single_tp   risk    carbon,             fee,    emission_cap
+    "base": ["SP",  scenario_tree,    False,      None,       None,   False,            "base",     False ],
+    "base_cap": ["SP",  scenario_tree,    False,      None,       None,   False,            "base", True ],
+    #"eev":  ["EEV", scenario_tree,    False,      None,       None,   False,            "base"],
+    "carbonhigh": ["SP",  scenario_tree,    False,      None,       None,   True,       "high",    False],
+    #"carbon_inter": ["SP",  scenario_tree,    False,      None,       None,   True,       "intermediate",    False],
+    #"carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,        "low"],
 }
 
-run_all_analyses = False
+run_all_analyses = True
 analysis = "base"    # "base", "carbon1","eev","risk1"....
 
 
 
 #COST FUNCTIONS
 
+exchange_rate = 1
+currency= "Billion NOK"
+if output_in_euro:
+    exchange_rate = EXCHANGE_RATE_EURO_TO_NOK
+    currency= "Billion EURO"
+
+        
 #create the all_cost_table
 def cost_and_investment_table(base_data,output):
     
-    cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","TranspTimeCost","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost"]
+    cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","CO2_PENALTY","TranspTimeCost","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost"]
     legend_names = {"TranspOpexCost":"General",
         "TranspOpexCostB":"General (Empty Trips)",
         "TranspCO2Cost":"Carbon",
@@ -49,6 +54,7 @@ def cost_and_investment_table(base_data,output):
         "NodeCost":"Node",
         "UpgCost":"Upgrade", 
         "ChargeCost":"Charge",
+        "CO2_PENALTY":"CO2_Penalty"
         }
     output.cost_var_colours =  {"General":"royalblue",
         "General (Empty Trips)":"cornflowerblue",
@@ -60,6 +66,7 @@ def cost_and_investment_table(base_data,output):
         "Node":"darkred",
         "Upgrade":"teal", 
         "Charge":"forestgreen",
+        "CO2_Penalty":"darkred",
         }
     
     output.all_costs = {legend_names[var]:output.costs[var] for var in cost_vars}
@@ -69,7 +76,7 @@ def cost_and_investment_table(base_data,output):
     for var in cost_vars:
         var2 = legend_names[var]
         for key, value in output.all_costs[var2].items():
-            output.all_costs[legend_names[var]][key] = round(value/10**9*SCALING_FACTOR_MONETARY,3) # in GNOK
+            output.all_costs[legend_names[var]][key] = round(value/10**9*SCALING_FACTOR_MONETARY/exchange_rate,3) # in GNOK / GEUR
 
     output.all_costs_table = pd.DataFrame.from_dict(output.all_costs, orient='index')
     
@@ -152,8 +159,8 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
         leftright = leftright + 0.1
 
 
-    if filename == 'investment':
-        ax.axis(ymin=0,ymax=7)
+    #if filename == 'investment':
+    #    ax.axis(ymin=0,ymax=7/exchange_rate)
     #print(ax.get_xticklabels())
     # NOT WORKING WITH CATEGORICAL AXIS
     #ax.vlines(60,0,50)
@@ -161,12 +168,13 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
     ax.text(-0.2, 0.95*ax.get_ylim()[1], "First \n stage", fontdict=None)
     ax.text(1.8, 0.95*ax.get_ylim()[1], "Second \n stage", fontdict=None)
 
+    
     if filename=='investment':
         ax.legend(loc="best")  #upper left      (0.06*ax.get_xlim()[1], 0.06*ax.get_ylim()[1])
-        ax.set_ylabel(r"Investment cost (BNOK)")
+        ax.set_ylabel(r"Investment cost ("+currency+")")
     else:
         ax.legend(loc='lower right')  #upper left
-        ax.set_ylabel(r"Transport cost (BNOK)")
+        ax.set_ylabel(r"Transport cost ("+currency+")")
 
     for spine in ['top', 'right']:
         ax.spines[spine].set_visible(False)
@@ -428,7 +436,7 @@ def visualize_results(analyses_type,scenario_tree,
         output = pickle.load(data_file)
 
     print('objective function value: ', output.ob_function_value)
-    print('objective function value normalized (BILLION NOK): ', round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY,2))  
+    print('objective function value normalized ('+currency+'): ', round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY/exchange_rate,2))  
 
 
     #---------------------------------------------------------#
@@ -440,10 +448,11 @@ def visualize_results(analyses_type,scenario_tree,
     pd.set_option('display.float_format', '{:.2g}'.format)
     print(round(output.all_costs_table,2))
 
-    opex_variables = ['General', 'General (Empty Trips)', 'Carbon','Carbon (Empty Trips)','Time value', 'Transfer']
+    opex_variables = ['General', 'General (Empty Trips)', 'Carbon','Carbon (Empty Trips)','Time value', 'Transfer','CO2_Penalty']
     investment_variables = ['Edge', 'Node', 'Upgrade','Charge']
-    plot_costs(base_data, output,which_costs=opex_variables,ylabel='Annual costs (GNOK)',filename="opex",run_identifier=run_identifier )
-    plot_costs(base_data, output,investment_variables,'Investment costs (GNOK)',"investment",run_identifier=run_identifier)
+    
+    plot_costs(base_data, output,which_costs=opex_variables,ylabel='Annual costs ('+currency+')',filename="opex",run_identifier=run_identifier )
+    plot_costs(base_data, output,investment_variables,'Investment costs ('+currency+')',"investment",run_identifier=run_identifier)
 
     #---------------------------------------------------------#
     #       EMISSIONS 
@@ -492,4 +501,5 @@ if __name__ == "__main__":
                             risk_aversion =         analyses_info[analysis][4],
                             scen_analysis_carbon =  analyses_info[analysis][5],
                             carbon_fee =         analyses_info[analysis][6],
+                            emission_cap = analyses_info[analysis][7],
                             )

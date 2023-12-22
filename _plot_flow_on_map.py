@@ -13,6 +13,7 @@ import pickle
 from mpl_toolkits.basemap import Basemap #for creating the background map
 import matplotlib.pyplot as plt #for plotting on top of the background map
 import matplotlib.patches as patches #import library for fancy arrows/edges
+from copy import deepcopy
 
 # DEFINE FUNCTIONS 
 
@@ -38,8 +39,8 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
     # add empty vehicle flow
     all_flow = pd.concat([all_flow,
                             b_flow[["from", "to", "mode", "fuel", "scenario", "time_period", "weight"]] ])
-    
-    prods= all_products
+
+    prods= deepcopy(all_products)
     if sel_product == "all":
         pass
     elif sel_product == "all_no_dry_bulk":
@@ -62,14 +63,22 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
                         "Bergen", "Førde","Ålesund", "Trondheim", "Bodø", "Tromsø","Narvik", "Alta",
                         "Hamburg", "World", "JohanSverdrupPlatform"] #HARDCODED
 
+    
     #add arcs and corresponding flow to the right lists
     #Note: I use the word arc, but we treat them as edges. That is, we look at undirectional flow by aggregating over both directions
+    num_scenarios = all_flow.scenario.unique()
+    time_periods = all_flow.time_period.unique()
     for index, row in all_flow.iterrows():
-        if row["time_period"] == sel_time_period:
-            if sel_scenario == "average" or row["scenario"] == sel_scenario: #if "average", we add everything and divide by number of scenarios at the end
-                if row["product"] in prods: # check if we have a right product category
+        t = row["time_period"]
+        s = row["scenario"]
+        p = row["product"]
+        m = row["mode"]
+        w = row["weight"]
+        if t == sel_time_period:
+            if (sel_scenario == "average") or (s == sel_scenario): #if "average", we add everything and divide by number of scenarios at the end                
+                if p in prods: # check if we have a right product category
                     #add scenario to list if not observed yet (for taking average)
-                    if row["scenario"] not in all_scenarios:
+                    if s not in all_scenarios:
                         all_scenarios.append(row["scenario"])
                     #temporarily store current arc and its opposite
                     cur_arc = (row["from"], row["to"])
@@ -95,13 +104,13 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
                     elif cur_cra in arcs:
                         cur_arc_ind = arcs.index(cur_cra)
                     #store corresponding flows in lists
-                    flows[cur_arc_ind] += row["weight"]
-                    if row["mode"] == "Road":
-                        flows_road[cur_arc_ind] += row["weight"]
-                    elif row["mode"] == "Sea":
-                        flows_sea[cur_arc_ind] += row["weight"]
-                    elif row["mode"] == "Rail":
-                        flows_rail[cur_arc_ind] += row["weight"]
+                    flows[cur_arc_ind] += w
+                    if m == "Road":
+                        flows_road[cur_arc_ind] += w
+                    elif m == "Sea":
+                        flows_sea[cur_arc_ind] += w
+                    elif m == "Rail":
+                        flows_rail[cur_arc_ind] += w
 
     #divide everything by number of scenarios if we have selected sel_scenario="average"
     if sel_scenario == "average":
@@ -407,7 +416,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        filename = f"Data/Plots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
+        filename = f"Data/Output/GeoPlots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
         plt.savefig(filename, bbox_inches="tight")
     #show figure
     if show_fig:
@@ -438,16 +447,25 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 
 ################################################
 
-
 # RUN ANALYSIS
 
 # Read model output
+
 analyses_type = 'SP' # EV , EEV, 'SP
 scenario_type = "FuelScen" # 4Scen
-with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
-    base_data = pickle.load(data_file)
-with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
-    output = pickle.load(output_file)
+emission_cap = False
+carbon_fee = 'base' #high, intermediate, base
+
+run_identifier = scenario_type+"_carbontax"+carbon_fee
+if emission_cap:
+    run_identifier = run_identifier + "_emissioncap"
+run_identifier2 = run_identifier+"_"+analyses_type
+
+with open(r'Data//Output//'+run_identifier+'_basedata.pickle', 'rb') as output_file:
+    base_data = pickle.load(output_file)
+with open(r'Data//Output//'+run_identifier2+'_results.pickle', 'rb') as data_file:
+    output = pickle.load(data_file)
+
 
 
 
@@ -457,9 +475,10 @@ if True:
     #"SETTINGS"
 
     mode_variants = ["all"] # ["road", "sea", "rail", "all", "total"]
-    sel_scenarios = ["PP","BB","OO"]   # Now it is only a combination of two scenarios. So, choose "BB" or "PB"
-    sel_time_periods = ["2023","2028","2050"]#base_data.T_TIME_PERIODS #2023
+    sel_scenarios = ["average"]   # Now it is only a combination of two scenarios. So, choose "BB" or "PB", "OO", or "average"!
+    sel_time_periods = [2023,2028] #base_data.T_TIME_PERIODS #2023,2028,2034,2040,2050
     sel_products = base_data.P_PRODUCTS + ['all','all_no_dry_bulk']  #"Container (slow)" # "Dry bulk" # any product group or "all"
+    #sel_products =['all_no_dry_bulk']
 
     plot_overseas = True
     plot_up_north = True

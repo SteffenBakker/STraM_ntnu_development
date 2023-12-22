@@ -41,10 +41,10 @@ from Utils import Logger
 
 READ_DATA_FROM_FILE = False  #This can save some time in debug mode
 #analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-analysis = "run_all2"  # ["standard","only_generate_data", "run_all2"]
+analysis = "standard"  # ["standard","only_generate_data", "run_all2"]
 scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
-co2_fee = "base" #"high, low", "base"
+co2_fee = "intermediate" #"high, low", "base", "intermediate"
 emission_cap_constraint = False   #False or True
 wrm_strt = False  #use EEV as warm start for SP
 
@@ -106,35 +106,43 @@ def construct_and_solve_SP(base_data,
     model_instance.construct_model()
     
     if True: #FIX the first_stage flow
-        t = base_data.T_TIME_PERIODS[0]
-        for scen_name in base_data.S_SCENARIOS:
-            for (i,j,m,r) in base_data.A_ARCS:
-                a = (i,j,m,r)
-                for f in base_data.FM_FUEL[m]:
-                    for p in base_data.P_PRODUCTS:
-                        weight = model_instance_init.model.x_flow[(a,f,p,t,scen_name)].value
-                        if weight is not None: 
-                            if weight != 0: 
-                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
-                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
-                                #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
-                            else:
-                                #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
-                                model_instance.model.x_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
-        for (i,j,m,r,f,p,t,scen_name) in base_data.AFVT_S:
-            a = (i,j,m,r)
-            if t== base_data.T_TIME_PERIODS[0]:     
-                weight = model_instance_init.model.b_flow[(a,f,p,t,scen_name)].value
-                if weight is not None: 
-                    if weight != 0: 
-                        model_instance.model.b_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
-                        model_instance.model.b_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
-                        #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
-                    else:
-                        #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-                        model_instance.model.b_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
-                        model_instance.model.b_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
+        
+        # t = base_data.T_TIME_PERIODS[0]
+        # for scen_name in base_data.S_SCENARIOS:
+        #     for (i,j,m,r) in base_data.A_ARCS:
+        #         a = (i,j,m,r)
+        #         for f in base_data.FM_FUEL[m]:
+        #             for p in base_data.P_PRODUCTS:
+        #                 weight = model_instance_init.model.x_flow[(a,f,p,t,scen_name)].value
+        #                 if weight is not None: 
+        #                     if weight != 0: 
+        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
+        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
+        #                         #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+        #                     else:
+        #                         #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
+        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
+
+        # for (i,j,m,r,f,p,t,scen_name) in base_data.AFVT_S:   #This one leads to infeasibility unfortunately, cannot fix too much.
+        #     a = (i,j,m,r)
+        #     if t== base_data.T_TIME_PERIODS[0]:     
+        #         weight = model_instance_init.model.b_flow[(a,f,p,t,scen_name)].value
+        #         if weight is not None: 
+        #             if weight != 0: 
+        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
+        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
+        #                 #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+        #             else:
+        #                 #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
+        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
+        for s in base_data.S_SCENARIOS:
+            t = base_data.T_TIME_PERIODS[0]
+            weight = model_instance_init.model.total_emissions[(t,s)].value
+            model_instance.model.total_emissions[(t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+            model_instance.model.total_emissions[(t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+                    
 
                         
 
@@ -436,9 +444,9 @@ if __name__ == "__main__":
         for carbon_fee in ["low","high"]:
             main(scenario_tree,analysis_type="SP",co2_fee=carbon_fee)
     elif analysis=="run_all2":
-        main("FuelDetScen",analysis_type=analysis_type,co2_fee="base",emission_cap=False)
-        main("FuelDetScen",analysis_type=analysis_type,co2_fee="base",emission_cap=True)
-        main("FuelDetScen",analysis_type=analysis_type,co2_fee="high",emission_cap=False)
+        main("FuelScen",analysis_type=analysis_type,co2_fee="base",emission_cap=False)
+        main("FuelScen",analysis_type=analysis_type,co2_fee="base",emission_cap=True)
+        main("FuelScen",analysis_type=analysis_type,co2_fee="high",emission_cap=False)
         #main("FuelScen",analysis_type=analysis_type,co2_fee="high",emission_cap=True)    
 
     # if profiling:
