@@ -1,3 +1,4 @@
+import ast
 from Data.settings import *
 
 import matplotlib.pyplot as plt
@@ -453,6 +454,350 @@ def visualize_results(analyses_type,scenarios,
         return output
 
     output = mode_mix_calculations(output,base_data)
+    
+    def plot_avg_transportwork(output,base_data):
+        
+        generated_paths_file = "generated_paths_2_modes.csv"     # Select the current created paths file
+
+        generated_paths_file = r"Data//SPATIAL//" + generated_paths_file
+
+        generated_paths = pd.read_csv(generated_paths_file)
+        
+        generated_paths['paths'] = generated_paths['paths'].apply(ast.literal_eval)
+
+        
+        avg_distane = base_data.AVG_DISTANCE
+        
+        x_flow = output.x_flow
+        h_path = output.h_path
+        
+        
+        
+        
+        
+        
+        h_path_sum = h_path.join(generated_paths, on='path')
+        y = [2028]
+        
+        
+        for i in y:
+            
+            #filter out the rows where the time period is not 2023 in x_flow and h_path_sum
+            h_path_sum = h_path_sum[h_path_sum['time_period']==i]
+            x_flow = x_flow[x_flow['time_period']==i]
+            
+            h_path_sum = h_path_sum.drop(['variable', 'product'], axis=1)
+            
+            h_path_sum = h_path_sum.groupby(['path','scenario']).agg({'weight': 'sum',  'paths': 'first'})
+            h_path_sum = h_path_sum.groupby(['path']).agg({'weight': 'mean',  'paths': 'first'})
+            
+            
+            #sum all the weights for each path and the same value in the scenario column
+            #h_path_sum = h_path_sum.groupby(['path', 'scenario']).agg({'weight': 'sum',  'paths': 'first'})
+            
+            
+            
+            
+            
+            
+            #divide the path_list into the different modes, labled arc 1 and arc 2
+            def arc_split(path_list):
+                arc_1 = []
+                arc_2 = []
+                arc_1_mode = path_list[0][2]
+                arc_2_mode = None
+                for path in path_list:
+                    if path[2] != arc_1_mode:
+                        arc_2.append(path)
+                        arc_2_mode = path[2]
+                    else:
+                        arc_1.append(path)
+                        
+                if len(arc_2) < 1:
+                    arc_2 = None
+                return arc_1, arc_2, arc_1_mode, arc_2_mode
+            
+            def lookup_values(path_list):
+                if path_list == None:
+                    return None
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if path[0] != 'World' and path[1] != 'World']
+                return sum(dist_arcs)
+            
+            def sea_length(path_list): 
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Sea']
+                if sum(dist_arcs) == 0:
+                    return None
+                return sum(dist_arcs)
+            
+            def rail_length(path_list): 
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Rail']
+                if sum(dist_arcs) == 0:
+                    return None
+                return sum(dist_arcs)
+            
+            def road_length(path_list): 
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Road']
+                if sum(dist_arcs) == 0:
+                    return None
+                return sum(dist_arcs)
+            
+            h_path_sum[['arc_1', 'arc_2', 'arc_1_mode', 'arc_2_mode']] = h_path_sum['paths'].apply(arc_split).apply(lambda x: pd.Series(x[:4]))
+            # Apply the function to create a new column 'path_length'
+            h_path_sum['path_length'] = h_path_sum['paths'].apply(lookup_values)
+            h_path_sum['arc_1_length'] = h_path_sum['arc_1'].apply(lookup_values)
+            h_path_sum['arc_2_length'] = h_path_sum['arc_2'].apply(lookup_values)
+    
+            h_path_sum['sea_leg_length'] = h_path_sum['paths'].apply(sea_length) 
+            
+            h_path_sum['rail_leg_length'] = h_path_sum['paths'].apply(rail_length) 
+            
+            h_path_sum['road_leg_length'] = h_path_sum['paths'].apply(road_length) 
+            
+            #set weight of to None if it 0.002 or less
+            #h_path_sum.loc[h_path_sum['weight'] <= 0.002, 'weight'] = None
+            
+            fig, ax = plt.subplots()
+            
+            #print all rows of h_path_sum where the path column is hads the value 40
+            print(h_path_sum.head())
+            
+            interval_df = pd.DataFrame(columns=['Interval', 'Rail_Weight', 'Road_Weight', 'Sea_Weight'])
+
+            # Define the interval size (50 km in this case)
+            interval_size = 100
+
+            # Calculate the total weight for each mode of transport on 50 km intervals
+            for start_interval in range(0, 3000, interval_size):
+                end_interval = start_interval + interval_size
+                
+                
+
+                # Filter rows within the current interval
+                interval_rows_arc_1 = h_path_sum[(h_path_sum['arc_1_length'] >= start_interval) & (h_path_sum['arc_1_length'] < end_interval)]
+                interval_rows_arc_2 = h_path_sum[(h_path_sum['arc_2_length'] >= start_interval) & (h_path_sum['arc_2_length'] < end_interval)]
+                
+                print(f"Interval: {start_interval}-{end_interval}")
+                print(f"Number of rows in interval: {len(interval_rows_arc_1)}")
+
+                 # Calculate total weight for each mode of transport within the interval
+                rail_weight = interval_rows_arc_1.loc[interval_rows_arc_1['arc_1_mode'] == 'Rail', 'weight'].sum() + interval_rows_arc_2.loc[interval_rows_arc_2['arc_2_mode'] == 'Rail', 'weight'].sum()
+                road_weight = interval_rows_arc_1.loc[interval_rows_arc_1['arc_1_mode'] == 'Road', 'weight'].sum() + interval_rows_arc_2.loc[interval_rows_arc_2['arc_2_mode'] == 'Road', 'weight'].sum()
+                sea_weight = interval_rows_arc_1.loc[interval_rows_arc_1['arc_1_mode'] == 'Sea', 'weight'].sum()   + interval_rows_arc_2.loc[interval_rows_arc_2['arc_2_mode'] == 'Sea', 'weight'].sum()
+                
+                            
+
+                # Append the results to the new dataframe
+                interval_df = interval_df.append({'Interval': f"{end_interval}", 'Rail_Weight': rail_weight, 'Road_Weight': road_weight, 'Sea_Weight': sea_weight}, ignore_index=True)
+
+            # Display the resulting dataframe
+            print(interval_df)
+            
+            
+            
+
+            # Plotting
+            fig, ax = plt.subplots(figsize=(10, 6))
+            bar_width = 0.2
+
+            # Plotting bars for each mode
+            ax.plot(interval_df['Interval'], interval_df['Rail_Weight'], marker='o', label='Rail')
+            ax.plot(interval_df['Interval'], interval_df['Road_Weight'], marker='o', label='Road')
+            ax.plot(interval_df['Interval'], interval_df['Sea_Weight'], marker='o', label='Sea')
+
+            # Adding labels and title
+            ax.set_xlabel('Interval')
+            ax.set_ylabel('Weight')
+            ax.set_title('Weight Distribution by Mode and Interval')
+            ax.legend()
+
+         
+            
+            interval_df['Total_Weight'] = interval_df['Rail_Weight'] + interval_df['Road_Weight'] + interval_df['Sea_Weight']
+
+            # Calculate weights as percentages of total weight
+            interval_df['Rail_Percentage'] = interval_df['Rail_Weight'] / interval_df['Total_Weight'] * 100
+            interval_df['Road_Percentage'] = interval_df['Road_Weight'] / interval_df['Total_Weight'] * 100
+            interval_df['Sea_Percentage'] = interval_df['Sea_Weight'] / interval_df['Total_Weight'] * 100
+
+            # Handle instances where total weight is 0
+            interval_df.loc[interval_df['Total_Weight'] == 0, ['Rail_Percentage', 'Road_Percentage', 'Sea_Percentage']] = 0
+
+            # Plotting
+            fig, ax = plt.subplots(figsize=(10, 6))
+
+            # Plot lines for each mode
+            ax.plot(interval_df['Interval'], interval_df['Rail_Percentage'], marker='o', label='Rail')
+            ax.plot(interval_df['Interval'], interval_df['Road_Percentage'], marker='o', label='Road')
+            ax.plot(interval_df['Interval'], interval_df['Sea_Percentage'], marker='o', label='Sea')
+
+            # Adding labels and title
+            ax.set_xlabel('Interval')
+            ax.set_ylabel('Percentage of Total Weight')
+            ax.set_title('Weight Distribution by Mode and Interval')
+            ax.legend()
+
+            # Display the plot
+            plt.show()
+            
+            fig, ax = plt.subplots()
+            
+            road_color = 'blue'
+            sea_color = 'green'
+            rail_color = 'red'
+            
+
+            #sort the values in h_path_sum by road_length
+            h_path_sum = h_path_sum.sort_values(by=['road_leg_length'])
+            
+            
+            
+            
+            #Plot the weight against the sea_leg_length
+            ax.plot(h_path_sum['road_leg_length'], h_path_sum['weight'], label='Road', color=road_color)
+            
+            h_path_sum = h_path_sum.sort_values(by=['sea_leg_length'])
+            
+
+            
+            ax.plot(h_path_sum['sea_leg_length'], h_path_sum['weight'], label='Sea', color=sea_color)
+            h_path_sum = h_path_sum.sort_values(by=['rail_leg_length'])
+
+
+            
+            ax.plot(h_path_sum['rail_leg_length'], h_path_sum['weight'], label='Rail', color=rail_color)
+            
+            
+
+            # Plot and specify the color for each mode
+
+
+
+            # Add legend with color patches
+            ax.legend(handles=[
+                plt.Line2D([0], [0], color=road_color, label='Road'),
+                plt.Line2D([0], [0], color=sea_color, label='Sea'),
+                plt.Line2D([0], [0], color=rail_color, label='Rail')
+            ])
+
+            ax.legend()
+
+            # Additional plot settings and show the plot if needed
+            ax.set_xlabel('Leg Length')
+            ax.set_ylabel('Weight')
+            ax.set_title('Weight vs Leg Length for Different Modes of Transport')
+            
+            fig.savefig(r"Data//figures//"+run_identifier+"_avtransportwork_itr4"+str(y)+".png",dpi=300,bbox_inches='tight')
+
+            
+        
+        
+        
+        """h_path_sum = h_path_sum[h_path_sum['time_period']==i]
+            x_flow = x_flow[x_flow['time_period']==i]
+            
+            def lookup_values(path_list):
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if path[0] != 'World' and path[1] != 'World']
+                return sum(dist_arcs)
+            
+            def sea_length(path_list): 
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Sea']
+                return sum(dist_arcs)
+            
+            def rail_length(path_list): 
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Rail']
+                return sum(dist_arcs)
+            
+            def road_length(path_list): 
+                dist_arcs = [avg_distane.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Road']
+                return sum(dist_arcs)
+
+            # Apply the function to create a new column 'path_length'
+            h_path_sum['path_length'] = h_path_sum['paths'].apply(lookup_values)
+            
+            h_path_sum['sea_length'] = h_path_sum['paths'].apply(sea_length) 
+            
+            h_path_sum['rail_length'] = h_path_sum['paths'].apply(rail_length) 
+            
+            h_path_sum['road_length'] = h_path_sum['paths'].apply(road_length)
+            
+            #sort the values by path length
+            h_path_sum = h_path_sum.sort_values(by=['path_length'])
+            
+            #create a new column with the cumulative sum of the path length
+            h_path_sum['cum_path_length'] = h_path_sum['path_length'].cumsum()
+            
+            #create a new column with the cumulative sum of the sea length
+            h_path_sum['cum_sea_length'] = h_path_sum['sea_length'].cumsum()
+            
+            #create a new column with the cumulative sum of the rail length
+            h_path_sum['cum_rail_length'] = h_path_sum['rail_length'].cumsum()
+            
+            #create a new column with the cumulative sum of the road length
+            h_path_sum['cum_road_length'] = h_path_sum['road_length'].cumsum()
+            
+            # new column with the percentage of the cum_path_length is the cum_sea_length
+            h_path_sum['cum_sea_length_perc'] = h_path_sum['cum_sea_length']/h_path_sum['cum_path_length']
+            
+            # new column with the percentage of the cum_path_length is the cum_rail_length
+            h_path_sum['cum_rail_length_perc'] = h_path_sum['cum_rail_length']/h_path_sum['cum_path_length']
+            
+            # new column with the percentage of the cum_path_length is the cum_road_length
+            h_path_sum['cum_road_length_perc'] = h_path_sum['cum_road_length']/h_path_sum['cum_path_length']
+            
+            
+            
+            fig, ax = plt.subplots()
+            
+            
+
+            ax.plot(h_path_sum['path_length'], h_path_sum['cum_sea_length_perc'], label='Sea')
+            ax.plot(h_path_sum['path_length'], h_path_sum['cum_rail_length_perc'], label='Rail')
+            ax.plot(h_path_sum['path_length'], h_path_sum['cum_road_length_perc'], label='Road')
+
+
+            # Add labels and legend
+            ax.set_xlabel('Path Length')
+            ax.set_ylabel('Total Length')
+            ax.legend()
+            
+            fig.savefig(r"Data//figures//"+run_identifier+"_avtransportwork_itr3"+str(i)+".png",dpi=300,bbox_inches='tight')
+        """
+        
+        """
+        #Only include rows were time period is 2023
+        x_flow = x_flow[x_flow['time_period']==y]
+        
+        print(x_flow.head())
+        
+        #gruop by mode, from, to, route usng the sum of the weight
+        x_flow = x_flow.groupby(['mode','from','to','route', 'scenario'], as_index=False).agg({'weight':'sum', 'Distance':'first'})
+        x_flow = x_flow.groupby(['mode','from','to','route'], as_index=False).agg({'weight':'mean', 'Distance':'first'})
+               
+        
+        x_flow['Distance'] = pd.to_numeric(x_flow['Distance'])
+        x_flow['weight'] = pd.to_numeric(x_flow['weight'])
+        
+        filtered_x_flow = x_flow[~x_flow['from'].isin(['World']) & ~x_flow['to'].isin(['World'])]
+
+
+        # Group by 'mode' and sum the weights for each distance
+        grouped_data = filtered_x_flow.groupby(['mode', 'Distance'])['weight'].sum().reset_index()
+
+        # Plot the data
+        fig, ax = plt.subplots()
+
+        for mode, data in grouped_data.groupby('mode'):
+            ax.plot(data['Distance'], data['weight'], label=mode)
+
+        # Add labels and legend
+        ax.set_xlabel('Distance')
+        ax.set_ylabel('Total Weight')
+        ax.legend()
+        """
+
+        #fig.savefig(r"Data//figures//"+run_identifier+"_avtransportwork_itr2"+str(y)+".png",dpi=300,bbox_inches='tight')
+        
+    output= plot_avg_transportwork(output,base_data)   
 
 if __name__ == "__main__":
     
