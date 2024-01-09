@@ -148,8 +148,18 @@ class TranspModel:
         
         self.model.ChargeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def ChargeCost(model, t,s):
-            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f,t)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING if (e,f,t) in self.data.EFT_CHARGE)- FEAS_RELAX )
+            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f,t)]*self.model.y_charge[(e,f,t,s)] 
+                                                      for (e,f) in self.data.EF_CHARGING 
+                                                      if f=="Battery")
+                                                      - FEAS_RELAX )
         self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=ChargeCost)
+
+        self.model.FillingCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+        def FillingCost(model, t,s):
+            return (self.model.FillingCost[t,s] >= sum(self.data.C_CHARGE[(e,f,t)]*self.model.y_charge[(e,f,t,s)] 
+                                                       for (e,f) in self.data.EF_CHARGING 
+                                                      if f=="Hydrogen")- FEAS_RELAX )
+        self.model.FillingCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=FillingCost)
     
 
         # CVaR variables
@@ -174,6 +184,7 @@ class TranspModel:
                                   self.model.TranspCO2CostB[t,s] + 
                                   self.model.TranspTimeCost[t,s] + 
                                   self.model.ChargeCost[t,s] + #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
+                                  self.model.FillingCost[t,s] + #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
                                   0) 
             
             if t == self.data.T_TIME_PERIODS[-1]:
@@ -732,6 +743,15 @@ class TranspModel:
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_chargecost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_chargecost)
+
+            def Nonanticipativity_fillingcost(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    diff = (self.model.FillingCost[(t,s)]- self.model.FillingCost[(t,ss)]) 
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_fillingcost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_fillingcost)
+
 
             def Nonanticipativity_firststagecost(model,s,ss):
                 if  (s is not ss): 

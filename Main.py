@@ -24,6 +24,7 @@ from Data.settings import *
 from Data.interpolate import interpolate
 from VisualizeResults import visualize_results
 
+import pyomo.environ as pyo
 from pyomo.environ import *
 import time
 import sys
@@ -44,7 +45,7 @@ READ_DATA_FROM_FILE = False  #This can save some time in debug mode
 analysis = "standard"  # ["standard","only_generate_data", "run_all2"]
 scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
-co2_fee = "intermediate" #"high, low", "base", "intermediate"
+co2_fee = "base" #"high, low", "base", "intermediate"
 emission_cap_constraint = False   #False or True
 wrm_strt = False  #use EEV as warm start for SP
 
@@ -62,6 +63,31 @@ num_first_stage_periods = 2         # how many of the periods above are in first
 #################################################
 #                   main code                   #
 #################################################
+
+def check_binding_capacity_constraints(model,EAT_INV_CONSTR_S):
+    
+    constraint_obj = getattr(model, "CapacitatedFlow", None)
+    for (i,j,m,r,a,t,s) in EAT_INV_CONSTR_S:
+        if m == "Rail":
+            (ii,jj,mm,rr) = a
+            index = (i,j,m,r,ii,jj,mm,rr,t,s)
+            e = (i,j,m,r)
+            #constr_name = f"CapacitatedFlow[{(i,j,m,r,a,t,s)}]"
+            #constr = getattr(model, constr_name, None)
+            constr_name = f"{a,t,s}"
+            constr = constraint_obj[(i,j,m,r,a,t,s)]
+            if constr is not None:
+                lhs = pyo.value(constr.body)
+                rhs = pyo.value(constr.lower) if constr.lower is not None else pyo.value(constr.upper)
+                difference = rhs - lhs
+                if difference == 0:
+                    print(f"Constraint {a,t,s}, LHS: {lhs}, RHS: {rhs} BINDING.")
+                else:
+                    print(f"Constraint {a,t,s}, LHS: {lhs}, RHS: {rhs} not binding.")
+                    #print(f"Constraint ({a,t,s}) not binding. Percentage difference = {round(difference/rhs*100,2)} %")
+            else:
+                print(f"Constraint {constr_name} not found in the model.")
+
 
 
 def construct_and_solve_SP(base_data,
@@ -162,6 +188,10 @@ def construct_and_solve_SP(base_data,
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------", end="", flush=True)
+
+    if False: #rail_analysis
+        check_binding_capacity_constraints(model_instance.model,base_data.EAT_INV_CONSTR_S)
+
 
     return model_instance,base_data
 

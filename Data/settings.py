@@ -52,3 +52,15 @@ RHO_STAR = 0.975  #implied rho of around 20% over 5 years
 ABSOLUTE_DEVIATION = 0.001
 RELATIVE_DEVIATION = 0.001
 FEAS_RELAX = 0
+
+
+#### COLOR MAP ###
+
+def rgb_constructor(r,g,b):
+    rgb_code = (r,g,b)
+    return tuple([x / 255 for x in rgb_code]) #needs to return a number between zero and one
+
+color_map_stram = {
+    "ocean": rgb_constructor(189, 224, 254),
+    "land": rgb_constructor(229, 229, 229),
+}
