@@ -26,8 +26,16 @@ def dict_to_pd_df(dict,col_names):
     return df
 
 
+if True:
+    #output.all_variables
+    #output.epsilon_edge
+    #output.upsilon_upgrade
 
-
+    output.x_flow[(output.x_flow['mode']=='Rail') & 
+                  (output.x_flow['from'].isin(['Trondheim','Bodø'])) & 
+                  (output.x_flow['to'].isin(['Trondheim','Bodø'])) &
+                  (output.x_flow['time_period'].isin([2034]))
+                  ]
 
 if False:
 

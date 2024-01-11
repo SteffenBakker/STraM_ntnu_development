@@ -27,7 +27,7 @@ analyses_info = {
 }
 
 run_all_analyses = False
-analysis = "base"    # "base", "carbon1","eev","risk1"....
+analysis = "base_cap"    # "base", "carbon1","eev","risk1"....
 
 
 
@@ -57,20 +57,20 @@ def cost_and_investment_table(base_data,output):
         "FillingCost":"H2_Filling",
         "CO2_PENALTY":"CO2_Penalty"
         }
-    output.cost_var_colours =  {  #https://stackoverflow.com/questions/22408237/named-colors-in-matplotlib
-        "LCOT":                  "royalblue",
-        "LCOT (Empty Trips)":    "cornflowerblue",
-        "Emission":              "dimgrey",
-        "Emission (Empty Trips)":   "silver",
-        "Time value":               "forestgreen",
-        "Transfer":                 "brown",
-        "RailTrack":                "indianred",
-        "Terminal":                 "darkred",
-        "RailElectr.":              "teal", 
-        "Charging":                 "forestgreen",
-        "H2_Filling":               "darkgreen",
-        "CO2_Penalty":              "darkred",
-        }
+    # output.cost_var_colours =  {  #https://stackoverflow.com/questions/22408237/named-colors-in-matplotlib
+    #     "LCOT":                  "royalblue",
+    #     "LCOT (Empty Trips)":    "cornflowerblue",
+    #     "Emission":              "dimgrey",
+    #     "Emission (Empty Trips)":   "silver",
+    #     "Time value":               "forestgreen",
+    #     "Transfer":                 "brown",
+    #     "RailTrack":                "indianred",
+    #     "Terminal":                 "darkred",
+    #     "RailElectr.":              "teal", 
+    #     "Charging":                 "forestgreen",
+    #     "H2_Filling":               "darkgreen",
+    #     "CO2_Penalty":              "darkred",
+    #     }
     
     output.all_costs = {legend_names[var]:output.costs[var] for var in cost_vars}
     
@@ -156,7 +156,7 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
                         #"xlolims":do_not_plot_lims,"xuplims":do_not_plot_lims
                         },   #elinewidth, capthickfloat
                     label=var,
-                    color=output.cost_var_colours[var]
+                    color=color_map_stram[var]
                     )
         ax.set_ylabel(ylabel)
 
@@ -187,7 +187,7 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
     #ax.spines[["right", "top"]].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     
     fig.tight_layout()
-    fig.savefig(r"Data//figures//"+run_identifier+"_costs_"+filename+".png",
+    fig.savefig(r"Data//figures//"+run_identifier+"_costs_"+filename+".pdf",
                 dpi=300,bbox_inches="tight")   #ax.get_figure().savefig
 
 #EMISSION FUNCTIONS
@@ -243,7 +243,8 @@ def plot_emission_results(output,base_data,run_identifier):
     ax.bar( [str(t) for t in  base_data.T_TIME_PERIODS], 
                 y,
                 width=0.6, 
-                yerr=yerrors
+                yerr=yerrors,
+                color=color_map_stram["Emission"]
                 )
                 
     props = dict(boxstyle="round", facecolor="white", alpha=1)
@@ -265,7 +266,7 @@ def plot_emission_results(output,base_data,run_identifier):
         ax.spines[spine].set_visible(False)
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[["right", "top"]].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
-    ax.get_figure().savefig(r"Data//figures//"+run_identifier+"_emissions.png",dpi=300,bbox_inches="tight")
+    ax.get_figure().savefig(r"Data//figures//"+run_identifier+"_emissions.pdf",dpi=300,bbox_inches="tight")
 
 # MODE MIX
 
@@ -325,22 +326,22 @@ def mode_fuel_mix_calculations(output,base_data):
 def plot_mode_mixes(TranspArbAvgScen, base_data,run_identifier,absolute_transp_work=True):  #result data = TranspArbAvgScen
         
     #https://matplotlib.org/stable/gallery/color/named_colors.html
-    color_dict = {"Diesel":                 "firebrick", 
-                    "Battery":              "mediumseagreen",
-                    "Catenary":              "darkolivegreen",
-                    "Ammonia":              "royalblue", 
-                    "Hydrogen":             "deepskyblue",
-                    "Methanol":              "orchid",     
-                    #"Battery electric":     "mediumseagreen",
-                    #"Battery train":        "darkolivegreen", 
-                    #"Electric train (CL)":  "mediumseagreen", 
-                    #"LNG":                  "blue", 
-                    "MGO":                  "darkviolet", 
-                    #"Biogas":               "teal", 
-                    #"Biodiesel":            "darkorange", 
-                    #"Biodiesel (HVO)":      "darkorange", 
-                    "HFO":                  "firebrick"           
-                    }
+    # color_dict = {"Diesel":                 "firebrick", 
+    #                 "Battery":              "mediumseagreen",
+    #                 "Catenary":              "darkolivegreen",
+    #                 "Ammonia":              "royalblue", 
+    #                 "Hydrogen":             "deepskyblue",
+    #                 "Methanol":              "orchid",     
+    #                 #"Battery electric":     "mediumseagreen",
+    #                 #"Battery train":        "darkolivegreen", 
+    #                 #"Electric train (CL)":  "mediumseagreen", 
+    #                 #"LNG":                  "blue", 
+    #                 "MGO":                  "darkviolet", 
+    #                 #"Biogas":               "teal", 
+    #                 #"Biodiesel":            "darkorange", 
+    #                 #"Biodiesel (HVO)":      "darkorange", 
+    #                 "HFO":                  "firebrick"           
+    #                 }
 
 
     labels = [str(t) for t in  base_data.T_TIME_PERIODS]
@@ -387,7 +388,7 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,run_identifier,absolute_transp_w
                             #"xlolims":do_not_plot_lims,"xuplims":do_not_plot_lims
                             },   #elinewidth, capthickfloat
                         label=f,
-                        color=color_dict[f],)
+                        color=color_map_stram[f],)
             bottom = [subset[base_string].tolist()[i]+bottom[i] for i in range(len(bottom))]
             leftright = leftright + 0.08
         
@@ -404,7 +405,7 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,run_identifier,absolute_transp_w
             ax.spines[spine].set_visible(False)
         
         #plt.show()
-        fig.savefig(r"Data//figures//"+run_identifier+"_modemix"+m+".png",dpi=300,bbox_inches="tight")
+        fig.savefig(r"Data//figures//"+run_identifier+"_modemix"+m+".pdf",dpi=300,bbox_inches="tight")
 
 
 

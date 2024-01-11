@@ -68,8 +68,8 @@ map.drawmapboundary(fill_color= color_map_stram["ocean"])#'paleturquoise')
 map.fillcontinents(color=       color_map_stram["land"],           #'lightgrey', 
                    lake_color=  color_map_stram["ocean"]      #'paleturquoise'     
                    )
-map.drawcoastlines(linewidth=0.2)
-map.drawcountries(linewidth=0.2)
+map.drawcoastlines(linewidth=0.2, color="grey")
+map.drawcountries(linewidth=0.2, color="grey")
 
 #draw nodes on the map
 node_x, node_y = map(list(longs.values()), list(lats.values()))
@@ -181,6 +181,16 @@ custom_lines = [Line2D([0], [0], color=mode_color_dict["Road"], lw=3),
                 Line2D([0], [0], color=mode_color_dict["Rail"], lw=3)]
 plt.legend(custom_lines, ['Road', 'Sea', 'Rail'])
 
+#remove the black
+fig.patch.set_facecolor('white')
+# ax.spines['top'].set_visible(False)
+# ax.spines['right'].set_visible(False)
+# ax.spines['bottom'].set_visible(False)
+# ax.spines['left'].set_visible(False)
+ax.spines['bottom'].set_color('white')
+ax.spines['top'].set_color('white')
+ax.spines['left'].set_color('white')
+ax.spines['right'].set_color('white')
 
 ###############################
 # d. Show and save the figure
@@ -192,7 +202,7 @@ plot_height = scale * plot_width
 plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGHT SIZE
 #save figure
 if save_fig:
-    filename = f"Data/Plots/edge_plot.png"
+    filename = f"Data/Plots/edge_plot.pdf"
     plt.savefig(filename,bbox_inches='tight')
 #show figure
 if show_fig:
