@@ -567,10 +567,13 @@ def visualize_results(analyses_type,scenarios,
             interval_df = pd.DataFrame(columns=['Interval', 'Rail_Weight', 'Road_Weight', 'Sea_Weight'])
 
             # Define the interval size (100 km in this case)
-            interval_size = 100
+            interval_size = 200
+            
+            #Get the longest leg length
+            longest_leg = max(h_path_sum['leg_1_length'].max(), h_path_sum['leg_2_length'].max())
 
             # Calculate the total weight for each mode of transport on 1000 km intervals, up to longest path of 3000 km
-            for start_interval in range(0, 3000, interval_size):
+            for start_interval in range(0, int(longest_leg), interval_size):
                 
                 end_interval = start_interval + interval_size
                              
@@ -594,9 +597,9 @@ def visualize_results(analyses_type,scenarios,
             fig, ax = plt.subplots(figsize=(10, 6))
 
             # Plotting bars for each mode
-            ax.plot(interval_df['Interval'], interval_df['Rail_Weight'], marker='o', label='Rail')
-            ax.plot(interval_df['Interval'], interval_df['Road_Weight'], marker='o', label='Road')
-            ax.plot(interval_df['Interval'], interval_df['Sea_Weight'], marker='o', label='Sea')
+            ax.plot(interval_df['Interval'], interval_df['Rail_Weight'], label='Rail')
+            ax.plot(interval_df['Interval'], interval_df['Road_Weight'], label='Road')
+            ax.plot(interval_df['Interval'], interval_df['Sea_Weight'], label='Sea')
 
             # Adding labels and title
             ax.set_xlabel('Interval')
@@ -622,9 +625,9 @@ def visualize_results(analyses_type,scenarios,
             fig, ax = plt.subplots(figsize=(10, 6))
 
             # Plot lines for each mode
-            ax.plot(interval_df['Interval'], interval_df['Rail_Percentage'], marker='o', label='Rail')
-            ax.plot(interval_df['Interval'], interval_df['Road_Percentage'], marker='o', label='Road')
-            ax.plot(interval_df['Interval'], interval_df['Sea_Percentage'], marker='o', label='Sea')
+            ax.plot(interval_df['Interval'], interval_df['Rail_Percentage'], label='Rail')
+            ax.plot(interval_df['Interval'], interval_df['Road_Percentage'], label='Road')
+            ax.plot(interval_df['Interval'], interval_df['Sea_Percentage'], label='Sea')
 
             # Adding labels and title
             ax.set_xlabel('Interval')
