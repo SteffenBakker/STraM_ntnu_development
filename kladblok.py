@@ -31,11 +31,11 @@ if True:
     #output.epsilon_edge
     #output.upsilon_upgrade
 
-    output.x_flow[(output.x_flow['mode']=='Rail') & 
+    print(output.x_flow[(output.x_flow['mode']=='Road') & 
                   (output.x_flow['from'].isin(['Trondheim','Bodø'])) & 
                   (output.x_flow['to'].isin(['Trondheim','Bodø'])) &
-                  (output.x_flow['time_period'].isin([2034]))
-                  ]
+                  (output.x_flow['time_period'].isin([2023]))
+                  ])
 
 if False:
 

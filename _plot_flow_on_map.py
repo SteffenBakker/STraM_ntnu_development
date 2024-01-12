@@ -13,7 +13,11 @@ import pickle
 from mpl_toolkits.basemap import Basemap #for creating the background map
 import matplotlib.pyplot as plt #for plotting on top of the background map
 import matplotlib.patches as patches #import library for fancy arrows/edges
+from matplotlib.lines import Line2D
 from copy import deepcopy
+from Data.settings import *
+from _plot_base_map import plot_base_map_start
+
 
 # DEFINE FUNCTIONS 
 
@@ -229,43 +233,11 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     figure that is shown and/or saved to disk if requested
     """
 
-    fig = plt.figure(figsize=(6,3))
-    ax = plt.axes([0,0,1,1])
-
-    ####################################
-    # a. Extract nodes and coordinates
-
-    #extract nodes from base_data
-    N_NODES = base_data.N_NODES
-    lats = base_data.N_LATITUDE_PLOT
-    longs = base_data.N_LONGITUDE_PLOT
-    node_xy_offset = base_data.N_COORD_OFFSETS
-
-    node_colors = ["black"]*len(N_NODES)     
-
-    nodes_sea_order = ["Umeå", "Stockholm", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
-                        "Bergen", "Førde","Ålesund", "Trondheim", "Bodø", "Tromsø","Narvik", "Alta",
-                        "Hamburg", "World", "JohanSverdrupPlatform"] #HARDCODED
 
     ####################
     # b. Build a map
 
-    # create underlying figure/axis (to get rid of whitespace)
-    fig = plt.figure(figsize=(6,3))
-    ax = plt.axes([0,0,1,1])
-
-    #draw the basic map including country borders
-    map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
-    # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
-    map.drawmapboundary(fill_color='paleturquoise')
-    map.fillcontinents(color='lightgrey', lake_color='paleturquoise')
-    map.drawcoastlines(linewidth=0.2)
-    map.drawcountries(linewidth=0.2)
-
-    #draw nodes on the map
-    node_x, node_y = map(list(longs.values()), list(lats.values()))
-    coordinate_mapping={N_NODES[i]:(node_x[i],node_y[i]) for i in range(len(N_NODES))}
-    map.scatter(node_x, node_y, color=node_colors, zorder=100)
+    fig, ax, mapp, node_xy_offset, coordinate_mapping, node_x, node_y = plot_base_map_start(base_data)
 
 
     ##########################
@@ -284,8 +256,11 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"road":"violet", "sea":"blue", "rail":"saddlebrown", "total":"black"}
-    mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
+    mode_color_dict = {"road":color_map_stram["Road"], 
+                       "sea":color_map_stram["Sea"], 
+                       "rail":color_map_stram["Rail"], 
+                       "total":"black"}
+    mode_linestyle_dict = {"road":"-", "sea":"-", "rail":"-", "total":"-"} #"rail":(0, (1, 5))
     curvature_fact_dict = {"road":0, "sea":-1.5, "rail":+1.5, "total":0}
     zorder_dict = {"road":30, "sea":20, "rail":40, "total":20}
     # arrow settings for direction of change (for "diff" option)
@@ -313,8 +288,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
         #store current origin and destinations + indices
         cur_orig = row["orig"]
         cur_dest = row["dest"]
-        cur_orig_index = N_NODES.index(cur_orig)
-        cur_dest_index = N_NODES.index(cur_dest)
+        cur_orig_index = base_data.N_NODES.index(cur_orig)
+        cur_dest_index = base_data.N_NODES.index(cur_dest)
         #check if it is a long distance (temporarily don't plot those to avoid cluttering)
         overseas = False
         up_north = False
@@ -322,6 +297,8 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
             overseas = True
         if cur_orig in ["Bodø", "Tromsø","Narvik","Alta"] or cur_dest in ["Bodø", "Tromsø","Narvik","Alta"]:
             up_north = True
+        if cur_orig in ["Bodø", "Trondheim"] and cur_dest in ["Bodø", "Trondheim"]:
+            print("")
         #check mode variant
         if mode_variant == "all": #we will plot all modes in one figure
             #create dictionary that stores all the flows
@@ -346,7 +323,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
                         cur_direction = "decrease"
                     cur_color = dir_color_dict[cur_direction]
                 #create new arc
-                if cur_flow > 0.001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
+                if cur_flow > 0.0001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.01% of total flow for the relevant mode)
                 #if 10.0 ** power_of_ten * cur_flow/cur_max_flow > 1.0: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
                     new_arc = patches.FancyArrowPatch(
                         (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
@@ -405,7 +382,13 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
                 if ((not overseas) or (overseas and plot_overseas)) and ((not up_north) or (up_north and plot_up_north)): #only add the arc if we want to plot it
                     #add the arc to the plot
                     plt.gca().add_patch(new_arc)
-        
+
+    
+    custom_lines = [Line2D([0], [0], color=mode_color_dict["road"], lw=3),
+                    Line2D([0], [0], color=mode_color_dict["sea"], lw=3),
+                    Line2D([0], [0], color=mode_color_dict["rail"], lw=3)]
+    plt.legend(custom_lines, ['Road', 'Sea', 'Rail'])
+
     ###############################
     # d. Show and save the figure
 
@@ -416,8 +399,10 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        filename = f"Data/Output/GeoPlots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
+        filename = f"Data/Output/Plots/ProductFlow/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.pdf"
+        filename2 = f"Data/Output/Plots/ProductFlow/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
         plt.savefig(filename, bbox_inches="tight")
+        plt.savefig(filename2, bbox_inches="tight")
     #show figure
     if show_fig:
         plt.show()

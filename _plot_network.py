@@ -1,6 +1,7 @@
 """Plot the network (edges) on the map"""
 
 from Data.settings import *
+from _plot_base_map import plot_base_map_start
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -37,48 +38,14 @@ save_fig = True
 
 
 
-####################################
-# a. Extract nodes and coordinates
-
-#extract nodes from base_data
-N_NODES = base_data.N_NODES
-lats = base_data.N_LATITUDE_PLOT
-longs = base_data.N_LONGITUDE_PLOT
-node_xy_offset = base_data.N_COORD_OFFSETS
-
-
-#add colors (for checking and perhaps plotting)
-node_colors = ["black"]*len(N_NODES)     
-
-
-
 ####################
 # b. Build a map
 
-# create underlying figure/axis (to get rid of whitespace)
-fig = plt.figure(figsize=(6,3))
-ax = plt.axes([0,0,1,1])
-
-#draw the basic map including country borders
-map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', 
-              lat_0=63.4, lon_0=10.4
-              ) # Azimuthal Equidistant Projection
-# map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
-map.drawmapboundary(fill_color= color_map_stram["ocean"])#'paleturquoise')
-map.fillcontinents(color=       color_map_stram["land"],           #'lightgrey', 
-                   lake_color=  color_map_stram["ocean"]      #'paleturquoise'     
-                   )
-map.drawcoastlines(linewidth=0.2, color="grey")
-map.drawcountries(linewidth=0.2, color="grey")
-
-#draw nodes on the map
-node_x, node_y = map(list(longs.values()), list(lats.values()))
-coordinate_mapping={N_NODES[i]:(node_x[i],node_y[i]) for i in range(len(N_NODES))}
-map.scatter(node_x, node_y, color=node_colors, zorder=100)
+fig, ax, mapp, node_xy_offset, coordinate_mapping, node_x, node_y = plot_base_map_start(base_data)
 
 # draw labels on the map
 
-node_labels = {i:i for i in N_NODES}
+node_labels = {i:i for i in base_data.N_NODES}
 # translate labels
 translate_dict = {"JohanSverdrupPlatform":"Cont. Shelf",   #use \n for new line
                 "Hamburg":" Hamburg/Europe", 
@@ -86,7 +53,7 @@ translate_dict = {"JohanSverdrupPlatform":"Cont. Shelf",   #use \n for new line
 for key,value in translate_dict.items():
     node_labels[key] = value
 
-for i in N_NODES:
+for i in base_data.N_NODES:
     plt.annotate(node_labels[i], (coordinate_mapping[i][0] + 10000*node_xy_offset[i][0], 
                      coordinate_mapping[i][1] + 10000*node_xy_offset[i][1]), zorder = 1000)  #10000*offset
 
@@ -136,8 +103,8 @@ for (i,j,m,r) in base_data.E_EDGES:
         unique_edges.append((cur_orig, cur_dest, cur_mode)) 
             
         # extract more edge information
-        cur_orig_index = N_NODES.index(cur_orig)
-        cur_dest_index = N_NODES.index(cur_dest)
+        cur_orig_index = base_data.N_NODES.index(cur_orig)
+        cur_dest_index = base_data.N_NODES.index(cur_dest)
         
         # get plotting options for current mode
         curvature_factor = curvature_fact_dict[cur_mode]
@@ -181,16 +148,7 @@ custom_lines = [Line2D([0], [0], color=mode_color_dict["Road"], lw=3),
                 Line2D([0], [0], color=mode_color_dict["Rail"], lw=3)]
 plt.legend(custom_lines, ['Road', 'Sea', 'Rail'])
 
-#remove the black
-fig.patch.set_facecolor('white')
-# ax.spines['top'].set_visible(False)
-# ax.spines['right'].set_visible(False)
-# ax.spines['bottom'].set_visible(False)
-# ax.spines['left'].set_visible(False)
-ax.spines['bottom'].set_color('white')
-ax.spines['top'].set_color('white')
-ax.spines['left'].set_color('white')
-ax.spines['right'].set_color('white')
+
 
 ###############################
 # d. Show and save the figure
