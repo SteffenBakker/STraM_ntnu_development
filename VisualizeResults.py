@@ -187,7 +187,7 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
     #ax.spines[["right", "top"]].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
     
     fig.tight_layout()
-    fig.savefig(r"Data//figures//"+run_identifier+"_costs_"+filename+".pdf",
+    fig.savefig(r"Data//Output//Plots//Costs//"+run_identifier+"_costs_"+filename+".pdf",
                 dpi=300,bbox_inches="tight")   #ax.get_figure().savefig
 
 #EMISSION FUNCTIONS
@@ -266,7 +266,7 @@ def plot_emission_results(output,base_data,run_identifier):
         ax.spines[spine].set_visible(False)
     #https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.html
     #ax.spines[["right", "top"]].set_visible(False)   #https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
-    ax.get_figure().savefig(r"Data//figures//"+run_identifier+"_emissions.pdf",dpi=300,bbox_inches="tight")
+    ax.get_figure().savefig(r"Data//Output//Plots//Emissions//"+run_identifier+"_emissions.pdf",dpi=300,bbox_inches="tight")
 
 # MODE MIX
 
@@ -405,7 +405,7 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,run_identifier,absolute_transp_w
             ax.spines[spine].set_visible(False)
         
         #plt.show()
-        fig.savefig(r"Data//figures//"+run_identifier+"_modemix"+m+".pdf",dpi=300,bbox_inches="tight")
+        fig.savefig(r"Data//Output//Plots//ModeMix//"+run_identifier+"_modemix"+m+".pdf",dpi=300,bbox_inches="tight")
 
 
 
