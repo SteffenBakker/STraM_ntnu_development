@@ -597,9 +597,9 @@ def visualize_results(analyses_type,scenarios,
             fig, ax = plt.subplots(figsize=(10, 6))
 
             # Plotting bars for each mode
-            ax.plot(interval_df['Interval'], interval_df['Rail_Weight'], label='Rail')
-            ax.plot(interval_df['Interval'], interval_df['Road_Weight'], label='Road')
-            ax.plot(interval_df['Interval'], interval_df['Sea_Weight'], label='Sea')
+            ax.plot(interval_df['Interval'], interval_df['Rail_Weight'], label='Rail', color='red')
+            ax.plot(interval_df['Interval'], interval_df['Road_Weight'], label='Road', color='green')
+            ax.plot(interval_df['Interval'], interval_df['Sea_Weight'], label='Sea', color='blue')
 
             # Adding labels and title
             ax.set_xlabel('Interval')
@@ -625,9 +625,9 @@ def visualize_results(analyses_type,scenarios,
             fig, ax = plt.subplots(figsize=(10, 6))
 
             # Plot lines for each mode
-            ax.plot(interval_df['Interval'], interval_df['Rail_Percentage'], label='Rail')
-            ax.plot(interval_df['Interval'], interval_df['Road_Percentage'], label='Road')
-            ax.plot(interval_df['Interval'], interval_df['Sea_Percentage'], label='Sea')
+            ax.plot(interval_df['Interval'], interval_df['Rail_Percentage'], label='Rail', color='red')
+            ax.plot(interval_df['Interval'], interval_df['Road_Percentage'], label='Road', color='green')
+            ax.plot(interval_df['Interval'], interval_df['Sea_Percentage'], label='Sea', color='blue')
 
             # Adding labels and title
             ax.set_xlabel('Interval')
