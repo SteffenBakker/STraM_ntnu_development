@@ -457,6 +457,9 @@ def visualize_results(analyses_type,scenarios,
     
     def plot_avg_transportwork(output,base_data):
         
+        interval_size = 200
+        remove_dry_bulk = False
+        
         #Getting the generated paths that are currently used in the model
         generated_paths_file = "generated_paths_2_modes.csv"     # Select the current created paths file
         generated_paths_file = r"Data//SPATIAL//" + generated_paths_file
@@ -534,7 +537,8 @@ def visualize_results(analyses_type,scenarios,
             x_flow = x_flow[x_flow['time_period']==i]
             
             #Remove the rows where the product is Dry bulk
-            #h_path_sum = h_path_sum[h_path_sum['product'] != 'Dry bulk']
+            if remove_dry_bulk:
+                h_path_sum = h_path_sum[h_path_sum['product'] != 'Dry bulk']
             
             h_path_sum = h_path_sum.drop(['variable', 'product'], axis=1)
             
