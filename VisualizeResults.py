@@ -457,7 +457,7 @@ def visualize_results(analyses_type,scenarios,
     
     def plot_avg_transportwork(output,base_data):
         
-        interval_size = 200
+        INTERVAL_SIZE = 200
         remove_dry_bulk = False
         
         #Getting the generated paths that are currently used in the model
@@ -570,16 +570,15 @@ def visualize_results(analyses_type,scenarios,
             #Creating a dataframe for the total weight for each mode in each interval
             interval_df = pd.DataFrame(columns=['Interval', 'Rail_Weight', 'Road_Weight', 'Sea_Weight'])
 
-            # Define the interval size (100 km in this case)
-            interval_size = 200
+            
             
             #Get the longest leg length
             longest_leg = max(h_path_sum['leg_1_length'].max(), h_path_sum['leg_2_length'].max())
 
             # Calculate the total weight for each mode of transport on 1000 km intervals, up to longest path of 3000 km
-            for start_interval in range(0, int(longest_leg), interval_size):
+            for start_interval in range(0, int(longest_leg), INTERVAL_SIZE):
                 
-                end_interval = start_interval + interval_size
+                end_interval = start_interval + INTERVAL_SIZE
                              
                 # Filter rows within the current interval
                 interval_rows_leg_1 = h_path_sum[(h_path_sum['leg_1_length'] >= start_interval) & (h_path_sum['leg_1_length'] < end_interval)]
@@ -611,86 +610,8 @@ def visualize_results(analyses_type,scenarios,
             ax.set_title('Weight Distribution by Mode and Interval')
             ax.legend()
             
-            fig.savefig(r"Data//figures//"+run_identifier+"_avtransportwork_itr5["+str(i)+"].png",dpi=300,bbox_inches='tight')
+            fig.savefig(r"Data//figures//"+run_identifier+"_avg_transportwork["+str(i)+"].png",dpi=300,bbox_inches='tight')
 
-         
-            
-            interval_df['Total_Weight'] = interval_df['Rail_Weight'] + interval_df['Road_Weight'] + interval_df['Sea_Weight']
-
-            # Calculate weights as percentages of total weight
-            interval_df['Rail_Percentage'] = interval_df['Rail_Weight'] / interval_df['Total_Weight'] * 100
-            interval_df['Road_Percentage'] = interval_df['Road_Weight'] / interval_df['Total_Weight'] * 100
-            interval_df['Sea_Percentage'] = interval_df['Sea_Weight'] / interval_df['Total_Weight'] * 100
-
-            # Handle instances where total weight is 0
-            interval_df.loc[interval_df['Total_Weight'] == 0, ['Rail_Percentage', 'Road_Percentage', 'Sea_Percentage']] = 0
-
-            # Plotting
-            fig, ax = plt.subplots(figsize=(10, 6))
-
-            # Plot lines for each mode
-            ax.plot(interval_df['Interval'], interval_df['Rail_Percentage'], label='Rail', color='red')
-            ax.plot(interval_df['Interval'], interval_df['Road_Percentage'], label='Road', color='green')
-            ax.plot(interval_df['Interval'], interval_df['Sea_Percentage'], label='Sea', color='blue')
-
-            # Adding labels and title
-            ax.set_xlabel('Interval')
-            ax.set_ylabel('Percentage of Total Weight')
-            ax.set_title('Weight Distribution by Mode and Interval')
-            ax.legend()
-
-            # Display the plot
-            fig.savefig(r"Data//figures//"+run_identifier+"_avtransportwork_itr6["+str(i)+"].png",dpi=300,bbox_inches='tight')
-            
-            fig, ax = plt.subplots()
-            
-            road_color = 'blue'
-            sea_color = 'green'
-            rail_color = 'red'
-            
-
-            #sort the values in h_path_sum by road_length
-            h_path_sum = h_path_sum.sort_values(by=['road_leg_length'])
-            
-            
-            
-            
-            #Plot the weight against the sea_leg_length
-            ax.plot(h_path_sum['road_leg_length'], h_path_sum['weight'], label='Road', color=road_color)
-            
-            h_path_sum = h_path_sum.sort_values(by=['sea_leg_length'])
-            
-
-            
-            ax.plot(h_path_sum['sea_leg_length'], h_path_sum['weight'], label='Sea', color=sea_color)
-            h_path_sum = h_path_sum.sort_values(by=['rail_leg_length'])
-
-
-            
-            ax.plot(h_path_sum['rail_leg_length'], h_path_sum['weight'], label='Rail', color=rail_color)
-            
-            
-
-            # Plot and specify the color for each mode
-
-
-
-            # Add legend with color patches
-            ax.legend(handles=[
-                plt.Line2D([0], [0], color=road_color, label='Road'),
-                plt.Line2D([0], [0], color=sea_color, label='Sea'),
-                plt.Line2D([0], [0], color=rail_color, label='Rail')
-            ])
-
-            ax.legend()
-
-            # Additional plot settings and show the plot if needed
-            ax.set_xlabel('Leg Length')
-            ax.set_ylabel('Weight')
-            ax.set_title('Weight vs Leg Length for Different Modes of Transport')
-            
-            fig.savefig(r"Data//figures//"+run_identifier+"_avtransportwork_itr4["+str(i)+"].png",dpi=300,bbox_inches='tight')
-        
     output= plot_avg_transportwork(output,base_data)   
 
 if __name__ == "__main__":
