@@ -1,3 +1,4 @@
+import chardet
 from Data.settings import *
 
 import matplotlib.pyplot as plt
@@ -6,6 +7,7 @@ from matplotlib.transforms import Affine2D
 import numpy as np
 import pandas as pd
 import copy
+import ast
 
 import pickle
 import json
@@ -407,7 +409,165 @@ def plot_mode_mixes(TranspArbAvgScen, base_data,run_identifier,absolute_transp_w
         #plt.show()
         fig.savefig(r"Data//Output//Plots//ModeMix//"+run_identifier+"_modemix"+m+".pdf",dpi=300,bbox_inches="tight")
 
+def plot_avg_transportwork(output,base_data, run_identifier):
+        
+        INTERVAL_SIZE = 200
+        remove_dry_bulk = False
+        
+        #Getting the generated paths that are currently used in the model
+        generated_paths_file = "generated_paths_2_modes.csv"     # Select the current created paths file
+        generated_paths_file = r"Data//SPATIAL//" + generated_paths_file
+        with open(generated_paths_file, 'rb') as f:
+            result = chardet.detect(f.read())
 
+        generated_paths = pd.read_csv(generated_paths_file, encoding=result['encoding'])
+        generated_paths['paths'] = generated_paths['paths'].apply(ast.literal_eval)
+
+        #Getting the average distance for each leg
+        avg_distance = base_data.AVG_DISTANCE
+        
+        #load the x_flow and h_path dataframes
+        x_flow = output.x_flow
+        h_path = output.h_path
+        
+        #merge the x_flow and h_path dataframes on the path column, getting the legs for each path
+        h_path_with_path = h_path.join(generated_paths, on='path')
+        
+        #setting the time periods to visualize
+        y = [2023, 2028, 2034]
+        
+        ######################################################
+        ### Functions to calculate the length of the legs ####
+        ######################################################
+        
+        def lookup_values(path_list):
+            if path_list == None:
+                return None
+            dist_legs = [avg_distance.get(path, None) for path in path_list if path[0] != 'World' and path[1] != 'World']
+            return sum(dist_legs)
+        
+        def sea_length(path_list): 
+            dist_legs = [avg_distance.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Sea']
+            if sum(dist_legs) == 0:
+                return None
+            return sum(dist_legs)
+        
+        def rail_length(path_list): 
+            dist_legs = [avg_distance.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Rail']
+            if sum(dist_legs) == 0:
+                return None
+            return sum(dist_legs)
+        
+        def road_length(path_list): 
+            dist_legs = [avg_distance.get(path, None) for path in path_list if (path[0] != 'World' and path[1] != 'World') and path[2] == 'Road']
+            if sum(dist_legs) == 0:
+                return None
+            return sum(dist_legs)
+        
+        #divide the path_list into the different modes, labled leg 1 and leg 2
+        def leg_split(path_list):
+            leg_1 = []
+            leg_2 = []
+            leg_1_mode = path_list[0][2]
+            leg_2_mode = None
+            for path in path_list:
+                if path[2] != leg_1_mode:
+                    leg_2.append(path)
+                    leg_2_mode = path[2]
+                else:
+                    leg_1.append(path)
+                    
+            if len(leg_2) < 1:
+                leg_2 = None
+            return leg_1, leg_2, leg_1_mode, leg_2_mode
+                
+        
+        for i in y:
+            
+            if i == 2034:
+                time_period = [2034, 2040, 2050]
+            else: 
+                time_period = [i]
+            
+            #filter out the rows where the time period is not 2023 in x_flow and h_path_sum
+            h_path_sum = h_path_with_path.copy()[h_path_with_path['time_period'].isin(time_period)]
+            x_flow = x_flow[x_flow['time_period']==i]
+            
+            #Remove the rows where the product is Dry bulk
+            if remove_dry_bulk:
+                h_path_sum = h_path_sum[h_path_sum['product'] != 'Dry bulk']
+            
+            h_path_sum = h_path_sum.drop(['variable', 'product'], axis=1)
+            
+            #Summing the amount of weight for each path in each scenario
+            h_path_sum = h_path_sum.groupby(['path','scenario', 'time_period']).agg({'weight': 'sum',  'paths': 'first'})
+            
+            #Average the weight for each path across the scenarios
+            h_path_sum = h_path_sum.groupby(['path', "time_period"]).agg({'weight': 'mean',  'paths': 'first'})
+            
+            #Average the weight for each path across the scenarios
+            h_path_sum = h_path_sum.groupby(['path']).agg({'weight': 'mean',  'paths': 'first'})
+                                        
+            #Spliting the paths into the different legs and modes      
+            h_path_sum[['leg_1', 'leg_2', 'leg_1_mode', 'leg_2_mode']] = h_path_sum['paths'].apply(leg_split).apply(lambda x: pd.Series(x[:4]))
+            
+            
+            # Creating columns for the length of the paths of different modes
+            h_path_sum['path_length'] = h_path_sum['paths'].apply(lookup_values)
+            h_path_sum['leg_1_length'] = h_path_sum['leg_1'].apply(lookup_values)
+            h_path_sum['leg_2_length'] = h_path_sum['leg_2'].apply(lookup_values)
+    
+            h_path_sum['sea_leg_length'] = h_path_sum['paths'].apply(sea_length) 
+            
+            h_path_sum['rail_leg_length'] = h_path_sum['paths'].apply(rail_length) 
+            
+            h_path_sum['road_leg_length'] = h_path_sum['paths'].apply(road_length) 
+            
+            
+            #Creating a dataframe for the total weight for each mode in each interval
+            interval_df = pd.DataFrame(columns=['Interval', 'Rail_Weight', 'Road_Weight', 'Sea_Weight'])
+
+            
+            
+            #Get the longest leg length
+            longest_leg = max(h_path_sum['leg_1_length'].max(), h_path_sum['leg_2_length'].max())
+
+            # Calculate the total weight for each mode of transport on 1000 km intervals, up to longest path of 3000 km
+            for start_interval in range(0, int(longest_leg), INTERVAL_SIZE):
+                
+                end_interval = start_interval + INTERVAL_SIZE
+                             
+                # Filter rows within the current interval
+                interval_rows_leg_1 = h_path_sum[(h_path_sum['leg_1_length'] >= start_interval) & (h_path_sum['leg_1_length'] < end_interval)]
+                interval_rows_leg_2 = h_path_sum[(h_path_sum['leg_2_length'] >= start_interval) & (h_path_sum['leg_2_length'] < end_interval)]
+                
+                # Calculate total weight for each mode of transport within the interval
+                rail_weight = interval_rows_leg_1.loc[interval_rows_leg_1['leg_1_mode'] == 'Rail', 'weight'].sum() + interval_rows_leg_2.loc[interval_rows_leg_2['leg_2_mode'] == 'Rail', 'weight'].sum()
+                road_weight = interval_rows_leg_1.loc[interval_rows_leg_1['leg_1_mode'] == 'Road', 'weight'].sum() + interval_rows_leg_2.loc[interval_rows_leg_2['leg_2_mode'] == 'Road', 'weight'].sum()
+                sea_weight = interval_rows_leg_1.loc[interval_rows_leg_1['leg_1_mode'] == 'Sea', 'weight'].sum()   + interval_rows_leg_2.loc[interval_rows_leg_2['leg_2_mode'] == 'Sea', 'weight'].sum()           
+
+                 # Create a new dataframe with the results
+                new_row = {'Interval': f"{end_interval}", 'Rail_Weight': rail_weight, 'Road_Weight': road_weight, 'Sea_Weight': sea_weight}
+                interval_df = pd.concat([interval_df, pd.DataFrame([new_row])], ignore_index=True)
+           
+            
+                   
+
+            # Plotting
+            fig, ax = plt.subplots(figsize=(10, 6))
+
+            # Plotting bars for each mode
+            ax.plot(interval_df['Interval'], interval_df['Rail_Weight'], label='Rail', color='red')
+            ax.plot(interval_df['Interval'], interval_df['Road_Weight'], label='Road', color='green')
+            ax.plot(interval_df['Interval'], interval_df['Sea_Weight'], label='Sea', color='blue')
+
+            # Adding labels and title
+            ax.set_xlabel('Interval')
+            ax.set_ylabel('Weight')
+            ax.set_title('Weight Distribution by Mode and Interval')
+            ax.legend()
+            
+            fig.savefig(r"Data//figures//"+run_identifier+"_avg_transportwork["+str(i)+"].png",dpi=300,bbox_inches='tight')
 
 # ALL TOGETHER
 def visualize_results(analyses_type,scenario_tree,
@@ -459,6 +619,7 @@ def visualize_results(analyses_type,scenario_tree,
     
     plot_costs(base_data, output,which_costs=opex_variables,ylabel="Annual costs ("+currency+")",filename="opex",run_identifier=run_identifier )
     plot_costs(base_data, output,investment_variables,"Investment costs ("+currency+")","investment",run_identifier=run_identifier)
+    plot_avg_transportwork(output,base_data,run_identifier)
 
     #---------------------------------------------------------#
     #       EMISSIONS 
