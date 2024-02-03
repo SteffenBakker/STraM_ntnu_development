@@ -144,7 +144,7 @@ def plot_node_expansion(df_nodes, base_data, mode, show_fig, save_fig, filename)
             
     #show and save the figure
     from matplotlib.lines import Line2D
-    custom_lines = [Line2D([0], [0], color='blue', lw=3),]
+    custom_lines = [Line2D([0], [0], color='red', lw=3),]
     plt.legend(custom_lines, [f'Expanded Nodes for {mode}'])
 
     #set size
