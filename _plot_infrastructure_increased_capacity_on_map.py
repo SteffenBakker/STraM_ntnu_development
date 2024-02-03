@@ -110,7 +110,7 @@ def process_and_plot_expansion_node(output, base_data, sel_time_period, sel_scen
     for mode in ["Sea", "Rail"]:
         # make plot
         print("Making plot...")
-        filename = f"Data/Output/Plots/NodeExpansion/node_expansion_plot_{sel_time_period}_{sel_scenario}_{mode}_{cumulative}.png"
+        filename = f"Data/Output/Plots/NodeExpansion/{mode}/node_expansion_plot_{sel_time_period}_{sel_scenario}_{cumulative}.png"
         plot_node_expansion(df_nodes, base_data, mode, show_fig, save_fig, filename)
 
 
@@ -121,7 +121,7 @@ def process_nu_nodes(nu_node, sel_time_period, sel_scenario, cumulative):
     
     if cumulative:
         nu_node = nu_node[nu_node['time_period']<=sel_time_period]
-        nu_node = nu_node.groupby(['from', 'scenario']).sum().reset_index()
+        nu_node = nu_node.groupby(['from', 'scenario', 'mode']).sum().reset_index()
     else:
         nu_node = nu_node[nu_node['time_period'] == sel_time_period]
     
@@ -186,5 +186,5 @@ sel_scenario = "BB"  #Choose "BB" or "PB", "OO"
 if True:
     #for t in [2023, 2028, 2034, 2040, 2050]:
     for t in [2023, 2028, 2034, 2040, 2050]:
-        process_and_plot_expansion_edge(output, base_data, t, sel_scenario, cumulative=False, show_fig=False, save_fig=True)
-        process_and_plot_expansion_node(output, base_data, t, sel_scenario, cumulative=False, show_fig=False, save_fig=True)
+        process_and_plot_expansion_edge(output, base_data, t, sel_scenario, cumulative=True, show_fig=False, save_fig=True)
+        process_and_plot_expansion_node(output, base_data, t, sel_scenario, cumulative=True, show_fig=False, save_fig=True)
