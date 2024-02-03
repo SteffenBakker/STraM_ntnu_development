@@ -188,4 +188,3 @@ if True:
     for t in [2023, 2028, 2034, 2040, 2050]:
         process_and_plot_expansion_edge(output, base_data, t, sel_scenario, cumulative=False, show_fig=False, save_fig=True)
         process_and_plot_expansion_node(output, base_data, t, sel_scenario, cumulative=False, show_fig=False, save_fig=True)
-print(output.nu_node.head(100))        
