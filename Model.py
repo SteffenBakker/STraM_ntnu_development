@@ -356,7 +356,7 @@ class TranspModel:
 
 
         
-        if True: #This currently leads to infeasibility
+        if True: 
 
             #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
             def TerminalCapRule(model, i, m,t,s):
