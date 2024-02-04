@@ -49,7 +49,7 @@ analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value p
 co2_fee = "base" #"high, low", "base", "intermediate"
 emission_cap_constraint = False   #False or True
 wrm_strt = False  #use EEV as warm start for SP
-store_solved_model = True
+store_solved_model = False
 
 
 # risk parameters
