@@ -23,6 +23,7 @@ from Data.ConstructData import TransportSets, get_scen_sheet_name
 from Data.settings import *
 from Data.interpolate import interpolate
 from VisualizeResults import visualize_results
+from ExtractModel import ModelExtractor
 
 import pyomo.environ as pyo
 from pyomo.environ import *
@@ -48,6 +49,7 @@ analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value p
 co2_fee = "base" #"high, low", "base", "intermediate"
 emission_cap_constraint = False   #False or True
 wrm_strt = False  #use EEV as warm start for SP
+store_solved_model = False
 
 
 # risk parameters
@@ -338,6 +340,9 @@ def generate_base_data(scenario_tree,co2_fee="base",READ_FROM_FILE=False):
     
     return base_data
 
+def save_solved_model(model_instance, run_identifier):
+    model_extractor = ModelExtractor(model_instance.model,run_identifier).extract(run_identifier)
+
 def main(scenario_tree,
          analysis_type,
          risk_aversion=None,
@@ -414,6 +419,11 @@ def main(scenario_tree,
         print("Dumping results in pickle file.....", end="")
         pickle.dump(output, output_file)
         print("done.")
+        
+    #  --------- STORE SOLVED MODEL ---------    #
+        
+    if store_solved_model:
+        save_solved_model(model_instance, run_identifier2)
 
     #  --------- VISUALIZE RESULTS ---------    #
 
