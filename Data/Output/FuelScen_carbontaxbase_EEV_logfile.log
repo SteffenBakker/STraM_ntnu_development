@@ -1,0 +1,122 @@
+----------------------------
+Doing the following analysis: 
+FuelScen_carbontaxbase
+----------------------------
+Solving the first time period for initialization purposes...
+Set parameter Username
+Academic license - for non-commercial use only - expires 2024-11-15
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\STraM_ntnu_development\temp\pyomo\tmpsltsrgvh.pyomo.lp
+Reading time = 0.23 seconds
+x60090: 4880 rows, 27774 columns, 383815 nonzeros
+Set parameter FeasibilityTol to value 0.0001
+Set parameter MIPGap to value 0.002
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 4880 rows, 27774 columns and 383815 nonzeros
+Model fingerprint: 0x2047a4a8
+Coefficient statistics:
+  Matrix range     [6e-06, 1e+03]
+  Objective range  [3e-01, 2e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [1e-03, 9e+01]
+
+Concurrent LP optimizer: dual simplex and barrier
+Showing barrier log only...
+
+Presolve removed 2289 rows and 5576 columns
+Presolve time: 0.13s
+Presolved: 2591 rows, 23161 columns, 174435 nonzeros
+
+Ordering time: 0.01s
+
+Barrier statistics:
+ AA' NZ     : 7.655e+04
+ Factor NZ  : 1.547e+05 (roughly 12 MB of memory)
+ Factor Ops : 1.753e+07 (less than 1 second per iteration)
+ Threads    : 3
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0   3.07999740e+06 -5.48541182e+01  7.65e+04 0.00e+00  5.36e+02     0s
+   1   6.49016308e+05 -2.61606478e+03  1.56e+04 1.88e+00  1.12e+02     0s
+   2   1.90101864e+05 -2.72411332e+03  4.29e+03 9.01e-01  3.28e+01     0s
+   3   5.96714817e+04 -2.53264846e+03  1.16e+03 3.46e-01  9.54e+00     0s
+   4   1.69336192e+04 -1.67561024e+03  2.58e+02 9.90e-02  2.29e+00     0s
+   5   9.45250056e+03 -9.40444964e+02  1.24e+02 6.43e-02  1.18e+00     0s
+   6   5.22984372e+03 -3.89777168e+02  5.46e+01 3.74e-02  5.76e-01     0s
+
+Barrier performed 6 iterations in 0.23 seconds (0.30 work units)
+Barrier solve interrupted - model solved by another algorithm
+
+
+Solved with dual simplex
+Solved in 2937 iterations and 0.23 seconds (0.31 work units)
+Optimal objective  5.111849621e+02
+the solution is feasible and optimal
+Solution time: 1.1078743934631348
+-----
+Constructing full EV model...
+Done constructing model.
+Time used constructing the model: 10.02792501449585
+----------
+Solving model...
+Set parameter Username
+Academic license - for non-commercial use only - expires 2024-11-15
+Read LP format model from file C:\Users\steffejb\OneDrive - NTNU\Work\GitHub\STraM_ntnu_development\temp\pyomo\tmpgw5s106h.pyomo.lp
+Reading time = 0.92 seconds
+x300765: 24409 rows, 138926 columns, 1919587 nonzeros
+Set parameter FeasibilityTol to value 0.001
+Set parameter MIPGap to value 0.002
+Gurobi Optimizer version 9.5.0 build v9.5.0rc5 (win64)
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+Optimize a model with 24409 rows, 138926 columns and 1919587 nonzeros
+Model fingerprint: 0xf8fbc855
+Variable types: 138892 continuous, 34 integer (34 binary)
+Coefficient statistics:
+  Matrix range     [6e-06, 1e+03]
+  Objective range  [3e-01, 2e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e-03, 9e+01]
+Presolve removed 10127 rows and 40455 columns
+Presolve time: 4.92s
+Presolved: 14282 rows, 98471 columns, 1183177 nonzeros
+Variable types: 98437 continuous, 34 integer (34 binary)
+
+Deterministic concurrent LP optimizer: primal and dual simplex
+Showing first log only...
+
+
+Root simplex log...
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    5.0367620e+02   1.226123e+01   8.642070e+08      7s
+Concurrent spin time: 0.00s
+
+Solved with dual simplex
+
+Root relaxation: objective 2.706925e+03, 11286 iterations, 1.24 seconds (0.80 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0 2706.92525    0    3          - 2706.92525      -     -    6s
+H    0     0                    2706.9331021 2706.92525  0.00%     -    7s
+
+Explored 1 nodes (11286 simplex iterations) in 7.17 seconds (7.42 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 1: 2706.93 
+
+Optimal solution found (tolerance 2.00e-03)
+Warning: max constraint violation (7.9900e-03) exceeds tolerance
+Warning: max bound violation (7.5692e-03) exceeds tolerance
+Best objective 2.706933102084e+03, best bound 2.706933102084e+03, gap 0.0000%
+the solution is feasible and optimal
+Solution time: 9.025354862213135
+Done solving model.
+Time used solving the model: 14.859954833984375
+----------Dumping EV output in pickle file.....done.
+Constructing EEV model...Done constructing EEV model.
+Time used constructing the model: 161.9872887134552
+----------
+Solving EEV model...

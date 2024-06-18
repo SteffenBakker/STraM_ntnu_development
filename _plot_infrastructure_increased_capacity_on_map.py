@@ -18,7 +18,7 @@ import matplotlib.patches as patches #import library for fancy arrows/edges
 from Data.settings import *
 from _plot_base_map import plot_base_map_start
 
-def process_epsilon_edges(epsilon_edge, sel_time_period, sel_scenario, cumulative):
+def process_epsilon_edges(epsilon_edge, sel_time_period, sel_scenario, cumulative=False):
     
     
     epsilon_edge = epsilon_edge.copy()
@@ -31,6 +31,9 @@ def process_epsilon_edges(epsilon_edge, sel_time_period, sel_scenario, cumulativ
     else:
         epsilon_edge = epsilon_edge[epsilon_edge['time_period'] == sel_time_period]
     
+    if sel_time_period==2023:
+        print(epsilon_edge)
+
     return epsilon_edge
 
 def plot_edge_expansion(df_edges, base_data, show_fig, save_fig, filename):
@@ -74,7 +77,7 @@ def plot_edge_expansion(df_edges, base_data, show_fig, save_fig, filename):
 
     from matplotlib.lines import Line2D
     custom_lines = [Line2D([0], [0], color='blue', lw=3),]
-    plt.legend(custom_lines, ['Expanded infrstructure'])
+    plt.legend(custom_lines, ['Expanded infrastructure'])
 
     #set size
     scale = 1.3
@@ -110,7 +113,7 @@ def process_and_plot_expansion_node(output, base_data, sel_time_period, sel_scen
     for mode in ["Sea", "Rail"]:
         # make plot
         print("Making plot...")
-        filename = f"Data/Output/Plots/NodeExpansion/{mode}/node_expansion_plot_{sel_time_period}_{sel_scenario}_{cumulative}.png"
+        filename = f"Data/Output/Plots/NodeExpansion/{mode}/node_expansion_plot_{mode}_{sel_time_period}_{sel_scenario}_{cumulative}.png"
         plot_node_expansion(df_nodes, base_data, mode, show_fig, save_fig, filename)
 
 
@@ -186,5 +189,5 @@ sel_scenario = "BB"  #Choose "BB" or "PB", "OO"
 if True:
     #for t in [2023, 2028, 2034, 2040, 2050]:
     for t in [2023, 2028, 2034, 2040, 2050]:
-        process_and_plot_expansion_edge(output, base_data, t, sel_scenario, cumulative=True, show_fig=False, save_fig=True)
-        process_and_plot_expansion_node(output, base_data, t, sel_scenario, cumulative=True, show_fig=False, save_fig=True)
+        process_and_plot_expansion_edge(output, base_data, t, sel_scenario, cumulative=False, show_fig=False, save_fig=True)
+        process_and_plot_expansion_node(output, base_data, t, sel_scenario, cumulative=False, show_fig=False, save_fig=True)

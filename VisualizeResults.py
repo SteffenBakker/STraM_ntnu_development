@@ -22,14 +22,14 @@ analyses_info = {
 #     name    type,    scen,        balancing,  single_tp   risk    carbon,             fee,    emission_cap
     "base": ["SP",  scenario_tree,    False,      None,       None,   False,            "base",     False ],
     "base_cap": ["SP",  scenario_tree,    False,      None,       None,   False,            "base", True ],
-    #"eev":  ["EEV", scenario_tree,    False,      None,       None,   False,            "base"],
+    "eev":  ["EEV", scenario_tree,    False,      None,       None,   False,            "base", False],
     "carbonhigh": ["SP",  scenario_tree,    False,      None,       None,   True,       "high",    False],
-    #"carbon_inter": ["SP",  scenario_tree,    False,      None,       None,   True,       "intermediate",    False],
-    #"carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,        "low"],
+    "carbon_inter": ["SP",  scenario_tree,    False,      None,       None,   True,       "intermediate",    False],
+    #"carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,        "low", False], # not relevant, as it does not achieve targets
 }
 
-run_all_analyses = False
-analysis = "base_cap"    # "base", "carbon1","eev","risk1"....
+run_all_analyses = True
+analysis = "base"    # "base", "carbon1","eev","risk1"....
 
 
 
@@ -584,10 +584,12 @@ def visualize_results(analyses_type,scenario_tree,
     #---------------------------------------------------------#
 
     
-    run_identifier = scenario_tree+"_carbontax"+carbon_fee
+    run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"
     if emission_cap:
         run_identifier = run_identifier + "_emissioncap"
     run_identifier2 = run_identifier+"_"+analyses_type
+    if risk_aversion is not None:
+        run_identifier2 = run_identifier2+"_"+risk_aversion
 
     # if single_time_period is not None:
     #     run_identifier = run_identifier + "_single_time_period_"+str(single_time_period)
@@ -617,9 +619,9 @@ def visualize_results(analyses_type,scenario_tree,
     opex_variables = ["LCOT", "LCOT (Empty Trips)", "Emission","Emission (Empty Trips)","Time value", "Transfer"] #"CO2_Penalty"
     investment_variables = ["RailTrack", "Terminal", "RailElectr.","Charging", "H2_Filling"]
     
-    plot_costs(base_data, output,which_costs=opex_variables,ylabel="Annual costs ("+currency+")",filename="opex",run_identifier=run_identifier )
-    plot_costs(base_data, output,investment_variables,"Investment costs ("+currency+")","investment",run_identifier=run_identifier)
-    plot_avg_transportwork(output,base_data,run_identifier)
+    plot_costs(base_data, output,which_costs=opex_variables,ylabel="Annual costs ("+currency+")",filename="opex",run_identifier=run_identifier2 )
+    plot_costs(base_data, output,investment_variables,"Investment costs ("+currency+")","investment",run_identifier=run_identifier2)
+    #plot_avg_transportwork(output,base_data,run_identifier)
 
     #---------------------------------------------------------#
     #       EMISSIONS 
@@ -640,7 +642,7 @@ def visualize_results(analyses_type,scenario_tree,
 
         #We are off with a factor 100!?
             
-        plot_emission_results(output,base_data,run_identifier)
+        plot_emission_results(output,base_data,run_identifier2)
 
     #---------------------------------------------------------#
     #       MODE MIX
@@ -651,7 +653,7 @@ def visualize_results(analyses_type,scenario_tree,
 
 
     output,TranspArbAvgScen = mode_fuel_mix_calculations(output,base_data)
-    plot_mode_mixes(TranspArbAvgScen,base_data,run_identifier=run_identifier,absolute_transp_work=True)
+    plot_mode_mixes(TranspArbAvgScen,base_data,run_identifier=run_identifier2,absolute_transp_work=True)
 
 if __name__ == "__main__":
     

@@ -1,3 +1,4 @@
+import chardet
 from Data.settings import *
 
 import matplotlib.pyplot as plt
@@ -5,6 +6,8 @@ from matplotlib.pyplot import cm
 from matplotlib.transforms import Affine2D
 import numpy as np
 import pandas as pd
+import copy
+import ast
 
 import pickle
 import json
@@ -13,28 +16,42 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenarios = "9Scen"   # '4Scen', '9Scen','AllScen'
-analysis = "SP"
+#scenarios = "9Scen"   # '4Scen', '9Scen','AllScen'
+scenario_tree = "FuelScen"   # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen   
+analysis = "SP"  #EEV
 years = [2034,2050]
+carbon_fee = "base"   #low, intermediate, base, high
 
+#COST FUNCTIONS
+
+output_in_euro = True
+exchange_rate = 1
+currency= "Billion NOK"
+if output_in_euro:
+    exchange_rate = EXCHANGE_RATE_EURO_TO_NOK
+    currency= "Billion EURO"
 
 #---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
 
+run_identifier = scenario_tree+"_carbontax"+carbon_fee
+
+res_string = "_"+ analysis+"_results.pickle"
+
+#year = 2034
 for year in years:
 
-    with open(r'Data//output//'+analysis+'_'+scenarios+'.pickle', 'rb') as output_file:
-        output = pickle.load(output_file)
+    with open(r"Data//Output//"+run_identifier+res_string, "rb") as data_file:
+        output = pickle.load(data_file)
 
-    with open(r'Data//output//'+analysis+'_'+scenarios+'_single_time_period_'+str(year)+'.pickle', 'rb') as output_file:
+    with open(r'Data//output//'+run_identifier+'_stp'+str(year)+res_string, 'rb') as output_file:
         output_ltp = pickle.load(output_file)
 
-    with open(r'Data//base_data//'+scenarios+'.pickle', 'rb') as data_file:
-        base_data = pickle.load(data_file)
+    with open(r"Data//Output//"+run_identifier+"_basedata.pickle", "rb") as output_file:
+        base_data = pickle.load(output_file)
 
     year_index = base_data.T_TIME_PERIODS.index(year)
-    run_identifier = analysis+'_'+scenarios
 
     #---------------------------------------------------------#
     #       plot
@@ -76,19 +93,6 @@ for year in years:
 
     def plot_mode_mixes(TranspArbAvgScen,TranspArbAvgScen_ltp, base_data,absolute_transp_work=True):  #result data = TranspArbAvgScen
         
-        #https://matplotlib.org/stable/gallery/color/named_colors.html
-        color_dict = {'Diesel':                 'firebrick', 
-                        'Ammonia':              'royalblue', 
-                        'Hydrogen':             'deepskyblue', 
-                        'Battery electric':     'mediumseagreen',
-                        'Battery train':        'darkolivegreen', 
-                        'Electric train (CL)':  'mediumseagreen', 
-                        'LNG':                  'blue', 
-                        'MGO':                  'darkviolet', 
-                        'Biogas':               'teal', 
-                        'Biodiesel':            'darkorange', 
-                        'Biodiesel (HVO)':      'darkorange', 
-                        'HFO':                  'firebrick'           }
 
         labels = ['base ', 'static '] # +str(year)
         width = 0.7       # the width of the bars: can also be len(x) sequence
@@ -142,17 +146,17 @@ for year in years:
                                 #'xlolims':do_not_plot_lims,'xuplims':do_not_plot_lims
                                 },   #elinewidth, capthickfloat
                             label=f,
-                            color=color_dict[f],)
+                            color=color_map_stram[f],)
                 bottom = [bottom[i] + yvals[i] for i in range(len(bottom))]
                 leftright = leftright + 0.09
             ax.set_ylabel(ylabel)
             #ax.set_title(m + ' - ' + analysis_type)
             
             ax.axis(ymin=0,
-                    ymax=ymax[m]
-                    #ymax=ax.get_ylim()[1]
+                    #ymax=ymax[m]
+                    ymax=ax.get_ylim()[1]
                     )
-            #ax.legend() #ax.legend(loc='center left', bbox_to_anchor=(1, 0.5)) #correct
+            ax.legend(loc='center left', bbox_to_anchor=(0, 0.15)) #ax.legend(loc='center left', bbox_to_anchor=(0, 0.25)) #correct
 
             for spine in ['top', 'right']:
                 ax.spines[spine].set_visible(False)
@@ -161,7 +165,7 @@ for year in years:
             #ax.text(0.5, 0.95*ax.get_ylim()[1], "First stage", fontdict=None)
             #ax.text(1.6, 0.95*ax.get_ylim()[1], "Second stage", fontdict=None)
             fig.tight_layout()
-            fig.savefig(r"Data//Figures//"+run_identifier+"_single_time_period_"+str(year)+'_'+m+".png",dpi=300,bbox_inches='tight')
+            fig.savefig(r"Data//Output//Plots//StaticVSDynamic//"+run_identifier+"_single_time_period_"+str(year)+'_'+m+".png",dpi=300,bbox_inches='tight')
         
 
     plot_mode_mixes(TranspArbAvgScen,TranspArbAvgScen_ltp,base_data,absolute_transp_work=True)

@@ -263,6 +263,7 @@ class TranspModel:
 
         "CONSTRAINTS"
 
+        
         # DEMAND
                 
         def FlowRule(model, o, d, p, t,s):
@@ -356,36 +357,34 @@ class TranspModel:
 
 
         
-        if True: 
+        #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
+        def TerminalCapRule(model, i, m,t,s):
+            if i in self.data.NM_NODES[m]:
+                return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                    sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                    sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
+                    self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
+                                                                                for tau in self.data.T_TIME_PERIODS 
+                                                                                if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) and
+                                                                                    ((i,m) in self.data.NM_CAP_INCR))
+                                                                                ) #and((i,m,tau) in self.data.NM_CAP_INCR_T)
+                    + FEAS_RELAX )
+            else:
+                return Constraint.Skip
+        self.model.TerminalCap = Constraint(self.data.NM_CAP_T_CONSTR_S, rule = TerminalCapRule)
+        
 
-            #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
-            def TerminalCapRule(model, i, m,t,s):
-                if i in self.data.NM_NODES[m]:
-                    return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                        sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                        sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
-                        self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
-                                                                                    for tau in self.data.T_TIME_PERIODS 
-                                                                                    if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) and
-                                                                                        ((i,m) in self.data.NM_CAP_INCR))
-                                                                                    ) #and((i,m,tau) in self.data.NM_CAP_INCR_T)
-                        + FEAS_RELAX )
-                else:
-                    return Constraint.Skip
-            self.model.TerminalCap = Constraint(self.data.NM_CAP_T_CONSTR_S, rule = TerminalCapRule)
-            
-
-            #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
-            def TerminalCapExpRule(model, i, m,s):
-                expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
-                                                            if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE_INV[i,m])  ) 
-                                                            <= 1)
-                if isinstance(expression, bool):
-                    return Constraint.Skip
-                else:
-                    return(expression) 
-            if len(self.data.T_TIME_PERIODS)>1:
-                self.model.TerminalCapExp = Constraint(self.data.NM_CAP_INCR_S, rule = TerminalCapExpRule)
+        #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
+        def TerminalCapExpRule(model, i, m,s):
+            expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
+                                                        if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE_INV[i,m])  ) 
+                                                        <= 1)
+            if isinstance(expression, bool):
+                return Constraint.Skip
+            else:
+                return(expression) 
+        if len(self.data.T_TIME_PERIODS)>1:
+            self.model.TerminalCapExp = Constraint(self.data.NM_CAP_INCR_S, rule = TerminalCapExpRule)
 
         
 
@@ -428,11 +427,23 @@ class TranspModel:
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY_CONSTR_S, rule = TechMaturityLimitRule)
 
         #HFO is toxic and will be phased out -> put a cap
+        # def PhaseOutRule(model, m, f, t,s):
+        #     if ((m,f,t) not in self.data.PHASE_OUT.keys()):
+        #         return Constraint.Skip  
+        #     else:
+        #         if self.single_time_period:
+        #             return (self.model.q_transp_amount[(m,f,t,s)] <= self.data.PHASE_OUT[(m,f,t)]*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))
+        #         else:
+        #             return (self.model.q_transp_amount[(m,f,t,s)] <= (self.data.PHASE_OUT[(m,f,t)]*self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)]))
+        # self.model.PhaseOut = Constraint(self.data.MFT_MIN0_S, rule = PhaseOutRule)
         def PhaseOutRule(model, m, f, t,s):
             if ((m,f,t) not in self.data.PHASE_OUT.keys()):
                 return Constraint.Skip  
             else:
-                return (self.model.q_transp_amount[(m,f,t,s)] <= (self.data.PHASE_OUT[(m,f,t)]*self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)]))
+                if t >= self.data.T_TIME_PERIODS[2]:  #2034
+                    return (self.model.q_transp_amount[(m,f,t,s)] <= 0)
+                else:
+                    return Constraint.Skip
         self.model.PhaseOut = Constraint(self.data.MFT_MIN0_S, rule = PhaseOutRule)
 
 
@@ -778,6 +789,50 @@ class TranspModel:
         return self.model
     
     
+    def fix_first_time_period(self, model_instance_init):
+    
+        #When fixing the first_stage flow, we quickly run into feasibility issues. So, let's only fix the emissions.
+        if self.single_time_period is None:
+            for s in self.data.S_SCENARIOS:
+                t = self.data.T_TIME_PERIODS[0]
+                weight = model_instance_init.model.total_emissions[(t,s)].value
+                self.model.total_emissions[(t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+                self.model.total_emissions[(t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+                
+            # t = self.data.T_TIME_PERIODS[0]
+            # for scen_name in self.data.S_SCENARIOS:
+            #     for (i,j,m,r) in self.data.A_ARCS:
+            #         a = (i,j,m,r)
+            #         for f in self.data.FM_FUEL[m]:
+            #             for p in self.data.P_PRODUCTS:
+            #                 weight = model_instance_init.model.x_flow[(a,f,p,t,scen_name)].value
+            #                 if weight is not None: 
+            #                     if weight != 0: 
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
+            #                         #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+            #                     else:
+            #                         #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
+
+            # for (i,j,m,r,f,p,t,scen_name) in self.data.AFVT_S:   #This one leads to infeasibility unfortunately, cannot fix too much.
+            #     a = (i,j,m,r)
+            #     if t== self.data.T_TIME_PERIODS[0]:     
+            #         weight = model_instance_init.model.b_flow[(a,f,p,t,scen_name)].value
+            #         if weight is not None: 
+            #             if weight != 0: 
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
+            #                 #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+            #             else:
+            #                 #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
+        
+                    
+
+    
     def fix_variables_first_stage(self,model_ev):  #this is the EV model that is input.
         
         
@@ -797,39 +852,46 @@ class TranspModel:
         
         base_scenario = 'BB'  # "BBB" OR "BB", update to pick the right one automatically
 
-        for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
-            a = (i,j,m,r)
-            self.model.x_flow[(a,f,p,t,s)].fixed = False
-            if t in self.data.T_TIME_FIRST_STAGE:
-                weight = model_ev.x_flow[(a,f,p,t,base_scenario)].value
-                if weight is not None:
-                    if weight != 0: 
-                        self.model.x_flow[(a,f,p,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
-                        self.model.x_flow[(a,f,p,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
-                        #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
-                    else:
-                        #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-                        self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
-                        self.model.x_flow[(a,f,p,t,s)].setub(ABSOLUTE_DEVIATION)
-                else:
-                    pass #this does not happen
+        
+        for s in self.data.S_SCENARIOS:
+            for t in self.data.T_TIME_FIRST_STAGE:
+                weight = model_ev.total_emissions[(t,base_scenario)].value
+                self.model.total_emissions[(t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+                self.model.total_emissions[(t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+        
+        # for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
+        #     a = (i,j,m,r)
+        #     self.model.x_flow[(a,f,p,t,s)].fixed = False
+        #     if t in self.data.T_TIME_FIRST_STAGE:
+        #         weight = model_ev.x_flow[(a,f,p,t,base_scenario)].value
+        #         if weight is not None:
+        #             if weight != 0: 
+        #                 self.model.x_flow[(a,f,p,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+        #                 self.model.x_flow[(a,f,p,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+        #                 #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+        #             else:
+        #                 #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+        #                 self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
+        #                 self.model.x_flow[(a,f,p,t,s)].setub(ABSOLUTE_DEVIATION)
+        #         else:
+        #             pass #this does not happen
 
-        for (i,j,m,r,f,v,t,s) in self.data.AFVT_S:
-            a = (i,j,m,r)
-            self.model.b_flow[(a,f,v,t,s)].fixed = False
-            if t in self.data.T_TIME_FIRST_STAGE:
-                weight = model_ev.b_flow[(a,f,v,t,base_scenario)].value
-                if weight is not None:
-                    if weight != 0: 
-                        self.model.b_flow[(a,f,v,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
-                        self.model.b_flow[(a,f,v,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
-                        #self.model.b_flow[(a,f,v,t,s)].fix(weight) 
-                    else:
-                        #self.model.b_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-                        self.model.b_flow[(a,f,v,t,s)].setlb(-ABSOLUTE_DEVIATION)
-                        self.model.b_flow[(a,f,v,t,s)].setub(ABSOLUTE_DEVIATION)
-                else:
-                    pass #this does not happen
+        # for (i,j,m,r,f,v,t,s) in self.data.AFVT_S:
+        #     a = (i,j,m,r)
+        #     self.model.b_flow[(a,f,v,t,s)].fixed = False
+        #     if t in self.data.T_TIME_FIRST_STAGE:
+        #         weight = model_ev.b_flow[(a,f,v,t,base_scenario)].value
+        #         if weight is not None:
+        #             if weight != 0: 
+        #                 self.model.b_flow[(a,f,v,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+        #                 self.model.b_flow[(a,f,v,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+        #                 #self.model.b_flow[(a,f,v,t,s)].fix(weight) 
+        #             else:
+        #                 #self.model.b_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+        #                 self.model.b_flow[(a,f,v,t,s)].setlb(-ABSOLUTE_DEVIATION)
+        #                 self.model.b_flow[(a,f,v,t,s)].setub(ABSOLUTE_DEVIATION)
+        #         else:
+        #             pass #this does not happen
 
         for (i,j,m,r,t,s) in self.data.ET_INV_S:
             if t in self.data.T_TIME_FIRST_STAGE:

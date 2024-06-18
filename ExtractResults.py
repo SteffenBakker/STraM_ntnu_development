@@ -149,7 +149,7 @@ class OutputData():
                     weight = getattr(modell,str(var))[(t,scen_name)].value
                     if var in ["ChargeCost", "FillingCost"]:
                         weight = weight*sum(base_data.D_DISCOUNT_RATE**n for n in base_data.Y_YEARS[t])
-                        print(var,t,weight)
+                        #print(var,t,weight)
                     costs[var][(t,scen_name)] = weight
 
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,

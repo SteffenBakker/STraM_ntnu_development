@@ -41,14 +41,14 @@ from Utils import Logger
 #                   user input                  #
 #################################################
 
-READ_DATA_FROM_FILE = False  #This can save some time in debug mode
-#analysis = "standard"  # ["standard","only_generate_data", "risk", "single_time_period","carbon_price_sensitivity","run_all"]
-analysis = "standard"  # ["standard","only_generate_data", "run_all2"]
+READ_DATA_FROM_FILE = True  #This can save some time in debug mode
+analysis = "risk"  # ["standard","only_generate_data", "run_all2","single_time_period", "risk"]
 scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
 co2_fee = "base" #"high, low", "base", "intermediate"
 emission_cap_constraint = False   #False or True
 wrm_strt = False  #use EEV as warm start for SP
+
 store_solved_model = False
 
 
@@ -90,41 +90,41 @@ def check_binding_capacity_constraints(model,EAT_INV_CONSTR_S):
             else:
                 print(f"Constraint {constr_name} not found in the model.")
 
+def solve_init_model(base_data, risk_info,emission_cap_constraint):
+    
+    print("Solving the first time period for initialization purposes...")
+            
+    #update data
+    time_periods = base_data.T_TIME_PERIODS
+    base_data.T_TIME_PERIODS = [time_periods[0]]
+    base_data.combined_sets()
+    
+    #
+    model_instance_init = TranspModel(data=base_data, risk_info=risk_info)
+    model_instance_init.emission_cap_constraint = emission_cap_constraint #does not really matter if the first year is 100%
+    model_instance_init.construct_model()
+    model_instance_init.solve_model(FeasTol=10**(-4),  #typically 10**(-6)
+                        num_focus=0, # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+                        #Method=-1,  
+                        )
 
+    #data back to normal        
+    base_data.T_TIME_PERIODS = time_periods
+    base_data.combined_sets()
 
-def construct_and_solve_SP(base_data,
-                            risk_info, 
-                            single_time_period=None,   #If not None, add year for which the analysis will be performed ("static" case)
-                            NoBalancingTrips = None,
-                            emission_cap_constraint = False):
+    return model_instance_init
 
-    # ------ CONSTRUCT and SOLVE INIT MODEL ----------#
-
-    if True:   #We start with solving only the first time period. The output will be used to initialize the real problem.
-        print("Solving the first time period for initialization purposes...")
-        
-        #update data
-        time_periods = base_data.T_TIME_PERIODS
-        base_data.T_TIME_PERIODS = [time_periods[0]]
-        base_data.combined_sets()
-        
-        #
-        model_instance_init = TranspModel(data=base_data, risk_info=risk_info)
-        model_instance_init.emission_cap_constraint = emission_cap_constraint #does not really matter if the first year is 100%
-        model_instance_init.construct_model()
-        model_instance_init.solve_model(FeasTol=10**(-4),  #typically 10**(-6)
-                               num_focus=0, # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
-                               #Method=-1,  
-                               )
-
-        #data back to normal        
-        base_data.T_TIME_PERIODS = time_periods
-        base_data.combined_sets()
-
-
+def construct_and_solve_model(base_data,
+                                model_instance_init,
+                                analysis_type,
+                                risk_info, 
+                                single_time_period=None,   #If not None, add year for which the analysis will be performed ("static" case)
+                                NoBalancingTrips = None,
+                                emission_cap_constraint = False,
+                                FeasTol=None):
     # ------ CONSTRUCT MAIN MODEL ----------#
     print("-----")
-    print("Constructing full SP model...")
+    print(f"Constructing full {analysis_type} model...")
 
     start = time.time()
     model_instance = TranspModel(data=base_data, risk_info=risk_info)
@@ -132,48 +132,7 @@ def construct_and_solve_SP(base_data,
     model_instance.single_time_period = single_time_period
     model_instance.emission_cap_constraint = emission_cap_constraint
     model_instance.construct_model()
-    
-    if True: #FIX the first_stage flow
-        
-        # t = base_data.T_TIME_PERIODS[0]
-        # for scen_name in base_data.S_SCENARIOS:
-        #     for (i,j,m,r) in base_data.A_ARCS:
-        #         a = (i,j,m,r)
-        #         for f in base_data.FM_FUEL[m]:
-        #             for p in base_data.P_PRODUCTS:
-        #                 weight = model_instance_init.model.x_flow[(a,f,p,t,scen_name)].value
-        #                 if weight is not None: 
-        #                     if weight != 0: 
-        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
-        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
-        #                         #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
-        #                     else:
-        #                         #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
-        #                         model_instance.model.x_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
-
-        # for (i,j,m,r,f,p,t,scen_name) in base_data.AFVT_S:   #This one leads to infeasibility unfortunately, cannot fix too much.
-        #     a = (i,j,m,r)
-        #     if t== base_data.T_TIME_PERIODS[0]:     
-        #         weight = model_instance_init.model.b_flow[(a,f,p,t,scen_name)].value
-        #         if weight is not None: 
-        #             if weight != 0: 
-        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
-        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
-        #                 #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
-        #             else:
-        #                 #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
-        #                 model_instance.model.b_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
-        for s in base_data.S_SCENARIOS:
-            t = base_data.T_TIME_PERIODS[0]
-            weight = model_instance_init.model.total_emissions[(t,s)].value
-            model_instance.model.total_emissions[(t,s)].setub((1+RELATIVE_DEVIATION)*weight)
-            model_instance.model.total_emissions[(t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
-                    
-
-                        
-
+    model_instance.fix_first_time_period(model_instance_init)
     print("Done constructing model.")
     print("Time used constructing the model:", time.time() - start)
     print("----------")
@@ -183,7 +142,7 @@ def construct_and_solve_SP(base_data,
 
     print("Solving model...",flush=True)
     start = time.time()
-    model_instance.solve_model(#FeasTol=10**(-2),
+    model_instance.solve_model(FeasTol=FeasTol, #10**(-2),
                                #num_focus=1,
                                #Method=-1,  
                                ) 
@@ -194,10 +153,30 @@ def construct_and_solve_SP(base_data,
     if False: #rail_analysis
         check_binding_capacity_constraints(model_instance.model,base_data.EAT_INV_CONSTR_S)
 
+    return model_instance
 
+def construct_and_solve_SP(base_data,
+                            risk_info, 
+                            single_time_period=None,   #If not None, add year for which the analysis will be performed ("static" case)
+                            NoBalancingTrips = None,
+                            emission_cap_constraint = False):
+    
+
+    # ------ CONSTRUCT and SOLVE INIT MODEL ----------#
+
+    if True:   #We start with solving only the first time period. The output will be used to initialize the real problem.
+        if single_time_period is None:
+            model_instance_init = solve_init_model(base_data, risk_info,emission_cap_constraint)
+
+    model_instance = construct_and_solve_model(base_data,
+                                model_instance_init,
+                                "SP",
+                                risk_info, single_time_period,NoBalancingTrips,emission_cap_constraint,
+                                FeasTol=10**-2)
+    
     return model_instance,base_data
 
-def construct_and_solve_EEV(base_data,risk_info):
+def construct_and_solve_EEV(base_data,risk_info,emission_cap_constraint=False):
 
 
         ############################
@@ -208,30 +187,18 @@ def construct_and_solve_EEV(base_data,risk_info):
     base_data.S_SCENARIOS = ['BB']
     base_data.combined_sets()
 
+    
+    # ------ CONSTRUCT and SOLVE INIT MODEL ----------#
+
+    model_instance_init = solve_init_model(base_data, risk_info,emission_cap_constraint)
+    
     # ------ CONSTRUCT MODEL ----------#
 
-    print("Constructing EV model.....", end="", flush=True)
-
-    start = time.time()
-    model_instance_EV = TranspModel(data=base_data, risk_info=risk_info)
-    #constructing
-    model_instance_EV.construct_model()
-
-    print("Done constructing EV model.",flush=True)
-    print("Time used constructing the model:", time.time() - start,flush=True)
-    print("----------", flush=True)
-
-
-    #  ---------  SOLVE MODEL  ---------    #
-
-    print("Solving EV model.....",end="",flush=True)
-    start = time.time()
-    model_instance_EV.solve_model(FeasTol=(10**(-6)), #needs high precision, otherwise potential infeasibility issue with EEV
-                                  num_focus= 0,  # 0 is automatic, 1 is fast low precision
-                                  ) #
-    print("Done solving model.")
-    print("Time used solving the model:", time.time() - start)
-    print("----------",  flush=True)
+    model_instance_EV = construct_and_solve_model(base_data,
+                                model_instance_init,
+                                "EV",
+                                risk_info, emission_cap_constraint,
+                                FeasTol=10**-3)
 
     # --------- SAVE EV RESULTS -----------
 
@@ -271,28 +238,13 @@ def construct_and_solve_EEV(base_data,risk_info):
     print("Solving EEV model...",end='',flush=True)
     start = time.time()
     #options = option_settings_ef()
-    model_instance.solve_model(#FeasTol=10**(-2),
+    model_instance.solve_model(FeasTol=10**(-2),
                                #num_focus=1, 
                                #Method = -1,
                                ) 
     print("Done solving model.",flush=True)
     print("Time used solving the model:", time.time() - start,flush=True)
     print("----------",  flush=True)
-
-
-    # --------- SAVE EEV RESULTS -----------
-
-    file_string = "EEV_" + scenario_tree
-    
-    output = OutputData(model_instance.model,base_data)
-
-    with open(r"Data//output//" + file_string+'.pickle', 'wb') as output_file: 
-        print("Dumping EEV output in pickle file.....", end="",flush=True)
-        pickle.dump(output, output_file)
-        print("done.",flush=True)
-    
-    sys.stdout.flush()
-
 
     return model_instance, base_data
 
@@ -361,7 +313,12 @@ def main(scenario_tree,
     run_identifier = scenario_tree+"_carbontax"+co2_fee
     if emission_cap:
         run_identifier = run_identifier + "_emissioncap"
+    if single_time_period is not None:
+        run_identifier = run_identifier + "_stp"+str(single_time_period) 
+    
     run_identifier2 = run_identifier+"_"+analysis_type
+    if risk_aversion is not None:
+        run_identifier2 = run_identifier2+"_"+risk_aversion
 
     current_logger = Logger(run_identifier2,log_to_file)
     sys.stdout = current_logger
@@ -372,6 +329,8 @@ def main(scenario_tree,
     print(run_identifier)
     if risk_aversion is not None:
         print(risk_aversion)
+    if single_time_period is not None:
+        print('single time period: ', single_time_period )
     print('----------------------------')
     #sys.stdout.flush()
     
@@ -396,16 +355,14 @@ def main(scenario_tree,
         if wrm_strt:
             model_instance,base_data = construct_and_solve_SP_warm_start(base_data,risk_info)
         else:
-            model_instance,base_data = construct_and_solve_SP(base_data,risk_info,emission_cap_constraint=emission_cap)
+            model_instance,base_data = construct_and_solve_SP(base_data,risk_info,single_time_period=single_time_period,emission_cap_constraint=emission_cap)
     elif analysis_type == "EEV":
         model_instance, base_data = construct_and_solve_EEV(base_data,risk_info)
     else:
         Exception('analysis type feil = '+analysis_type)
     
     #  --------- SAVE BASE DATA OUTPUT ---------    #
-    run_identifier
-    if single_time_period is not None:
-        run_identifier = run_identifier + "_single_time_period_"+str(single_time_period)
+    
     print("Dumping data in pickle file...", end="")
     with open(r'Data//Output//'+run_identifier+'_basedata.pickle', 'wb') as data_file: 
         pickle.dump(base_data, data_file)
@@ -486,6 +443,7 @@ if __name__ == "__main__":
     elif analysis=="run_all2":
         main("FuelScen",analysis_type=analysis_type,co2_fee="base",emission_cap=False)
         main("FuelScen",analysis_type=analysis_type,co2_fee="base",emission_cap=True)
+        main("FuelScen",analysis_type=analysis_type,co2_fee="intermediate",emission_cap=False)
         main("FuelScen",analysis_type=analysis_type,co2_fee="high",emission_cap=False)
         #main("FuelScen",analysis_type=analysis_type,co2_fee="high",emission_cap=True)    
 
