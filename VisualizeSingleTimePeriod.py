@@ -157,7 +157,7 @@ for year in years:
                     ymax=ax.get_ylim()[1]
                     )
             ax.legend(loc='center left', bbox_to_anchor=(0, 0.15)) #ax.legend(loc='center left', bbox_to_anchor=(0, 0.25)) #correct
-
+            ax.set_title(m)
             for spine in ['top', 'right']:
                 ax.spines[spine].set_visible(False)
 

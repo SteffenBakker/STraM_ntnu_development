@@ -28,14 +28,14 @@ analyses_info = {
     #"carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,        "low", False], # not relevant, as it does not achieve targets
 }
 
-run_all_analyses = True
+run_all_analyses = False
 analysis = "base"    # "base", "carbon1","eev","risk1"....
 
 
 
 #COST FUNCTIONS
 
-exchange_rate = 1
+exchange_rate = 1  #base case is output in NOK, so no conversion
 currency= "Billion NOK"
 if output_in_euro:
     exchange_rate = EXCHANGE_RATE_EURO_TO_NOK
@@ -166,8 +166,9 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
         leftright = leftright + 0.1
 
 
-    #if filename == "investment":
-    #    ax.axis(ymin=0,ymax=7/exchange_rate)
+    if True:
+        if filename == "investment":
+            ax.axis(ymin=0,ymax=0.15)
     #print(ax.get_xticklabels())
     # NOT WORKING WITH CATEGORICAL AXIS
     #ax.vlines(60,0,50)
