@@ -41,7 +41,7 @@ from Utils import Logger
 #                   user input                  #
 #################################################
 
-READ_DATA_FROM_FILE = True  #This can save some time in debug mode
+READ_DATA_FROM_FILE = False  #This can save some time in debug mode
 analysis = "standard"  # ["standard","only_generate_data", "run_all2","single_time_period", "risk"]
 scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program

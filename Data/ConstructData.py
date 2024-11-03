@@ -222,7 +222,7 @@ class TransportSets():
 
         #read/construct data                
         self.construct_pyomo_data(co2_fee, TIMES_data)
-        self.combined_sets()
+        self.combined_sets(TIMES_data)
         
         
 
@@ -1446,7 +1446,7 @@ class TransportSets():
 
     
     @timeit
-    def combined_sets(self):
+    def combined_sets(self, TIMES_data=None):
 
         if True:  #Q: is this still necessary? Or can we remove this
         
@@ -1682,31 +1682,31 @@ class TransportSets():
         self.KFVT_S = []
         self.K_uni_FVT_S = []
         
-        
-        for t in self.T_TIME_PERIODS:
-            for k_uni in self.UNI_MODAL_PATHS:
-                for fuels in self.FM_MULTI_K[k_uni]:
-                    for v in self.V_VEHICLE_TYPES:
-                        self.K_uni_FVT.append((k_uni,) + (fuels,) + (v,) + (t,))
-                        self.KFVT.append((k_uni,) + (fuels,) + (v,) + (t,))
-                        for s in self.S_SCENARIOS:
-                            self.K_uni_FVT_S.append((k_uni,) + (fuels,) + (v,) + (t,) + (s,))
-                            self.KFVT_S.append((k_uni,) + (fuels,) + (v,) + (t,) + (s,))
-                    for p in self.P_PRODUCTS:
-                        for s in self.S_SCENARIOS:
-                            self.KFPT_S.append((k_uni,) + (fuels,) + (p,) + (t,) + (s,))
-                        self.KFPT.append((k_uni,) + (fuels,) + (p,) + (t,))
-                        
-            for k_multi in self.MULTI_MODE_PATHS:
-                for fuels in self.FM_MULTI_K[k_multi]:
-                    for v in self.V_VEHICLE_TYPES:
-                        for s in self.S_SCENARIOS:
-                            self.KFVT_S.append((k_multi,) + (fuels,) + (v,) + (t,) + (s,))
-                        self.KFVT.append((k_multi,) + (fuels,) + (v,) + (t,))
-                    for p in self.P_PRODUCTS:
-                        for s in self.S_SCENARIOS:
-                            self.KFPT_S.append((k_multi,) + (fuels,) + (p,) + (t,) + (s,))
-                        self.KFPT.append((k_multi,) + (fuels,) + (p,) + (t,))
+        if TIMES_data is not None:
+            for t in self.T_TIME_PERIODS:
+                for k_uni in self.UNI_MODAL_PATHS:
+                    for fuels in self.FM_MULTI_K[k_uni]:
+                        for v in self.V_VEHICLE_TYPES:
+                            self.K_uni_FVT.append((k_uni,) + (fuels,) + (v,) + (t,))
+                            self.KFVT.append((k_uni,) + (fuels,) + (v,) + (t,))
+                            for s in self.S_SCENARIOS:
+                                self.K_uni_FVT_S.append((k_uni,) + (fuels,) + (v,) + (t,) + (s,))
+                                self.KFVT_S.append((k_uni,) + (fuels,) + (v,) + (t,) + (s,))
+                        for p in self.P_PRODUCTS:
+                            for s in self.S_SCENARIOS:
+                                self.KFPT_S.append((k_uni,) + (fuels,) + (p,) + (t,) + (s,))
+                            self.KFPT.append((k_uni,) + (fuels,) + (p,) + (t,))
+                            
+                for k_multi in self.MULTI_MODE_PATHS:
+                    for fuels in self.FM_MULTI_K[k_multi]:
+                        for v in self.V_VEHICLE_TYPES:
+                            for s in self.S_SCENARIOS:
+                                self.KFVT_S.append((k_multi,) + (fuels,) + (v,) + (t,) + (s,))
+                            self.KFVT.append((k_multi,) + (fuels,) + (v,) + (t,))
+                        for p in self.P_PRODUCTS:
+                            for s in self.S_SCENARIOS:
+                                self.KFPT_S.append((k_multi,) + (fuels,) + (p,) + (t,) + (s,))
+                            self.KFPT.append((k_multi,) + (fuels,) + (p,) + (t,))
 
 
 print("Finished reading sets and classes.")
