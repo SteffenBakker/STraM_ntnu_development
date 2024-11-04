@@ -13,11 +13,16 @@ import pickle
 from mpl_toolkits.basemap import Basemap #for creating the background map
 import matplotlib.pyplot as plt #for plotting on top of the background map
 import matplotlib.patches as patches #import library for fancy arrows/edges
+from matplotlib.lines import Line2D
+from copy import deepcopy
+from Data.settings import *
+from _plot_base_map import plot_base_map_start
+
 
 # DEFINE FUNCTIONS 
 
 # function that processes and aggregates flows
-def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, sel_product):
+def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, sel_product,all_products):
     """
     Process model output (x_flow and b_flow), aggregate the flow per edge, and output a dataframe.
     All for a selected scenario and time period
@@ -35,11 +40,17 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
 
     #copy all flows into one dataframe: product flow and balancing flow
     all_flow = x_flow[["from", "to", "mode", "fuel", "product", "scenario", "time_period", "weight"]]
+    # add empty vehicle flow
+    all_flow = pd.concat([all_flow,
+                            b_flow[["from", "to", "mode", "fuel", "scenario", "time_period", "weight"]] ])
+
+    prods= deepcopy(all_products)
     if sel_product == "all":
-        # add empty vehicle flow
-        all_flow = pd.concat([all_flow,
-                             b_flow[["from", "to", "mode", "fuel", "scenario", "time_period", "weight"]] ])
-         
+        pass
+    elif sel_product == "all_no_dry_bulk":
+        prods.remove("Dry bulk")
+    else:
+        prods = [sel_product]
 
     #create lists that will store aggregate flows (these will be the columns of df_flow)
     arcs = []
@@ -52,17 +63,26 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
     all_scenarios = []
 
     #list all nodes clockwise, to make sure sea edges curve in the right direction (HARDCODED)
-    nodes_sea_order = ["Nord-Sverige", "Sør-Sverige", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
-                        "Bergen", "Ålesund", "Trondheim", "Bodø", "Tromsø", "Europa", "Verden", "Kontinentalsokkelen"]
+    nodes_sea_order = ["Umeå", "Stockholm", "Hamar", "Oslo", "Skien", "Kristiansand", "Stavanger", 
+                        "Bergen", "Førde","Ålesund", "Trondheim", "Bodø", "Tromsø","Narvik", "Alta",
+                        "Hamburg", "World", "JohanSverdrupPlatform"] #HARDCODED
 
+    
     #add arcs and corresponding flow to the right lists
     #Note: I use the word arc, but we treat them as edges. That is, we look at undirectional flow by aggregating over both directions
+    num_scenarios = all_flow.scenario.unique()
+    time_periods = all_flow.time_period.unique()
     for index, row in all_flow.iterrows():
-        if row["time_period"] == sel_time_period:
-            if sel_scenario == "average" or row["scenario"] == sel_scenario: #if "average", we add everything and divide by number of scenarios at the end
-                if row["product"] == sel_product or sel_product == "all": # check if we have a right product category
+        t = row["time_period"]
+        s = row["scenario"]
+        p = row["product"]
+        m = row["mode"]
+        w = row["weight"]
+        if t == sel_time_period:
+            if (sel_scenario == "average") or (s == sel_scenario): #if "average", we add everything and divide by number of scenarios at the end                
+                if p in prods: # check if we have a right product category
                     #add scenario to list if not observed yet (for taking average)
-                    if row["scenario"] not in all_scenarios:
+                    if s not in all_scenarios:
                         all_scenarios.append(row["scenario"])
                     #temporarily store current arc and its opposite
                     cur_arc = (row["from"], row["to"])
@@ -88,13 +108,13 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
                     elif cur_cra in arcs:
                         cur_arc_ind = arcs.index(cur_cra)
                     #store corresponding flows in lists
-                    flows[cur_arc_ind] += row["weight"]
-                    if row["mode"] == "Road":
-                        flows_road[cur_arc_ind] += row["weight"]
-                    elif row["mode"] == "Sea":
-                        flows_sea[cur_arc_ind] += row["weight"]
-                    elif row["mode"] == "Rail":
-                        flows_rail[cur_arc_ind] += row["weight"]
+                    flows[cur_arc_ind] += w
+                    if m == "Road":
+                        flows_road[cur_arc_ind] += w
+                    elif m == "Sea":
+                        flows_sea[cur_arc_ind] += w
+                    elif m == "Rail":
+                        flows_rail[cur_arc_ind] += w
 
     #divide everything by number of scenarios if we have selected sel_scenario="average"
     if sel_scenario == "average":
@@ -119,17 +139,20 @@ def process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period, s
         df_flow.orig[i] = str(df_flow.arc[i][0])
         df_flow.dest[i] = str(df_flow.arc[i][1])
 
+    if df_flow.empty:
+        pass
+
     #return a dataframe with aggregated flows
     return df_flow
 
 # function that computes difference in flows between two years
-def compute_flow_differences(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product):   
+def compute_flow_differences(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product,all_products):   
     """
     Compute the difference in flows between two selected years. Outputs a dataframe with these differences
     """
     #create dataframes for before and after year
-    df_flow_before = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_product)
-    df_flow_after = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_after, sel_product)
+    df_flow_before = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_before, sel_product, all_products)
+    df_flow_after = process_and_aggregate_flows(x_flow, b_flow, sel_scenario, sel_time_period_after, sel_product, all_products)
 
     #initialize lists that will be columns of df_flow_diff
     arcs_diff = []
@@ -210,59 +233,11 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     figure that is shown and/or saved to disk if requested
     """
 
-    fig = plt.figure(figsize=(6,3))
-    ax = plt.axes([0,0,1,1])
-
-    ####################################
-    # a. Extract nodes and coordinates
-
-    #extract nodes from base_data
-    N_NODES = base_data.N_NODES
-
-    #import norwegian city coordinates
-    NO_coordinates = pd.read_csv("Data/NO_cities_coordinates.csv")
-    #extract latitudes and longitudes
-    lats = [0.0] * len(N_NODES)
-    lons = [0.0] * len(N_NODES)
-    for index, row in NO_coordinates.iterrows():
-        if row["city"] in N_NODES:
-            n_ind = N_NODES.index(row["city"]) #index of this city in list N_NODES
-            lats[n_ind] = row["lat"]
-            lons[n_ind] = row["lng"]
-
-    #Manually define foreign city coordinates (HARDCODED)
-    foreign_cities = pd.DataFrame()
-    foreign_cities["city"] = ["Sør-Sverige", "Nord-Sverige", "Kontinentalsokkelen", "Europa", "Verden"] 
-    foreign_cities["lat"] = [59.33, 63.82, 60, 56.2, 56.5] 
-    foreign_cities["lon"] = [18.06, 20.26, 2,  9, 3]
-    #add to vectors lats and lons
-    for index, row in foreign_cities.iterrows():
-        if row["city"] in N_NODES:
-            n_ind = N_NODES.index(row["city"]) #index of this city in list N_NODES
-            lats[n_ind] = row["lat"]
-            lons[n_ind] = row["lon"]
-    #add colors (for checking and perhaps plotting)
-    node_colors = ["black"]*len(N_NODES)     
-
 
     ####################
     # b. Build a map
 
-    # create underlying figure/axis (to get rid of whitespace)
-    fig = plt.figure(figsize=(6,3))
-    ax = plt.axes([0,0,1,1])
-
-    #draw the basic map including country borders
-    map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
-    # map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
-    map.drawmapboundary(fill_color='paleturquoise')
-    map.fillcontinents(color='lightgrey', lake_color='paleturquoise')
-    map.drawcoastlines(linewidth=0.2)
-    map.drawcountries(linewidth=0.2)
-
-    #draw nodes on the map
-    node_x, node_y = map(lons, lats)
-    map.scatter(node_x, node_y, color=node_colors, zorder=100)
+    fig, ax, mapp, node_xy_offset, coordinate_mapping, node_x, node_y = plot_base_map_start(base_data)
 
 
     ##########################
@@ -281,8 +256,11 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     head_length = 0.01
     base_curvature = 0.2
     #arrow settings for the different modes
-    mode_color_dict = {"road":"violet", "sea":"blue", "rail":"saddlebrown", "total":"black"}
-    mode_linestyle_dict = {"road":"-", "sea":"-", "rail":(0, (1, 5)), "total":"-"}
+    mode_color_dict = {"road":color_map_stram["Road"], 
+                       "sea":color_map_stram["Sea"], 
+                       "rail":color_map_stram["Rail"], 
+                       "total":"black"}
+    mode_linestyle_dict = {"road":"-", "sea":"-", "rail":"-", "total":"-"} #"rail":(0, (1, 5))
     curvature_fact_dict = {"road":0, "sea":-1.5, "rail":+1.5, "total":0}
     zorder_dict = {"road":30, "sea":20, "rail":40, "total":20}
     # arrow settings for direction of change (for "diff" option)
@@ -310,15 +288,17 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
         #store current origin and destinations + indices
         cur_orig = row["orig"]
         cur_dest = row["dest"]
-        cur_orig_index = N_NODES.index(cur_orig)
-        cur_dest_index = N_NODES.index(cur_dest)
+        cur_orig_index = base_data.N_NODES.index(cur_orig)
+        cur_dest_index = base_data.N_NODES.index(cur_dest)
         #check if it is a long distance (temporarily don't plot those to avoid cluttering)
         overseas = False
         up_north = False
-        if cur_orig in ["Kontinentalsokkelen", "Europa", "Verden"] or cur_dest in ["Kontinentalsokkelen", "Europa", "Verden"]:
+        if cur_orig in ["JohanSverdrupPlatform", "Hamburg", "World"] or cur_dest in ["JohanSverdrupPlatform", "Hamburg", "World"]:
             overseas = True
-        if cur_orig in ["Bodø", "Tromsø"] or cur_dest in ["Bodø", "Tromsø"]:
+        if cur_orig in ["Bodø", "Tromsø","Narvik","Alta"] or cur_dest in ["Bodø", "Tromsø","Narvik","Alta"]:
             up_north = True
+        if cur_orig in ["Bodø", "Trondheim"] and cur_dest in ["Bodø", "Trondheim"]:
+            print("")
         #check mode variant
         if mode_variant == "all": #we will plot all modes in one figure
             #create dictionary that stores all the flows
@@ -343,7 +323,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
                         cur_direction = "decrease"
                     cur_color = dir_color_dict[cur_direction]
                 #create new arc
-                if cur_flow > 0.001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
+                if cur_flow > 0.0001*cur_total_flow: #only plot an arc if we have significant flow (at least 0.01% of total flow for the relevant mode)
                 #if 10.0 ** power_of_ten * cur_flow/cur_max_flow > 1.0: #only plot an arc if we have significant flow (at least 0.1% of total flow for the relevant mode)
                     new_arc = patches.FancyArrowPatch(
                         (node_x[cur_orig_index], node_y[cur_orig_index]),  #origin coordinates
@@ -402,7 +382,13 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
                 if ((not overseas) or (overseas and plot_overseas)) and ((not up_north) or (up_north and plot_up_north)): #only add the arc if we want to plot it
                     #add the arc to the plot
                     plt.gca().add_patch(new_arc)
-        
+
+    
+    custom_lines = [Line2D([0], [0], color=mode_color_dict["road"], lw=3),
+                    Line2D([0], [0], color=mode_color_dict["sea"], lw=3),
+                    Line2D([0], [0], color=mode_color_dict["rail"], lw=3)]
+    plt.legend(custom_lines, ['Road', 'Sea', 'Rail'])
+
     ###############################
     # d. Show and save the figure
 
@@ -413,8 +399,10 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
     plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGH TSIZE
     #save figure
     if save_fig:
-        filename = f"Plots/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
+        filename = f"Data/Output/Plots/ProductFlow/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.pdf"
+        filename2 = f"Data/Output/Plots/ProductFlow/flow_plot_{sel_time_period}_{sel_scenario}_{flow_variant}_{sel_product}.png"
         plt.savefig(filename, bbox_inches="tight")
+        plt.savefig(filename2, bbox_inches="tight")
     #show figure
     if show_fig:
         plt.show()
@@ -423,7 +411,7 @@ def plot_flow_on_map(df_flow, base_data, flow_variant, mode_variant, sel_product
 def process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product="all", plot_overseas=True, plot_up_north=True, show_fig=True, save_fig=False):
     # compute flow 
     print("Computing flow...")
-    df_flow = process_and_aggregate_flows(output.x_flow, output.b_flow, sel_scenario, sel_time_period, sel_product)
+    df_flow = process_and_aggregate_flows(output.x_flow, output.b_flow, sel_scenario, sel_time_period, sel_product, all_products=base_data.P_PRODUCTS)
 
     # make plot
     print("Making plot...")
@@ -434,7 +422,7 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
     
     # compute flow differences
     print("Computing flow differences...")
-    df_flow_diff = compute_flow_differences(output.x_flow, output.b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product)
+    df_flow_diff = compute_flow_differences(output.x_flow, output.b_flow, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, all_products=base_data.P_PRODUCTS)
 
     # make plot
     print("Making plot...")
@@ -444,51 +432,88 @@ def process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_tim
 
 ################################################
 
-
 # RUN ANALYSIS
 
 # Read model output
+
 analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "9Scen" # 4Scen
-with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
-    base_data = pickle.load(data_file)
-with open(r'Data/Output/'+analyses_type + "_" + scenario_type + ".pickle", 'rb') as output_file:
-    output = pickle.load(output_file)
+scenario_type = "FuelScen" # 4Scen
+emission_cap = False
+carbon_fee = 'base' #high, intermediate, base
+
+run_identifier = scenario_type+"_carbontax"+carbon_fee
+if emission_cap:
+    run_identifier = run_identifier + "_emissioncap"
+run_identifier2 = run_identifier+"_"+analyses_type
+
+with open(r'Data//Output//'+run_identifier+'_basedata.pickle', 'rb') as output_file:
+    base_data = pickle.load(output_file)
+with open(r'Data//Output//'+run_identifier2+'_results.pickle', 'rb') as data_file:
+    output = pickle.load(data_file)
 
 
 
-# 1. Make flow plots
 
-# Choose settings
-mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
-sel_scenario = "BBB"
-sel_time_period = 2050
-sel_product = "Timber" # "Timber" # any product group or "all"
-plot_overseas = True
-plot_up_north = True
-show_fig = True
-save_fig = True
+# MULTIPLE PLOTS
 
-# Make plot
-if False:
-    process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
-
-
-# 2. Make difference plots
-
-# Choose settings
-mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
-sel_scenario = "BBB"
-sel_time_period_before = 2023
-sel_time_period_after = 2050
-sel_product = "all" # any product group or "all"
-plot_overseas = True
-plot_up_north = True
-show_fig = True
-save_fig = True
-
-# Make plot
 if True:
-    process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
+    #"SETTINGS"
+
+    mode_variants = ["all"] # ["road", "sea", "rail", "all", "total"]
+    sel_scenarios = ["average"]   # Now it is only a combination of two scenarios. So, choose "BB" or "PB", "OO", or "average"!
+    sel_time_periods = [2023,2028] #base_data.T_TIME_PERIODS #2023,2028,2034,2040,2050
+    sel_products = base_data.P_PRODUCTS + ['all','all_no_dry_bulk']  #"Container (slow)" # "Dry bulk" # any product group or "all"
+    #sel_products =['all_no_dry_bulk']
+
+    plot_overseas = True
+    plot_up_north = True
+    show_fig = False
+    save_fig = True
+
+    for mode_variant in mode_variants:
+        for sel_scenario in sel_scenarios:
+            for sel_time_period in sel_time_periods:
+                for sel_product in sel_products:
+                    process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
+
+
+if False:
+    #SINGLE PLOTS
+
+    # 1. Make flow plots
+
+    # Choose settings
+    mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
+    sel_scenario = "BB"   # Now it is only a combination of two scenarios. So, choose "BB" or "PB"
+    sel_time_period = 2023 #
+    sel_product = "Container (slow)" # "Dry bulk" # any product group or "all"  OR " all_no_dry_bulk"
+    #Dry bulk, Liquid bulk, Container (fast), Container (slow), Break bulk (fast), Break bulk (slow), Neo bulk
+
+    plot_overseas = True
+    plot_up_north = True
+    show_fig = True
+    save_fig = True
+
+    # Make plot
+    if False:
+        process_and_plot_flow(output, base_data, mode_variant, sel_scenario, sel_time_period, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
+
+
+    # 2. Make difference plots
+
+    # Choose settings
+    mode_variant = "all" # ["road", "sea", "rail", "all", "total"]
+    sel_scenario = "BB"  # Now it is only a combination of two scenarios. So, choose "BB" or "PB"
+    sel_time_period_before = 2023
+    sel_time_period_after = 2050
+    sel_product = "all" # any product group or "all"
+    plot_overseas = True
+    plot_up_north = True
+    show_fig = True
+    save_fig = True
+
+    # Make plot
+    if False:
+        process_and_plot_diff(output, base_data, mode_variant, sel_scenario, sel_time_period_before, sel_time_period_after, sel_product, plot_overseas, plot_up_north, show_fig, save_fig)
 
 

@@ -16,11 +16,6 @@ import logging
 import logging
 from Data.settings import *
 
-############# Parameters ################
-
-ABSOLUTE_DEVIATION = 0.0001
-RELATIVE_DEVIATION = 0.0001
-FEAS_RELAX = 0
 
 ############# Class ################
 
@@ -43,6 +38,7 @@ class TranspModel:
 
         self.solve_base_year = False
         self.single_time_period = None
+        self.emission_cap_constraint = False
 
         self.NoBalancingTrips = False
 
@@ -79,11 +75,16 @@ class TranspModel:
         # total transport amount per mode
         self.model.q_mode_total_transp_amount = Var(self.data.MT_S, within = NonNegativeReals) #note: only measured in decision years
         
+        #if EMISSION_CONSTRAINT:
+        self.model.total_emissions = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+        self.model.emissions_penalty = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+
         #self.model.feas_relax = Var(within=NonNegativeReals)  
         #self.model.feas_relax.setlb(0)
         #self.model.feas_relax.setub(0)
 
         #COST_VARIABLES
+
 
         self.model.TranspOpexCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCost(model, t,s):
@@ -96,6 +97,14 @@ class TranspModel:
             return (self.model.TranspCO2Cost[t,s] >= sum((self.data.C_CO2[(i,j,m,r,f,p,t)])*self.model.x_flow[(i,j,m,r,f,p,t,s)] 
                                       for p in self.data.P_PRODUCTS for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) -FEAS_RELAX )  
         self.model.TranspCO2CostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TranspCO2Cost)
+
+        self.model.CO2_PENALTY = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+        def CO2Pen(model, t,s):
+            co2_fee_penalty = 10000 #NOK/tonneCO2
+            co2_fee_penalty_adj = co2_fee_penalty/(1000*1000)   #NOK/gCO2
+            co2_fee_penalty_adj = co2_fee_penalty_adj/SCALING_FACTOR_MONETARY*SCALING_FACTOR_EMISSIONS
+            return (self.model.CO2_PENALTY[t,s] >= co2_fee_penalty_adj*self.model.emissions_penalty[(t,s)]-FEAS_RELAX )  
+        self.model.CO2PenaltyConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=CO2Pen)
         
         self.model.TranspOpexCostB = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TranspOpexCostB(model, t,s):
@@ -117,8 +126,9 @@ class TranspModel:
 
         self.model.TransfCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def TransfCost(model, t,s):
-            return (self.model.TransfCost[t,s] >= sum(self.data.C_TRANSFER[(k,p)]*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.MULTI_MODE_PATHS)-FEAS_RELAX )  
+            return (self.model.TransfCost[t,s] >= sum((self.data.C_TRANSFER[(k,p)]+self.data.C_TRANSFER_TIME[(k,p)])*self.model.h_path[k,p,t,s] for p in self.data.P_PRODUCTS  for k in self.data.PATHS_NO_UNIMODAL_ROAD)-FEAS_RELAX )  
         self.model.TransfCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=TransfCost)
+
         
         self.model.EdgeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def EdgeCost(model, t,s):
@@ -138,8 +148,18 @@ class TranspModel:
         
         self.model.ChargeCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
         def ChargeCost(model, t,s):
-            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f,t)]*self.model.y_charge[(e,f,t,s)] for (e,f) in self.data.EF_CHARGING if (e,f,t) in self.data.EFT_CHARGE)- FEAS_RELAX )
+            return (self.model.ChargeCost[t,s] >= sum(self.data.C_CHARGE[(e,f,t)]*self.model.y_charge[(e,f,t,s)] 
+                                                      for (e,f) in self.data.EF_CHARGING 
+                                                      if f=="Battery")
+                                                      - FEAS_RELAX )
         self.model.ChargeCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=ChargeCost)
+
+        self.model.FillingCost = Var(self.data.T_TIME_PERIODS_S, within=NonNegativeReals)
+        def FillingCost(model, t,s):
+            return (self.model.FillingCost[t,s] >= sum(self.data.C_CHARGE[(e,f,t)]*self.model.y_charge[(e,f,t,s)] 
+                                                       for (e,f) in self.data.EF_CHARGING 
+                                                      if f=="Hydrogen")- FEAS_RELAX )
+        self.model.FillingCostConstr = Constraint(self.data.T_TIME_PERIODS_S, rule=FillingCost)
     
 
         # CVaR variables
@@ -157,10 +177,21 @@ class TranspModel:
         def StageCostsVar(model, t,s):  
 
             # Pyomo SUM_PRODUCT is slower than the following
-            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + self.model.TranspCO2Cost[t,s] + self.model.TranspOpexCostB[t,s] + self.model.TranspCO2CostB[t,s] + self.model.TranspTimeCost[t,s] + self.model.ChargeCost[t,s]) #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
+            yearly_transp_cost = (self.model.TranspOpexCost[t,s] + 
+                                  self.model.TranspCO2Cost[t,s] +
+                                  self.model.CO2_PENALTY[t,s] +
+                                  self.model.TranspOpexCostB[t,s] + 
+                                  self.model.TranspCO2CostB[t,s] + 
+                                  self.model.TranspTimeCost[t,s] + 
+                                  self.model.ChargeCost[t,s] + #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
+                                  self.model.FillingCost[t,s] + #ANNUAL CHARGING/FILLING INFRASTR. COST INCLUDED HERE
+                                  0) 
             
             if t == self.data.T_TIME_PERIODS[-1]:
-                factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9
+                #factor = discount back from the last time period * infinite cash flow stream
+                #factor = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0] * (1/(1-self.data.D_DISCOUNT_RATE)),self.data.precision_digits)      #was 2.77, becomes 9
+                #alternatively, use simply 10 years
+                factor = round(sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t]),self.data.precision_digits)
             else:
                 factor = round(sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t]),self.data.precision_digits)
             opex_costs = factor*(yearly_transp_cost+self.model.TransfCost[t,s]) 
@@ -232,6 +263,7 @@ class TranspModel:
 
         "CONSTRAINTS"
 
+        
         # DEMAND
                 
         def FlowRule(model, o, d, p, t,s):
@@ -275,16 +307,27 @@ class TranspModel:
         #-----------------------------------------------#
 
         # EMISSIONS
-        # def emissions_rule(model, t,s):
-        #     return (
-        #         self.model.total_emissions[t,s] >= sum(
-        #         self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t,s] for p in self.data.P_PRODUCTS
-        #         for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
-        #         sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t,s] 
-        #             for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
-        #         - FEAS_RELAX )
         
-        # self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
+
+        def emissions_rule(model, t,s):
+            emissions = (
+                sum(self.data.E_EMISSIONS[i,j,m,r,f, p, t] * self.model.x_flow[i,j,m,r,f, p, t,s] for p in self.data.P_PRODUCTS
+                for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m]) + 
+                sum(self.data.E_EMISSIONS[i,j,m,r,f, self.data.cheapest_product_per_vehicle[(m,f,t,v)], t]*EMPTY_VEHICLE_FACTOR * self.model.b_flow[i,j,m,r,f, v, t,s] 
+                    for (i,j,m,r) in self.data.A_ARCS for f in self.data.FM_FUEL[m] for v in self.data.VEHICLE_TYPES_M[m])
+                - FEAS_RELAX )
+            #if t == self.data.T_TIME_PERIODS[0]:
+            return (self.model.total_emissions[t,s] == emissions)   # EQUALITY IS NEEDED!
+        self.model.Emissions = Constraint(self.data.TS_CONSTR_S, rule=emissions_rule) #removed self.data.T_TIME_PERIODS
+
+        if self.emission_cap_constraint:
+            def emission_constr_rule(model,t,s):
+                if t > self.data.T_TIME_PERIODS[0]:
+                    return self.model.total_emissions[t,s] <= (self.data.EMISSION_CAP_RELATIVE[t]/100*self.model.total_emissions[self.data.T_TIME_PERIODS[0],s] + 
+                                                               self.model.emissions_penalty[t,s] + FEAS_RELAX)
+                else:
+                    return Constraint.Skip
+            self.model.EmissionCap = Constraint(self.data.TS_CONSTR_S, rule=emission_constr_rule) #removed self.data.T_TIME_PERIODS
 
         
 
@@ -314,36 +357,34 @@ class TranspModel:
 
 
         
-        if True: #This currently leads to infeasibility
+        #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
+        def TerminalCapRule(model, i, m,t,s):
+            if i in self.data.NM_NODES[m]:
+                return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                    sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
+                    sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
+                    self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
+                                                                                for tau in self.data.T_TIME_PERIODS 
+                                                                                if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) and
+                                                                                    ((i,m) in self.data.NM_CAP_INCR))
+                                                                                ) #and((i,m,tau) in self.data.NM_CAP_INCR_T)
+                    + FEAS_RELAX )
+            else:
+                return Constraint.Skip
+        self.model.TerminalCap = Constraint(self.data.NM_CAP_T_CONSTR_S, rule = TerminalCapRule)
+        
 
-            #Terminal capacity constraint. We keep the old notation here, so we can distinguish between OD and transfer, if they take up different capacity.
-            def TerminalCapRule(model, i, m,t,s):
-                if i in self.data.NM_NODES[m]:
-                    return (sum(self.model.h_path[k, p, t,s] for k in self.data.ORIGIN_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                        sum(self.model.h_path[k, p, t,s] for k in self.data.DESTINATION_PATHS[(i,m)] for p in self.data.P_PRODUCTS) +
-                        sum(self.model.h_path[k,p,t,s] for k in self.data.TRANSFER_PATHS[(i,m)] for p in self.data.P_PRODUCTS) <= 
-                        self.data.Q_NODE_BASE[i,m]+self.data.Q_NODE_INV[i,m]*sum(self.model.nu_node[i,m,tau,s] 
-                                                                                    for tau in self.data.T_TIME_PERIODS 
-                                                                                    if ((tau <= (t-self.data.LEAD_TIME_NODE_INV[i,m])) and
-                                                                                        ((i,m) in self.data.NM_CAP_INCR))
-                                                                                    ) #and((i,m,tau) in self.data.NM_CAP_INCR_T)
-                        + FEAS_RELAX )
-                else:
-                    return Constraint.Skip
-            self.model.TerminalCap = Constraint(self.data.NM_CAP_T_CONSTR_S, rule = TerminalCapRule)
-            
-
-            #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
-            def TerminalCapExpRule(model, i, m,s):
-                expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
-                                                            if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE_INV[i,m])  ) 
-                                                            <= 1)
-                if isinstance(expression, bool):
-                    return Constraint.Skip
-                else:
-                    return(expression) 
-            if len(self.data.T_TIME_PERIODS)>1:
-                self.model.TerminalCapExp = Constraint(self.data.NM_CAP_INCR_S, rule = TerminalCapExpRule)
+        #Num expansions of terminal ()how many times you can perform a step-wise increase of the capacity)
+        def TerminalCapExpRule(model, i, m,s):
+            expression = (sum(self.model.nu_node[i,m,t,s] for t in self.data.T_TIME_PERIODS 
+                                                        if (t <= self.data.T_TIME_PERIODS[-1] - self.data.LEAD_TIME_NODE_INV[i,m])  ) 
+                                                        <= 1)
+            if isinstance(expression, bool):
+                return Constraint.Skip
+            else:
+                return(expression) 
+        if len(self.data.T_TIME_PERIODS)>1:
+            self.model.TerminalCapExp = Constraint(self.data.NM_CAP_INCR_S, rule = TerminalCapExpRule)
 
         
 
@@ -385,6 +426,27 @@ class TranspModel:
             + FEAS_RELAX )   #R_TECH is the A from the Bass diffusion model
         self.model.TechMaturityLimit = Constraint(self.data.MFT_MATURITY_CONSTR_S, rule = TechMaturityLimitRule)
 
+        #HFO is toxic and will be phased out -> put a cap
+        # def PhaseOutRule(model, m, f, t,s):
+        #     if ((m,f,t) not in self.data.PHASE_OUT.keys()):
+        #         return Constraint.Skip  
+        #     else:
+        #         if self.single_time_period:
+        #             return (self.model.q_transp_amount[(m,f,t,s)] <= self.data.PHASE_OUT[(m,f,t)]*sum(self.model.q_transp_amount[(m,ff,t,s)] for ff in self.data.FM_FUEL[m]))
+        #         else:
+        #             return (self.model.q_transp_amount[(m,f,t,s)] <= (self.data.PHASE_OUT[(m,f,t)]*self.model.q_transp_amount[(m,f,self.data.T_MIN1[t],s)]))
+        # self.model.PhaseOut = Constraint(self.data.MFT_MIN0_S, rule = PhaseOutRule)
+        def PhaseOutRule(model, m, f, t,s):
+            if ((m,f,t) not in self.data.PHASE_OUT.keys()):
+                return Constraint.Skip  
+            else:
+                if t >= self.data.T_TIME_PERIODS[2]:  #2034
+                    return (self.model.q_transp_amount[(m,f,t,s)] <= 0)
+                else:
+                    return Constraint.Skip
+        self.model.PhaseOut = Constraint(self.data.MFT_MIN0_S, rule = PhaseOutRule)
+
+
         if True:
 
 
@@ -419,10 +481,16 @@ class TranspModel:
                         return (self.model.q_mode_total_transp_amount[m,t,s] == sum( self.model.q_transp_amount[m,f,t,s] for f in self.data.FM_FUEL[m] ))
                     self.model.ModeTotalTransportAmount = Constraint(self.data.MT_S, rule = ModeTotalTransportAmountRule) 
 
-                    #Restriction on modal transport amount decrease
+                    #Restriction on modal transport amount decrease (mode shift cannot happen too fast)
                     def DecreaseInModeTotalTransportAmountRule(model,m,t,s):
                         return (self.model.q_mode_total_transp_amount[m,t,s] >= RHO_STAR**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
-                    self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule) 
+                    self.model.DecreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = DecreaseInModeTotalTransportAmountRule)
+                    #Restriction on modal transport amount increase (mode shift cannot happen too fast)
+                    def IncreaseInModeTotalTransportAmountRule(model,m,t,s):
+                        return (self.model.q_mode_total_transp_amount[m,t,s] <= (2-RHO_STAR)**(t-self.data.T_MIN1[t])*self.model.q_mode_total_transp_amount[m,self.data.T_MIN1[t],s])
+                    self.model.IncreaseModeTotalTransportAmount = Constraint(self.data.MT_MIN0_S, rule = IncreaseInModeTotalTransportAmountRule)
+
+                    
 
                 if True:        
                     #Fleet Renewal
@@ -517,6 +585,15 @@ class TranspModel:
                     return Constraint.Skip
             self.model.Nonanticipativity_h_bal_Constr = Constraint(combinations(self.data.KVT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_h_bal)
 
+            def Nonanticipativity_total_emissions(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    diff = (self.model.total_emissions[(t,s)]- self.model.total_emissions[(t,ss)])
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT) 
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_total_emissions_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_total_emissions)
+
+
             def Nonanticipativity_stage(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
                     diff = (self.model.StageCosts[(t,s)]- self.model.StageCosts[(t,ss)])
@@ -532,7 +609,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_INV,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
+            if len(self.data.ET_INV)>0:
+                self.model.Nonanticipativity_eps_Constr = Constraint(combinations(self.data.ET_INV,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_eps)
 
             def Nonanticipativity_upg(model,i,j,m,r,f,t,s,ss):
                 e = (i,j,m,r)
@@ -541,7 +619,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_upg_Constr = Constraint(combinations(self.data.UT_UPG,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upg)
+            if len(self.data.UT_UPG)>0:
+                self.model.Nonanticipativity_upg_Constr = Constraint(combinations(self.data.UT_UPG,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_upg)
 
             def Nonanticipativity_nu(model,n,m,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -549,7 +628,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NM_CAP_INCR_T,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
+            if len(self.data.NM_CAP_INCR_T)>0:    
+                self.model.Nonanticipativity_nu_Constr = Constraint(combinations(self.data.NM_CAP_INCR_T,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_nu)
 
             def Nonanticipativity_y(model,i,j,m,r,f,t,s,ss):
                 e = (i,j,m,r)
@@ -558,7 +638,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
+            if len(self.data.EFT_CHARGE)>0: 
+                self.model.Nonanticipativity_y_Constr = Constraint(combinations(self.data.EFT_CHARGE,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_y)
 
             def Nonanticipativity_q(model,m,f,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -566,7 +647,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip
-            self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
+            if len(self.data.MFT)>0: 
+                self.model.Nonanticipativity_q_Constr = Constraint(combinations(self.data.MFT,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q)
 
             def Nonanticipativity_q_delta(model,m,f,t,s,ss): 
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -574,7 +656,8 @@ class TranspModel:
                     return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
                 else:
                     return Constraint.Skip    
-            self.model.Nonanticipativity_qdelta_Constr = Constraint(combinations(self.data.MFT_MIN0,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_delta)
+            if len(self.data.MFT_MIN0)>0:
+                self.model.Nonanticipativity_qdelta_Constr = Constraint(combinations(self.data.MFT_MIN0,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_q_delta)
 
             def Nonanticipativity_q_aux(model,m,f,t,s,ss):
                 if (t in self.data.T_YEARLY_TIME_FIRST_STAGE) and (s is not ss): 
@@ -607,6 +690,14 @@ class TranspModel:
                 else:
                     return Constraint.Skip
             self.model.Nonanticipativity_co2_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2)
+
+            def Nonanticipativity_co2_pen(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    diff = (self.model.CO2_PENALTY[(t,s)]- self.model.CO2_PENALTY[(t,ss)]) 
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_co2_pen_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_co2_pen)
 
             def Nonanticipativity_opexb(model,t,s,ss):
                 if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
@@ -664,6 +755,15 @@ class TranspModel:
                     return Constraint.Skip
             self.model.Nonanticipativity_chargecost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_chargecost)
 
+            def Nonanticipativity_fillingcost(model,t,s,ss):
+                if (t in self.data.T_TIME_FIRST_STAGE) and (s is not ss): 
+                    diff = (self.model.FillingCost[(t,s)]- self.model.FillingCost[(t,ss)]) 
+                    return (-ABSOLUTE_DEVIATION_NONANT,diff,ABSOLUTE_DEVIATION_NONANT)
+                else:
+                    return Constraint.Skip
+            self.model.Nonanticipativity_fillingcost_Constr = Constraint(combinations(self.data.T_TIME_PERIODS,self.data.SS_SCENARIOS_NONANT),rule = Nonanticipativity_fillingcost)
+
+
             def Nonanticipativity_firststagecost(model,s,ss):
                 if  (s is not ss): 
                     diff = (self.model.FirstStageCosts[(s)]- self.model.FirstStageCosts[(ss)]) 
@@ -689,6 +789,50 @@ class TranspModel:
         return self.model
     
     
+    def fix_first_time_period(self, model_instance_init):
+    
+        #When fixing the first_stage flow, we quickly run into feasibility issues. So, let's only fix the emissions.
+        if self.single_time_period is None:
+            for s in self.data.S_SCENARIOS:
+                t = self.data.T_TIME_PERIODS[0]
+                weight = model_instance_init.model.total_emissions[(t,s)].value
+                self.model.total_emissions[(t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+                self.model.total_emissions[(t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+                
+            # t = self.data.T_TIME_PERIODS[0]
+            # for scen_name in self.data.S_SCENARIOS:
+            #     for (i,j,m,r) in self.data.A_ARCS:
+            #         a = (i,j,m,r)
+            #         for f in self.data.FM_FUEL[m]:
+            #             for p in self.data.P_PRODUCTS:
+            #                 weight = model_instance_init.model.x_flow[(a,f,p,t,scen_name)].value
+            #                 if weight is not None: 
+            #                     if weight != 0: 
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
+            #                         #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+            #                     else:
+            #                         #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
+            #                         self.model.x_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
+
+            # for (i,j,m,r,f,p,t,scen_name) in self.data.AFVT_S:   #This one leads to infeasibility unfortunately, cannot fix too much.
+            #     a = (i,j,m,r)
+            #     if t== self.data.T_TIME_PERIODS[0]:     
+            #         weight = model_instance_init.model.b_flow[(a,f,p,t,scen_name)].value
+            #         if weight is not None: 
+            #             if weight != 0: 
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setub((1+RELATIVE_DEVIATION)*weight)
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setlb((1-RELATIVE_DEVIATION)*weight)
+            #                 #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+            #             else:
+            #                 #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setlb(-ABSOLUTE_DEVIATION)
+            #                 self.model.b_flow[(a,f,p,t,scen_name)].setub(ABSOLUTE_DEVIATION)
+        
+                    
+
+    
     def fix_variables_first_stage(self,model_ev):  #this is the EV model that is input.
         
         
@@ -706,41 +850,48 @@ class TranspModel:
         #     if t in self.data.T_TIME_FIRST_STAGE:
         #         self.model.x_flow[(a,f,p,t)].fix(0)
         
-        base_scenario = 'BBB'
+        base_scenario = 'BB'  # "BBB" OR "BB", update to pick the right one automatically
 
-        for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
-            a = (i,j,m,r)
-            self.model.x_flow[(a,f,p,t,s)].fixed = False
-            if t in self.data.T_TIME_FIRST_STAGE:
-                weight = model_ev.x_flow[(a,f,p,t,base_scenario)].value
-                if weight is not None:
-                    if weight != 0: 
-                        self.model.x_flow[(a,f,p,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
-                        self.model.x_flow[(a,f,p,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
-                        #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
-                    else:
-                        #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-                        self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
-                        self.model.x_flow[(a,f,p,t,s)].setub(ABSOLUTE_DEVIATION)
-                else:
-                    pass #this does not happen
+        
+        for s in self.data.S_SCENARIOS:
+            for t in self.data.T_TIME_FIRST_STAGE:
+                weight = model_ev.total_emissions[(t,base_scenario)].value
+                self.model.total_emissions[(t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+                self.model.total_emissions[(t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+        
+        # for (i,j,m,r,f,p,t,s) in self.data.AFPT_S:
+        #     a = (i,j,m,r)
+        #     self.model.x_flow[(a,f,p,t,s)].fixed = False
+        #     if t in self.data.T_TIME_FIRST_STAGE:
+        #         weight = model_ev.x_flow[(a,f,p,t,base_scenario)].value
+        #         if weight is not None:
+        #             if weight != 0: 
+        #                 self.model.x_flow[(a,f,p,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+        #                 self.model.x_flow[(a,f,p,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+        #                 #self.model.x_flow[(a,f,p,t,s)].fix(weight) 
+        #             else:
+        #                 #self.model.x_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+        #                 self.model.x_flow[(a,f,p,t,s)].setlb(-ABSOLUTE_DEVIATION)
+        #                 self.model.x_flow[(a,f,p,t,s)].setub(ABSOLUTE_DEVIATION)
+        #         else:
+        #             pass #this does not happen
 
-        for (i,j,m,r,f,v,t,s) in self.data.AFVT_S:
-            a = (i,j,m,r)
-            self.model.b_flow[(a,f,v,t,s)].fixed = False
-            if t in self.data.T_TIME_FIRST_STAGE:
-                weight = model_ev.b_flow[(a,f,v,t,base_scenario)].value
-                if weight is not None:
-                    if weight != 0: 
-                        self.model.b_flow[(a,f,v,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
-                        self.model.b_flow[(a,f,v,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
-                        #self.model.b_flow[(a,f,v,t,s)].fix(weight) 
-                    else:
-                        #self.model.b_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
-                        self.model.b_flow[(a,f,v,t,s)].setlb(-ABSOLUTE_DEVIATION)
-                        self.model.b_flow[(a,f,v,t,s)].setub(ABSOLUTE_DEVIATION)
-                else:
-                    pass #this does not happen
+        # for (i,j,m,r,f,v,t,s) in self.data.AFVT_S:
+        #     a = (i,j,m,r)
+        #     self.model.b_flow[(a,f,v,t,s)].fixed = False
+        #     if t in self.data.T_TIME_FIRST_STAGE:
+        #         weight = model_ev.b_flow[(a,f,v,t,base_scenario)].value
+        #         if weight is not None:
+        #             if weight != 0: 
+        #                 self.model.b_flow[(a,f,v,t,s)].setub((1+RELATIVE_DEVIATION)*weight)
+        #                 self.model.b_flow[(a,f,v,t,s)].setlb((1-RELATIVE_DEVIATION)*weight)
+        #                 #self.model.b_flow[(a,f,v,t,s)].fix(weight) 
+        #             else:
+        #                 #self.model.b_flow[(a,f,p,t,s)].fix(0)  #infeasibilities
+        #                 self.model.b_flow[(a,f,v,t,s)].setlb(-ABSOLUTE_DEVIATION)
+        #                 self.model.b_flow[(a,f,v,t,s)].setub(ABSOLUTE_DEVIATION)
+        #         else:
+        #             pass #this does not happen
 
         for (i,j,m,r,t,s) in self.data.ET_INV_S:
             if t in self.data.T_TIME_FIRST_STAGE:
@@ -824,7 +975,7 @@ class TranspModel:
                     FeasTol=(10**(-2)), 
                     MIP_gap=MIPGAP,
                     # 'TimeLimit':600, # (seconds)
-                    num_focus= 1,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
+                    num_focus= 0,  # 0 is automatic, 1 is low precision but fast  https://www.gurobi.com/documentation/9.5/refman/numericfocus.html
                     Crossover=-1, #default: -1, automatic, https://www.gurobi.com/documentation/9.1/refman/crossover.html
                     Method=-1, #root node relaxation, def: -1    https://www.gurobi.com/documentation/9.1/refman/method.html
                     NodeMethod=-1):  # all other nodes, https://www.gurobi.com/documentation/9.1/refman/nodemethod.html
@@ -858,6 +1009,7 @@ class TranspModel:
 
             print('Solution time: ' + str(results.solver.time))
         
-
+        #self.model.EmissionCap.pprint()
+        #self.model.total_emissions.display() #print()
 
         

@@ -55,7 +55,10 @@ def path_generation(products,
 
     def gen_paths(mode_cost,                #this depends on the scenario/fuel/etc
                   transfer_cost,            #is a dictionary (m1,m2):cost
-                  mode_comb_level):
+                  mode_comb_level,
+                  adj_map,
+                  edges,
+                  edges_with_double_route):
         sh_path_uni = {(i,j,m):[] for i in nodes for j in nodes for m in modes}  #unimodal shortest paths
         max_dist = 999999.0
         sh_dist_uni = {(i,j,m):max_dist for i in nodes for j in nodes for m in modes} #unimodal shortest distances
@@ -81,7 +84,6 @@ def path_generation(products,
                                 sh_path_uni[(o,d,m)] = [] #remove "fake" paths (that don't exist) 
                         except:
                             pass
-
 
         mode_combinations = []
         #single-mode combinations 
@@ -244,7 +246,8 @@ def path_generation(products,
                         #run the path generation for the current costs 
                         (sh_path, sh_dist, generated_paths, generated_path_lengths) = gen_paths(mode_cost,
                                                                                             transf_costs,
-                                                                                            mode_comb_level)
+                                                                                            mode_comb_level, 
+                                                                                            adj_map, edges, edges_with_double_route)
                         for path in generated_paths:
                             all_gen_paths.add(tuple(path))
 

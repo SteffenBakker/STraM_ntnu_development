@@ -49,7 +49,7 @@ class OutputData():
         q_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','time_period','weight','scenario'])
         q_max_transp_amount = pd.DataFrame(columns = ['variable','mode','fuel','weight','scenario'])
         
-        vars = ["TranspOpexCost","TranspCO2Cost","TranspOpexCostB","TranspCO2CostB","TranspTimeCost","TransfCost","EdgeCost","NodeCost","UpgCost","ChargeCost"] #the same structure, easy to read
+        vars = ["TranspOpexCost","TranspCO2Cost","CO2_PENALTY","TranspOpexCostB","TranspCO2CostB","TranspTimeCost","TransfCost","EdgeCost","NodeCost","UpgCost","ChargeCost", "FillingCost"] #the same structure, easy to read
         costs = {var:{(t,scen):0 for t in base_data.T_TIME_PERIODS for scen in scenario_names} for var in vars}
         costs['MaxTranspPenaltyCost'] = {scen:0 for scen in scenario_names}
 
@@ -147,8 +147,9 @@ class OutputData():
             for t in base_data.T_TIME_PERIODS:
                 for var in vars:
                     weight = getattr(modell,str(var))[(t,scen_name)].value
-                    if var == "ChargeCost":
-                        weight = sum(base_data.D_DISCOUNT_RATE**n for n in base_data.Y_YEARS[t])
+                    if var in ["ChargeCost", "FillingCost"]:
+                        weight = weight*sum(base_data.D_DISCOUNT_RATE**n for n in base_data.Y_YEARS[t])
+                        #print(var,t,weight)
                     costs[var][(t,scen_name)] = weight
 
             all_variables = pd.concat([x_flow,b_flow,h_path,y_charging,nu_node,epsilon_edge,upsilon_upgrade,

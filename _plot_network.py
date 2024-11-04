@@ -1,6 +1,7 @@
 """Plot the network (edges) on the map"""
 
-
+from Data.settings import *
+from _plot_base_map import plot_base_map_start
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -17,54 +18,34 @@ from matplotlib.collections import PatchCollection
 import copy
 
 
-# Read model output
-analyses_type = 'SP' # EV , EEV, 'SP
-scenario_type = "4Scen" # 4Scen
-with open(r'Data/base_data/' + scenario_type + ".pickle", 'rb') as data_file:
-    base_data = pickle.load(data_file)
+emission_cap = False
+analyses_type="SP"
+scenarios="FuelScen"  # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen  
+carbon_fee = "base" #"high", intermediate
+
+run_identifier = scenarios+"_carbontax"+carbon_fee
+if emission_cap:
+    run_identifier = run_identifier + "_emissioncap"
+
+with open(r'Data//Output//'+run_identifier+'_basedata.pickle', 'rb') as output_file:
+    base_data = pickle.load(output_file)
+
 
 # USER INPUT
 show_fig = True
 save_fig = True
 
 
-####################################
-# a. Extract nodes and coordinates
-
-#extract nodes from base_data
-N_NODES = base_data.N_NODES
-lats = base_data.N_LATITUDE_PLOT
-longs = base_data.N_LONGITUDE_PLOT
-node_xy_offset = base_data.N_COORD_OFFSETS
-
-
-#add colors (for checking and perhaps plotting)
-node_colors = ["black"]*len(N_NODES)     
 
 
 ####################
 # b. Build a map
 
-# create underlying figure/axis (to get rid of whitespace)
-fig = plt.figure(figsize=(6,3))
-ax = plt.axes([0,0,1,1])
-
-#draw the basic map including country borders
-map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='aeqd', lat_0=63.4, lon_0=10.4) # Azimuthal Equidistant Projection
-# map = Basemap(llcrnrlon=1, urcrnrlon=29, llcrnrlat=55, urcrnrlat=70, resolution='i', projection='tmerc', lat_0=0, lon_0=0) # mercator projection
-map.drawmapboundary(fill_color='paleturquoise')
-map.fillcontinents(color='lightgrey', lake_color='paleturquoise')
-map.drawcoastlines(linewidth=0.2)
-map.drawcountries(linewidth=0.2)
-
-#draw nodes on the map
-node_x, node_y = map(list(longs.values()), list(lats.values()))
-coordinate_mapping={N_NODES[i]:(node_x[i],node_y[i]) for i in range(len(N_NODES))}
-map.scatter(node_x, node_y, color=node_colors, zorder=100)
+fig, ax, mapp, node_xy_offset, coordinate_mapping, node_x, node_y = plot_base_map_start(base_data)
 
 # draw labels on the map
 
-node_labels = {i:i for i in N_NODES}
+node_labels = {i:i for i in base_data.N_NODES}
 # translate labels
 translate_dict = {"JohanSverdrupPlatform":"Cont. Shelf",   #use \n for new line
                 "Hamburg":" Hamburg/Europe", 
@@ -72,12 +53,10 @@ translate_dict = {"JohanSverdrupPlatform":"Cont. Shelf",   #use \n for new line
 for key,value in translate_dict.items():
     node_labels[key] = value
 
-for i in N_NODES:
+for i in base_data.N_NODES:
     plt.annotate(node_labels[i], (coordinate_mapping[i][0] + 10000*node_xy_offset[i][0], 
                      coordinate_mapping[i][1] + 10000*node_xy_offset[i][1]), zorder = 1000)  #10000*offset
 
-for e in base_data.E_EDGES:
-    print(e)
 
 ##########################
 # c. Plot edges in the map
@@ -86,7 +65,10 @@ for e in base_data.E_EDGES:
 line_width = 2.5
 base_curvature = 0.2
 #arrow settings for the different modes
-mode_color_dict = {"Road":"violet", "Sea":"blue", "Rail":"saddlebrown", "total":"black"}
+mode_color_dict = {"Road": rgb_constructor(207, 65, 84), #"violet", 
+                   "Sea":rgb_constructor(47, 85, 151), #"blue", 
+                   "Rail":rgb_constructor(55, 0, 30), #"saddlebrown", 
+                   "total":"black"}
 #mode_linestyle_dict = {"Road":"-", "Sea":"--", "Rail":(0, (1, 5)), "Total":"-"}
 mode_linestyle_dict = {"Road":"-", "Sea":"-", "Rail":"-", "Total":"-"}
 curvature_fact_dict = {"Road":0, "Sea":-2, "Rail":+1, "Total":0}
@@ -121,8 +103,8 @@ for (i,j,m,r) in base_data.E_EDGES:
         unique_edges.append((cur_orig, cur_dest, cur_mode)) 
             
         # extract more edge information
-        cur_orig_index = N_NODES.index(cur_orig)
-        cur_dest_index = N_NODES.index(cur_dest)
+        cur_orig_index = base_data.N_NODES.index(cur_orig)
+        cur_dest_index = base_data.N_NODES.index(cur_dest)
         
         # get plotting options for current mode
         curvature_factor = curvature_fact_dict[cur_mode]
@@ -167,6 +149,7 @@ custom_lines = [Line2D([0], [0], color=mode_color_dict["Road"], lw=3),
 plt.legend(custom_lines, ['Road', 'Sea', 'Rail'])
 
 
+
 ###############################
 # d. Show and save the figure
 
@@ -177,7 +160,7 @@ plot_height = scale * plot_width
 plt.gcf().set_size_inches(plot_width, plot_height, forward=True) #TODO: FIND THE RIGHT SIZE
 #save figure
 if save_fig:
-    filename = f"Data/Plots/edge_plot.png"
+    filename = f"Data/Plots/edge_plot.pdf"
     plt.savefig(filename,bbox_inches='tight')
 #show figure
 if show_fig:
