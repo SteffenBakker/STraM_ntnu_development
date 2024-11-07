@@ -46,7 +46,7 @@ analysis = "risk"  # ["standard","only_generate_data", "run_all2","single_time_p
 scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
 co2_fee = "base" #"high, low", "base", "intermediate"
-emission_cap_constraint = False   #False or True
+emission_cap_constraint = True   #False or True
 wrm_strt = False  #use EEV as warm start for SP
 
 store_solved_model = False
