@@ -22,7 +22,7 @@ from ExtractResults import OutputData
 from Data.ConstructData import TransportSets, get_scen_sheet_name
 from Data.settings import *
 from Data.interpolate import interpolate
-from VisualizeResults import visualize_results
+from VisualizeResults_discount_and_demand import visualize_results
 from ExtractModel import ModelExtractor
 
 import pyomo.environ as pyo
@@ -51,6 +51,7 @@ wrm_strt = False  #use EEV as warm start for SP
 
 store_solved_model = False
 
+scale_demand = 1  #scale demand with this factor
 
 # risk parameters
 cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
@@ -310,7 +311,7 @@ def main(scenario_tree,
 
     sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
 
-    run_identifier = scenario_tree+"_carbontax"+co2_fee
+    run_identifier = scenario_tree+"_carbontax"+co2_fee+"_demand_scaled_"+str(int(round((scale_demand - 1) *100, 0))) +"%_risk_rate_"+str(round(RISK_FREE_RATE *100, 0))
     if emission_cap:
         run_identifier = run_identifier + "_emissioncap"
     if single_time_period is not None:
@@ -338,7 +339,8 @@ def main(scenario_tree,
     
     base_data = generate_base_data(scenario_tree, co2_fee=co2_fee,READ_FROM_FILE=READ_DATA_FROM_FILE)        
 
-    
+    #Scaling of the demand dictionary by scale_demand
+    base_data.D_DEMAND = {k: v*scale_demand for k, v in base_data.D_DEMAND.items()}
     
     if risk_aversion=="averse":
         cvar_alpha = 1-1/len(base_data.S_SCENARIOS)
@@ -394,6 +396,7 @@ def main(scenario_tree,
                             scen_analysis_carbon = False,
                             carbon_fee = co2_fee,
                             emission_cap=emission_cap,
+                            scale_demand=scale_demand,
                         )
         
     sys.stdout.flush()
