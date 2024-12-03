@@ -1,0 +1,33 @@
+----------------------------
+Doing the following analysis: 
+FuelScen_carbontaxbase
+neutral
+----------------------------
+Reading data...
+Reading and constructing data
+Function construct_sets Took 0.0014 seconds
+Function construct_network Took 0.0061 seconds
+Transport demand in the base year 2018 (in MTonnes):
+             product  tot_weight
+0           Dry bulk       94.86
+1   Container (fast)        4.07
+2   Container (slow)        9.23
+3  Break bulk (fast)       11.61
+4  Break bulk (slow)       15.37
+5           Neo bulk       19.28
+Function construct_ODD Took 0.5379 seconds
+Function construct_vehicles Took 0.5481 seconds
+Function construct_emission_transfer Took 0.1290 seconds
+Function construct_costs Took 1.7904 seconds
+Function construct_time_value Took 0.0010 seconds
+Function construct_investments Took 0.0085 seconds
+Function construct_charging_edges Took 0.1818 seconds
+Function construct_tech_readiness Took 0.0022 seconds
+Function construct_path_generation Took 0.2111 seconds
+Function construct_param2 Took 0.0597 seconds
+Function combined_sets Took 0.0977 seconds
+Function combined_sets Took 0.0930 seconds
+Done reading data.
+Time used reading the base data: 7.28769326210022
+Solving the first time period for initialization purposes...
+Function combined_sets Took 0.0485 seconds
