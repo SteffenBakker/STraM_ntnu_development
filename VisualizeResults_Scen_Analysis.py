@@ -672,7 +672,7 @@ if __name__ == "__main__":
         for lambda_par in [0,1]:
             carbon_fee = "base"
             alpha_par = 0.8
-            run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_lambda"+str((round((lambda_par), 0))) +"_alpha"+str(round(alpha_par, 0))
+            run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_lambda"+str((round((lambda_par), 0))) +"_alpha"+str(round(alpha_par, 1))
             visualize_results(analyses_type="SP",run_identifier=run_identifier)
 
     
