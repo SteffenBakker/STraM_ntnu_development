@@ -43,7 +43,7 @@ from Utils import Logger
 
 READ_DATA_FROM_FILE = False  #This can save some time in debug mode
 analysis = "standard"  # ["standard","only_generate_data", "run_all2","single_time_period", "risk"]
-scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen
+scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen, FuelScen_16
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
 co2_fee = "high" #"high, low", "base", "intermediate"
 emission_cap_constraint = False   #False or True

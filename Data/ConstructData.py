@@ -66,6 +66,8 @@ def get_scen_sheet_name(scenario_tree):
         sheet_name_scenarios = 'fuel_scenarios'
     elif scenario_tree == "FuelDetScen":
         sheet_name_scenarios = 'fuel_scenario_det'
+    elif scenario_tree == "FuelScen_16":
+        sheet_name_scenarios = 'fuel_scenarios_16'
     return sheet_name_scenarios
 
 #Class containing information about all scenarios
@@ -126,6 +128,7 @@ class ScenarioInformation():
         # read and process scenario data
         scenario_data = pd.read_excel(r'Data/'+"scenarios.xlsx", sheet_name=sh_name) 
         self.num_scenarios = len(scenario_data)
+        print("Number of scenarios: ", self.num_scenarios)
         self.scenario_names = ["scen_" + str(i).zfill(len(str(self.num_scenarios))) for i in range(self.num_scenarios)] #initialize as scen_00, scen_01, scen_02, etc.
         self.probabilities = [1.0/self.num_scenarios] * self.num_scenarios #initialize as equal probabilities
         
