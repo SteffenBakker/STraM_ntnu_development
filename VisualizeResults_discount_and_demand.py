@@ -76,6 +76,12 @@ def cost_and_investment_table(base_data,output):
     
     output.all_costs = {legend_names[var]:output.costs[var] for var in cost_vars}
     
+     #Correcting for the cost mistake in extractResults.py
+    for var in ["ChargeCost", "FillingCost"]:
+        for t in base_data.T_TIME_PERIODS:
+            for scen in base_data.S_SCENARIOS:
+                output.costs[var][(t,scen)] = output.costs[var][(t,scen)]*(1+RISK_FREE_RATE)**base_data.Y_YEARS[t][0]
+    
     
     #get the right measure:
     for var in cost_vars:
@@ -586,7 +592,7 @@ def visualize_results(analyses_type,scenario_tree,
     #---------------------------------------------------------#
 
     
-    run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_demand_scaled_"+str(int(round((scale_demand - 1) *100, 0))) +"%_risk_rate_"+str(round(RISK_FREE_RATE *100, 0))
+    run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_demand_scaled_"+str(scale_demand) +"_risk_rate_"+str(round(RISK_FREE_RATE *100, 1))
     if emission_cap:
         run_identifier = run_identifier + "_emissioncap"
     run_identifier2 = run_identifier+"_"+analyses_type

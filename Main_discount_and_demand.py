@@ -311,7 +311,7 @@ def main(scenario_tree,
 
     sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
 
-    run_identifier = scenario_tree+"_carbontax"+co2_fee+"_demand_scaled_"+str(int(round((scale_demand - 1) *100, 0))) +"%_risk_rate_"+str(round(RISK_FREE_RATE *100, 0))
+    run_identifier = scenario_tree+"_carbontax"+co2_fee+"_demand_scaled_"+str(scale_demand) +"_risk_rate_"+str(round(RISK_FREE_RATE *100, 1))
     if emission_cap:
         run_identifier = run_identifier + "_emissioncap"
     if single_time_period is not None:
