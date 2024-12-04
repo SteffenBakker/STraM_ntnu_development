@@ -148,7 +148,8 @@ class OutputData():
                 for var in vars:
                     weight = getattr(modell,str(var))[(t,scen_name)].value
                     if var in ["ChargeCost", "FillingCost"]:
-                        weight = weight*sum(base_data.D_DISCOUNT_RATE**n for n in base_data.Y_YEARS[t])
+                        weight = weight*sum(base_data.D_DISCOUNT_RATE**n for n in base_data.Y_YEARS[t]) #note that Y_YEARS discounts this to NPV. That should not be the case for the results!!
+                        #weight = weight*sum(base_data.D_DISCOUNT_RATE**(n-base_data.Y_YEARS[t][0]) for n in base_data.Y_YEARS[t])  #get the discounted value in that time period
                         #print(var,t,weight)
                     costs[var][(t,scen_name)] = weight
 

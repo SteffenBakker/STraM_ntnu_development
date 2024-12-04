@@ -19,16 +19,16 @@ import json
 output_in_euro = True
 scenario_tree = "FuelScen"   # FuelScen, FuelDetScen, AllScen, 4Scen, 9Scen          
 analyses_info = {
-#     name    type,    scen,        balancing,  single_tp   risk    carbon,             fee,    emission_cap
-    "base": ["SP",  scenario_tree,    False,      None,       None,   False,            "base",     False ],
-    "base_cap": ["SP",  scenario_tree,    False,      None,       None,   False,            "base", True ],
-    "eev":  ["EEV", scenario_tree,    False,      None,       None,   False,            "base", False],
-    "carbonhigh": ["SP",  scenario_tree,    False,      None,       None,   True,       "high",    False],
+#     name          type,    scen,        balancing,  single_tp     risk        carbon,           fee,    emission_cap
+    "base":         ["SP",  scenario_tree,    False,      None,       None,   False,            "base",     False ],
+    "base_cap":     ["SP",  scenario_tree,    False,      None,       None,   False,            "base", True ],
+    "eev":          ["EEV", scenario_tree,    False,      None,       None,   False,            "base", False],
+    "carbonhigh":   ["SP",  scenario_tree,    False,      None,       None,   True,       "high",    False],
     "carbon_inter": ["SP",  scenario_tree,    False,      None,       None,   True,       "intermediate",    False],
     #"carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,        "low", False], # not relevant, as it does not achieve targets
 }
 
-run_all_analyses = False
+run_all_analyses = True
 analysis = "base"    # "base", "carbon1","eev","risk1"....
 
 
@@ -76,6 +76,11 @@ def cost_and_investment_table(base_data,output):
     
     output.all_costs = {legend_names[var]:output.costs[var] for var in cost_vars}
     
+    #Correcting for the cost mistake in extractResults.py
+    for var in ["ChargeCost", "FillingCost"]:
+        for t in base_data.T_TIME_PERIODS:
+            for scen in base_data.S_SCENARIOS:
+                output.costs[var][(t,scen)] = output.costs[var][(t,scen)]*(1+RISK_FREE_RATE)**base_data.Y_YEARS[t][0]
     
     #get the right measure:
     for var in cost_vars:
@@ -166,7 +171,7 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
         leftright = leftright + 0.1
 
 
-    if True:
+    if False:
         if filename == "investment":
             ax.axis(ymin=0,ymax=0.15)
     #print(ax.get_xticklabels())

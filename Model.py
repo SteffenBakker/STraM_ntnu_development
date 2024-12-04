@@ -174,7 +174,7 @@ class TranspModel:
         "OBJECTIVE"
         #-------------------------
 
-        def StageCostsVar(model, t,s):  
+        def StageCostsVar(model, t,s):     #here we do the discounting
 
             # Pyomo SUM_PRODUCT is slower than the following
             yearly_transp_cost = (self.model.TranspOpexCost[t,s] + 
@@ -194,7 +194,7 @@ class TranspModel:
                 factor = round(sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t]),self.data.precision_digits)
             else:
                 factor = round(sum(self.data.D_DISCOUNT_RATE**n for n in self.data.Y_YEARS[t]),self.data.precision_digits)
-            opex_costs = factor*(yearly_transp_cost+self.model.TransfCost[t,s]) 
+            opex_costs = factor*(yearly_transp_cost+self.model.TransfCost[t,s])   #net present value
             
             delta = round(self.data.D_DISCOUNT_RATE**self.data.Y_YEARS[t][0],self.data.precision_digits)
             investment_costs = self.model.EdgeCost[t,s] + self.model.NodeCost[t,s] + self.model.UpgCost[t,s]  

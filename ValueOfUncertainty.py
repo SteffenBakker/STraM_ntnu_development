@@ -13,20 +13,25 @@ import json
 #       User Settings
 #---------------------------------------------------------#
 
-scenarios = "9Scen"   # '4Scen', '9Scen','AllScen'
+scenario_tree = "FuelScen"   # 'FuelScen','4Scen', '9Scen','AllScen'
 analyses = ["SP","EEV"]
+carbon_fee = "base"
 
 #---------------------------------------------------------#
 #       Output data
 #---------------------------------------------------------#
 
+run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"
+run_identifier2 = run_identifier+"_"+analyses[0]
+
 output_df={analysis:None for analysis in analyses}
 for analysis in analyses:
-    with open(r'Data\\output\\'+analysis+'_'+scenarios+'.pickle', 'rb') as output_file:
+    with open(r'Data\\output\\'+run_identifier+"_"+analysis+'_results.pickle', 'rb') as output_file:
         output_df[analysis] = pickle.load(output_file)
 
-with open(r'Data\base_data\\'+scenarios+'.pickle', 'rb') as data_file:
-    base_data = pickle.load(data_file)
+with open(r"Data//Output//"+run_identifier+"_basedata.pickle", "rb") as output_file:
+        base_data = pickle.load(output_file)
+
 
 if True:
 
@@ -164,7 +169,8 @@ if True:
     print("Emission diff:")
     print('--------')
     print(round(ems['EEV']-ems['SP'],4))
-    print(str(round((ems['EEV']-ems['SP'])/ems['EEV'],4))*100+' %')
+    print(round((ems['EEV']-ems['SP'])/ems['EEV'],4)*100)
+    print("percent")
 
     #2000NOK per Tonne CO2 is this in line? 
 
