@@ -17,7 +17,7 @@ SCALING_FACTOR_EMISSIONS = 10**8 #if smaller, then the CO2_FEE disappears, needs
 # Data settings (ConstructData.py)
 
 EXCHANGE_RATE_EURO_TO_NOK = 10
-RISK_FREE_RATE = 0.038 # social discount rate, ref Ruben (Old:  https://tradingeconomics.com/norway/government-bond-yield  -> 3.2%)
+RISK_FREE_RATE = 0.038 # social discount rate, 
 NO_DRY_BULK = False
 NO_LIQUID_BULK = True
 
@@ -38,7 +38,7 @@ EMPTY_VEHICLE_FACTOR = 0.6
 NO_INVESTMENTS = False
 MIPGAP = 0.002 # fraction, multiply with 100 to get percentage (0.5%)
 
-#discount rate
+#restriction on modal transport amount increase/decrease
 RHO_STAR = 0.975  #implied rho of around 20% over 5 years
 
 

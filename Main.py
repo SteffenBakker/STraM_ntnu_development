@@ -42,7 +42,7 @@ from Utils import Logger
 #################################################
 
 READ_DATA_FROM_FILE = False  #This can save some time in debug mode
-analysis = "standard"  # ["standard","only_generate_data", "run_all2","single_time_period", "risk"]
+analysis = "risk"  # ["standard","only_generate_data", "run_all2","single_time_period", "risk"]
 scenario_tree = "FuelScen"     # Options: FuelScen,FuelDetScen, 4Scen, 9Scen, AllScen, FuelScen_16
 analysis_type = "SP" #,   'EEV' , 'SP'         , expectation of expected value probem (EEV), stochastic program
 co2_fee = "high" #"high, low", "base", "intermediate"
@@ -398,7 +398,7 @@ def main(scenario_tree,
     sys.stdout = original_stdout
     current_logger.log.close()
 
-def risk_analysis():
+def risk_analysis():  #
     for risk_avers in ["neutral","averse"]:
             if risk_avers == "neutral":
                 cvar_coeff=0 #not being used

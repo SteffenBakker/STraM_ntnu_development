@@ -54,7 +54,7 @@ store_solved_model = False
 scale_demand = 1  #scale demand with this factor
 
 # risk parameters
-cvar_coeff = 0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
+cvar_coeff = 1 #0.3    # \lambda: coefficient for CVaR in mean-CVaR objective
 cvar_alpha = 0.8    # \alpha:  indicates how far in the tail we care about risk
 
 log_to_file = True
@@ -311,7 +311,8 @@ def main(scenario_tree,
 
     sheet_name_scenarios = get_scen_sheet_name(scenario_tree)
 
-    run_identifier = scenario_tree+"_carbontax"+co2_fee+"_demand_scaled_"+str(scale_demand) +"_risk_rate_"+str(round(RISK_FREE_RATE *100, 1))
+    #run_identifier = scenario_tree+"_carbontax"+co2_fee+"_demand_scaled_"+str(scale_demand) +"_risk_rate_"+str(round(RISK_FREE_RATE *100, 1))
+    run_identifier = f"{scenario_tree}_carbontax{co2_fee}"+"_lambda"+str((round((cvar_coeff), 0))) +"_alpha"+str(round(cvar_alpha, 1))
     if emission_cap:
         run_identifier = run_identifier + "_emissioncap"
     if single_time_period is not None:
@@ -388,16 +389,17 @@ def main(scenario_tree,
 
     #  --------- VISUALIZE RESULTS ---------    #
 
-    if single_time_period is None:
-        visualize_results(analysis_type,scenario_tree,
-                            noBalancingTrips=NoBalancingTrips,
-                            single_time_period=single_time_period,
-                            risk_aversion=risk_aversion,
-                            scen_analysis_carbon = False,
-                            carbon_fee = co2_fee,
-                            emission_cap=emission_cap,
-                            scale_demand=scale_demand,
-                        )
+    if False:
+        if single_time_period is None:
+            visualize_results(analysis_type,scenario_tree,
+                                noBalancingTrips=NoBalancingTrips,
+                                single_time_period=single_time_period,
+                                risk_aversion=risk_aversion,
+                                scen_analysis_carbon = False,
+                                carbon_fee = co2_fee,
+                                emission_cap=emission_cap,
+                                scale_demand=scale_demand,
+                            )
         
     sys.stdout.flush()
     sys.stdout = original_stdout

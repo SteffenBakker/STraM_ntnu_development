@@ -28,7 +28,7 @@ analyses_info = {
     #"carbonlow": ["SP",  scenario_tree,    False,      None,       None,   True,        "low", False], # not relevant, as it does not achieve targets
 }
 
-run_all_analyses = True
+run_all_analyses = False
 analysis = "base"    # "base", "carbon1","eev","risk1"....
 
 
@@ -171,9 +171,9 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
         leftright = leftright + 0.1
 
 
-    if False:
+    if True:
         if filename == "investment":
-            ax.axis(ymin=0,ymax=0.15)
+            ax.axis(ymin=0,ymax=0.2)
     #print(ax.get_xticklabels())
     # NOT WORKING WITH CATEGORICAL AXIS
     #ax.vlines(60,0,50)

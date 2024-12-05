@@ -45,7 +45,7 @@ if output_in_euro:
 
         
 #create the all_cost_table
-def cost_and_investment_table(base_data,output):
+def cost_and_investment_table(base_data,output,risk_factor):
     
     cost_vars = ["TranspOpexCost","TranspOpexCostB","TranspCO2Cost","TranspCO2CostB","CO2_PENALTY","TranspTimeCost","TransfCost","EdgeCost","NodeCost","UpgCost", "ChargeCost", "FillingCost"]
     legend_names = {"TranspOpexCost":"LCOT",
@@ -82,7 +82,7 @@ def cost_and_investment_table(base_data,output):
     for var in ["ChargeCost", "FillingCost"]:
         for t in base_data.T_TIME_PERIODS:
             for scen in base_data.S_SCENARIOS:
-                output.costs[var][(t,scen)] = output.costs[var][(t,scen)]*(1+RISK_FREE_RATE)**base_data.Y_YEARS[t][0]
+                output.costs[var][(t,scen)] = output.costs[var][(t,scen)]*(1+risk_factor)**base_data.Y_YEARS[t][0]
     
     #get the right measure:
     for var in cost_vars:
@@ -103,7 +103,7 @@ def cost_and_investment_table(base_data,output):
         output.all_costs_table[(t,"mean")] = mean
         output.all_costs_table[(t,"std")] = std
     output.all_costs_table = output.all_costs_table.fillna(0) #in case of a single scenario we get NA"s
-    print(output.all_costs_table)
+    #print(output.all_costs_table)
 
     #only select mean and std data (go away from scenarios)
     columns = ((output.all_costs_table.columns.get_level_values(1)=="mean") | (output.all_costs_table.columns.get_level_values(1)=="std"))
@@ -173,9 +173,9 @@ def plot_costs(base_data, output,which_costs,ylabel,filename,run_identifier):
         leftright = leftright + 0.1
 
 
-    if False:
+    if True:
         if filename == "investment":
-            ax.axis(ymin=0,ymax=0.15)
+            ax.axis(ymin=0,ymax=0.2)
     #print(ax.get_xticklabels())
     # NOT WORKING WITH CATEGORICAL AXIS
     #ax.vlines(60,0,50)
@@ -579,6 +579,7 @@ def plot_avg_transportwork(output,base_data, run_identifier):
 
 # ALL TOGETHER
 def visualize_results(analyses_type,run_identifier,
+                      risk_factor=RISK_FREE_RATE,
                         noBalancingTrips=False,
                         single_time_period=None,
                         risk_aversion = None,  #None, "averse", "neutral"
@@ -601,6 +602,8 @@ def visualize_results(analyses_type,run_identifier,
     with open(r"Data//Output//"+run_identifier2+"_results.pickle", "rb") as data_file:
         output = pickle.load(data_file)
 
+    print("interest rate:")
+    print(risk_factor)
     print("objective function value: ", output.ob_function_value)
     print("objective function value normalized ("+currency+"): ", round(output.ob_function_value/10**9*SCALING_FACTOR_MONETARY/exchange_rate,2))  
 
@@ -610,9 +613,9 @@ def visualize_results(analyses_type,run_identifier,
     #---------------------------------------------------------#
 
     #create the all_cost_table
-    output = cost_and_investment_table(base_data,output)
+    output = cost_and_investment_table(base_data,output,risk_factor=risk_factor)
     pd.set_option("display.float_format", "{:.2g}".format)
-    print(round(output.all_costs_table,2))
+    #print(round(output.all_costs_table,2))
 
     opex_variables = ["LCOT", "LCOT (Empty Trips)", "Emission","Emission (Empty Trips)","Time value", "Transfer"] #"CO2_Penalty"
     investment_variables = ["RailTrack", "Terminal", "RailElectr.","Charging", "H2_Filling"]
@@ -658,21 +661,22 @@ if __name__ == "__main__":
 
     if sens_analysis:
         
-        #DEMAND MISSES THE RESULT FILES!
-        # for scale_demand in [0.8,1.2]:
-        #     carbon_fee = "base"
-        #     run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_demand_scaled_"+str((round((scale_demand), 1))) +"_risk_rate_"+str(round(RISK_FREE_RATE *100,1 ))
-        #     print(scale_demand, RISK_FREE_RATE,run_identifier)
-        #     visualize_results(analyses_type="SP",run_identifier=run_identifier)
-        for risk_rate in list(range(10)):
-            carbon_fee = "base"
-            scale_demand = 1
-            run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_demand_scaled_"+str(int(scale_demand)) +"_risk_rate_"+f"{risk_rate:.1f}"
-            visualize_results(analyses_type="SP",run_identifier=run_identifier)
-        for lambda_par in [0,1]:
-            carbon_fee = "base"
-            alpha_par = 0.8
-            run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_lambda"+str((round((lambda_par), 0))) +"_alpha"+str(round(alpha_par, 1))
-            visualize_results(analyses_type="SP",run_identifier=run_identifier)
+        if False:
+            for scale_demand in [0.8,1.2]:
+                carbon_fee = "base"
+                run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_demand_scaled_"+str((round((scale_demand), 1))) +"_risk_rate_"+str(round(RISK_FREE_RATE *100,1 ))
+                visualize_results(analyses_type="SP",run_identifier=run_identifier)
+        if False:
+            for risk_rate in [1,2,3,4,5,6,7,8,9]:  #list(range(10))
+                carbon_fee = "base"
+                scale_demand = 1
+                run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_demand_scaled_"+str(int(scale_demand)) +"_risk_rate_"+f"{risk_rate:.1f}"
+                visualize_results(analyses_type="SP",run_identifier=run_identifier,risk_factor=risk_rate/100)
+        if True:
+            for lambda_par in [0,1]:
+                carbon_fee = "base"
+                alpha_par = 0.8
+                run_identifier = f"{scenario_tree}_carbontax{carbon_fee}"+"_lambda"+str((round((lambda_par), 0))) +"_alpha"+str(round(alpha_par, 1))
+                visualize_results(analyses_type="SP",run_identifier=run_identifier)
 
     
