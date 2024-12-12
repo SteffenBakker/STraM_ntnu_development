@@ -56,8 +56,8 @@ def cost_and_investment_table(base_data,output):
         "NodeCost":"Terminal",
         "UpgCost":"RailElectr.", 
         "ChargeCost":"Charging",
-        "FillingCost":"H2_Filling",
-        "CO2_PENALTY":"CO2_Penalty"
+        "FillingCost":"H2 Fueling",
+        "CO2_PENALTY":"CO2 Penalty"
         }
     # output.cost_var_colours =  {  #https://stackoverflow.com/questions/22408237/named-colors-in-matplotlib
     #     "LCOT":                  "royalblue",
@@ -623,7 +623,7 @@ def visualize_results(analyses_type,scenario_tree,
     print(round(output.all_costs_table,2))
 
     opex_variables = ["LCOT", "LCOT (Empty Trips)", "Emission","Emission (Empty Trips)","Time value", "Transfer"] #"CO2_Penalty"
-    investment_variables = ["RailTrack", "Terminal", "RailElectr.","Charging", "H2_Filling"]
+    investment_variables = ["RailTrack", "Terminal", "RailElectr.","Charging", "H2 Fueling"]
     
     plot_costs(base_data, output,which_costs=opex_variables,ylabel="Annual costs ("+currency+")",filename="opex",run_identifier=run_identifier2 )
     plot_costs(base_data, output,investment_variables,"Investment costs ("+currency+")","investment",run_identifier=run_identifier2)

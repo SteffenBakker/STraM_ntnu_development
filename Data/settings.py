@@ -77,7 +77,7 @@ color_map_stram = {
     "Terminal":rgb_constructor(130,130,130),
     "RailElectr.": rgb_constructor(10,91,113),
     "Charging": rgb_constructor(49,132,109),
-    "H2_Filling": rgb_constructor(2,61,100),
+    "H2 Fueling": rgb_constructor(2,61,100),
     "LCOT": rgb_constructor(38,38,38),
     "LCOT (Empty Trips)":    rgb_constructor(130,130,130),
     "Time value":               rgb_constructor(88,137,83),
